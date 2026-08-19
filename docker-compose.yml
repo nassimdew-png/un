@@ -17,6 +17,7 @@ services:
       - mongo_data:/data/db
     networks:
       - clinic_net
+      - dokploy-network
 
   # ============================================================================
   # 2. Laravel Backend API
@@ -45,6 +46,7 @@ services:
       - "8000:8000"
     networks:
       - clinic_net
+      - dokploy-network
 
   # ============================================================================
   # 3. AI Clinical Service (FastAPI)
@@ -62,6 +64,7 @@ services:
       - "8001:8000"
     networks:
       - clinic_net
+      - dokploy-network
 
   # ============================================================================
   # 4. Frontend Application (React + Vite SPA / Tablet)
@@ -79,10 +82,13 @@ services:
       - "3001:80"
     networks:
       - clinic_net
+      - dokploy-network
 
 networks:
   clinic_net:
     driver: bridge
+  dokploy-network:
+    external: true
 
 volumes:
   mongo_data:
