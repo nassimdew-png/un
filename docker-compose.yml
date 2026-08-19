@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
+  # ============================================================================
   # 1. MongoDB Database
+  # ============================================================================
   mongodb:
     image: mongo:6.0
     container_name: clinic_mongodb
@@ -16,37 +18,63 @@ services:
     networks:
       - clinic_net
 
+  # ============================================================================
   # 2. Laravel Backend API
+  # ============================================================================
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
     container_name: clinic_backend
     restart: always
     environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
       DB_CONNECTION: mongodb
       DB_HOST: mongodb
       DB_PORT: 27017
       DB_DATABASE: clinic_saas_db
+      DB_USERNAME: root
+      DB_PASSWORD: secretpassword
       AI_SERVICE_URL: http://ai-service:8000
     depends_on:
       - mongodb
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/var/www/html
     networks:
       - clinic_net
 
-  # 3. AI Service (FastAPI)
+  # ============================================================================
+  # 3. AI Clinical Service (FastAPI)
+  # ============================================================================
   ai-service:
     build:
       context: ./ai-service
+      dockerfile: Dockerfile
     container_name: clinic_ai_service
     restart: always
+    environment:
+      AI_PROVIDER: gemini
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "8001:8000"
-    volumes:
-      - ./ai-service:/app
+    networks:
+      - clinic_net
+
+  # ============================================================================
+  # 4. Frontend Application (React + Vite SPA / Tablet)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clinic_frontend
+    restart: always
+    depends_on:
+      - backend
+      - ai-service
+    ports:
+      - "3001:80"
     networks:
       - clinic_net
 
