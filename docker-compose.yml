@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Reverse Proxy & SSL Router (Traefik)
+  # ============================================================================
+  traefik:
+    image: traefik:v2.10
+    container_name: psypro_traefik
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik Web UI
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./proxy/traefik.yml:/etc/traefik/traefik.yml:ro"
+    networks:
+      - psypro_net
+
+  # ============================================================================
+  # MongoDB Multi-Tenant Database
+  # ============================================================================
+  mongodb:
+    image: mongo:6.0
+    container_name: psypro_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-secure_psypro_password}
+      MONGO_INITDB_DATABASE: ${DB_DATABASE:-psypro_saas_db}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - psypro_net
+
+  # ============================================================================
+  # Backend API (Laravel 11 / PHP 8.2+)
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: psypro_backend
+    restart: always
+    environment:
+      APP_NAME: PsyPro
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:-base64:6b3X2X7P7N0Z6C8A4K1F9G2H5J8L0Q3W=}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: http://api.${BASE_DOMAIN:-psypro.local}
+      DB_CONNECTION: mongodb
+      DB_HOST: mongodb
+      DB_PORT: 27017
+      DB_DATABASE: ${DB_DATABASE:-psypro_saas_db}
+      DB_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      DB_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-secure_psypro_password}
+      AI_SERVICE_URL: http://ai-service:8000
+    volumes:
+      - ./backend/storage:/var/www/html/storage
+    depends_on:
+      - mongodb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.psypro.local`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+    networks:
+      - psypro_net
+
+  # ============================================================================
+  # AI Clinical Engine (FastAPI / Python)
+  # ============================================================================
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: psypro_ai_service
+    restart: always
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+    ports:
+      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai.rule=Host(`ai.psypro.local`)"
+      - "traefik.http.routers.ai.entrypoints=web"
+      - "traefik.http.services.ai.loadbalancer.server.port=8000"
+    networks:
+      - psypro_net
+
+  # ============================================================================
+  # Frontend Application (React + Vite PWA / Tablet)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: psypro_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+      - ai-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`psypro.local`) || HostRegexp(`{subdomain:[a-z0-9-]+}.psypro.local`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - psypro_net
+
+networks:
+  psypro_net:
+    name: psypro_net
+    driver: bridge
+
+volumes:
+  mongo_data:
+    name: psypro_mongo_data
