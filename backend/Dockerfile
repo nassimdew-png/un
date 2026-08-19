@@ -33,4 +33,4 @@ RUN mkdir -p /var/www/html/bootstrap/cache \
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD sh -c "php artisan db:seed --force 2>/dev/null || true; php artisan serve --host=0.0.0.0 --port=8000"
