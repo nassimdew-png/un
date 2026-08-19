@@ -23,6 +23,14 @@ RUN composer install --no-dev --no-interaction --optimize-autoloader --no-securi
 
 COPY . .
 
+# إنشاء وضبط صلاحيات مجلدات الكاش والتخزين
+RUN mkdir -p /var/www/html/bootstrap/cache \
+             /var/www/html/storage/framework/cache \
+             /var/www/html/storage/framework/sessions \
+             /var/www/html/storage/framework/views \
+             /var/www/html/storage/logs \
+    && chmod -R 777 /var/www/html/bootstrap/cache /var/www/html/storage
+
 EXPOSE 8000
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
