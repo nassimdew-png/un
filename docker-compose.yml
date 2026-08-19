@@ -28,8 +28,10 @@ services:
     container_name: clinic_backend
     restart: always
     environment:
+      APP_NAME: PsyPro
       APP_ENV: production
-      APP_DEBUG: "false"
+      APP_KEY: base64:ZJ0PqR9O/UOwzp/vGnScZhSmRZmW/C88ursjb8Zvz+I=
+      APP_DEBUG: "true"
       DB_CONNECTION: mongodb
       DB_HOST: mongodb
       DB_PORT: 27017

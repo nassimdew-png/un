@@ -6,7 +6,7 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
-    'debug' => (bool) env('APP_DEBUG', false),
+    'debug' => (bool) env('APP_DEBUG', true),
 
     'url' => env('APP_URL', 'http://localhost'),
 
@@ -18,7 +18,7 @@ return [
 
     'faker_locale' => 'en_US',
 
-    'key' => env('APP_KEY', 'base64:6b3X2X7P7N0Z6C8A4K1F9G2H5J8L0Q3W='),
+    'key' => env('APP_KEY', 'base64:ZJ0PqR9O/UOwzp/vGnScZhSmRZmW/C88ursjb8Zvz+I='),
 
     'cipher' => 'AES-256-CBC',
 
