@@ -2,37 +2,63 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTenantStore } from '../../store/useTenantStore';
-import { Stethoscope, Lock, Mail, Building2, ArrowLeft } from 'lucide-react';
+import { Stethoscope, Lock, Mail, Building2, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('specialist@elamal.local');
+  const [email, setEmail] = useState('sara@elamal.dz');
   const [password, setPassword] = useState('password123');
   const [selectedSubdomain, setSelectedSubdomain] = useState('elamal');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const { login } = useAuthStore();
   const { availableTenants, selectTenantBySubdomain } = useTenantStore();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
+    try {
+      // Try to login via live backend API
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        selectTenantBySubdomain(selectedSubdomain);
+        login(data.user, data.token);
+        setLoading(false);
+        navigate(data.user.role === 'superadmin' ? '/superadmin' : '/appointments');
+        return;
+      }
+    } catch (err) {
+      console.log('Live API login fallback to client session:', err);
+    }
+
+    // Client fallback session for instant testing
     setTimeout(() => {
       selectTenantBySubdomain(selectedSubdomain);
       const isSuper = email.includes('admin');
 
       login({
-        id: isSuper ? 'superadmin_01' : 'user_specialist_01',
-        name: isSuper ? 'مدير المنصة العام' : 'د. نادية مرابط',
+        id: isSuper ? 'superadmin_01' : 'user_sara_01',
+        name: isSuper ? 'مدير المنصة العام' : 'د. سارة (أخصائية أرطوفونيا)',
         email,
         role: isSuper ? 'superadmin' : 'orthophoniste',
         specialty: isSuper ? 'Platform Admin' : 'Orthophonie'
-      }, 'mock_token_' + Date.now());
+      }, 'token_elamal_' + Date.now());
 
       setLoading(false);
       navigate(isSuper ? '/superadmin' : '/appointments');
-    }, 600);
+    }, 400);
   };
 
   return (
@@ -54,8 +80,8 @@ export default function Login() {
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
-            width: '52px',
-            height: '52px',
+            width: '56px',
+            height: '56px',
             borderRadius: '16px',
             background: 'linear-gradient(135deg, var(--primary-600), var(--accent-600))',
             color: 'white',
@@ -65,11 +91,29 @@ export default function Login() {
             marginBottom: '0.75rem',
             boxShadow: 'var(--shadow-glow)'
           }}>
-            <Stethoscope size={28} />
+            <Stethoscope size={30} />
           </div>
           <h1 className="title-xl" style={{ fontSize: '1.6rem' }}>منصة PsyPro السحابية</h1>
-          <p className="subtitle">تسجيل الدخول إلى العيادة المتخصصة</p>
+          <p className="subtitle">المنظومة الإكلينيكية الذكية للعيادات النفسية والأرطوفونية</p>
         </div>
+
+        {error && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '0.75rem',
+            borderRadius: '10px',
+            marginBottom: '1rem',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleLogin}>
           {/* Clinic Subdomain Selector */}
@@ -102,7 +146,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="specialist@clinic.com"
+              placeholder="sara@elamal.dz"
               dir="ltr"
             />
           </div>
@@ -138,12 +182,20 @@ export default function Login() {
           marginTop: '1.75rem',
           paddingTop: '1rem',
           borderTop: '1px solid var(--slate-200)',
-          fontSize: '0.75rem',
-          color: 'var(--slate-500)',
-          textAlign: 'center'
+          fontSize: '0.78rem',
+          color: 'var(--slate-600)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
         }}>
-          <div><strong>حساب تجريبي (أخصائي):</strong> specialist@elamal.local</div>
-          <div><strong>حساب تجريبي (SuperAdmin):</strong> admin@psypro.local</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span><strong>عيادة الأمل (د. سارة):</strong></span>
+            <code style={{ direction: 'ltr', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>sara@elamal.dz</code>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span><strong>كلمة المرور:</strong></span>
+            <code style={{ direction: 'ltr', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>password123</code>
+          </div>
         </div>
       </div>
     </div>
