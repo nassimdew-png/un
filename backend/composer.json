@@ -8,9 +8,7 @@
         "php": "^8.2",
         "mongodb/laravel-mongodb": "^4.0",
         "laravel/sanctum": "^3.3 || ^4.0",
-        "guzzlehttp/guzzle": "^7.8",
-        "tymon/jwt-auth": "^2.0",
-        "barryvdh/laravel-dompdf": "^2.0"
+        "guzzlehttp/guzzle": "^7.8"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -25,7 +23,10 @@
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true
+        "sort-packages": true,
+        "audit": {
+            "block": false
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true

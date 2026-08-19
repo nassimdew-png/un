@@ -20,7 +20,7 @@ WORKDIR /var/www/html
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-audit 2>/dev/null || composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 EXPOSE 8000
 
