@@ -20,7 +20,29 @@ services:
       - dokploy-network
 
   # ============================================================================
-  # 2. Laravel Backend API
+  # 2. Mongo Express (قاعدة بيانات ويب تفاعلية لإدارة الجداول والمستندات)
+  # ============================================================================
+  mongo-express:
+    image: mongo-express:latest
+    container_name: clinic_mongo_express
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: secretpassword
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: psypro2026
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - clinic_net
+      - dokploy-network
+
+  # ============================================================================
+  # 3. Laravel Backend API
   # ============================================================================
   backend:
     build:
@@ -49,7 +71,7 @@ services:
       - dokploy-network
 
   # ============================================================================
-  # 3. AI Clinical Service (FastAPI)
+  # 4. AI Clinical Service (FastAPI)
   # ============================================================================
   ai-service:
     build:
@@ -67,7 +89,7 @@ services:
       - dokploy-network
 
   # ============================================================================
-  # 4. Frontend Application (React + Vite SPA / Tablet)
+  # 5. Frontend Application (React + Vite SPA / Tablet)
   # ============================================================================
   frontend:
     build:
