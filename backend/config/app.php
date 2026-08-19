@@ -51,10 +51,10 @@ return [
         Illuminate\View\ViewServiceProvider::class,
 
         /*
-         * MongoDB & Package Service Providers...
+         * MongoDB & Sanctum Service Providers...
          */
         MongoDB\Laravel\MongoDBServiceProvider::class,
-        Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
+        Laravel\Sanctum\SanctumServiceProvider::class,
 
         /*
          * Application Service Providers...
@@ -79,7 +79,6 @@ return [
         'Response' => Illuminate\Support\Facades\Response::class,
         'Route' => Illuminate\Support\Facades\Route::class,
         'Storage' => Illuminate\Support\Facades\Storage::class,
-        'JWTAuth' => Tymon\JWTAuth\Facades\JWTAuth::class,
     ],
 
 ];
