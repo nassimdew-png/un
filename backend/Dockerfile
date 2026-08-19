@@ -19,7 +19,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 COPY composer.json ./
-RUN composer config audit.block false && composer install --no-dev --no-interaction --optimize-autoloader --no-audit
+RUN composer install --no-dev --no-interaction --optimize-autoloader --no-audit
 
 COPY . .
 
