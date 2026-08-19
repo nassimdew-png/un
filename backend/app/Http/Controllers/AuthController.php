@@ -6,91 +6,73 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Hash;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
-     * User Login with Subdomain awareness
+     * تسجيل الدخول المخصص لكل مستأجر/عيادة
      */
     public function login(Request $request)
     {
         $request->validate([
             'email'    => 'required|email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string',
         ]);
 
-        $credentials = $request->only('email', 'password');
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->get('current_tenant');
 
-        $user = User::where('email', $credentials['email'])->first();
-
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            // For MVP development ease, provide demo login if user does not exist yet
-            if ($credentials['email'] === 'admin@psypro.local' || $credentials['email'] === 'specialist@elamal.local') {
-                return response()->json([
-                    'status' => 'success',
-                    'token'  => 'mock_jwt_token_' . md5($credentials['email']),
-                    'user'   => [
-                        'id'        => 'user_mock_01',
-                        'name'      => $credentials['email'] === 'admin@psypro.local' ? 'Platform SuperAdmin' : 'د. نادية مرابط (أرطوفونية)',
-                        'email'     => $credentials['email'],
-                        'role'      => $credentials['email'] === 'admin@psypro.local' ? 'superadmin' : 'orthophoniste',
-                        'tenant_id' => $tenant ? $tenant->_id : 'tenant_elamal_01',
-                    ],
-                    'tenant' => $tenant ?? [
-                        'id'             => 'tenant_elamal_01',
-                        'name'           => 'عيادة الأمل للأرطوفونيا والدعم النفسي',
-                        'subdomain'      => 'elamal',
-                        'specialty_type' => 'multidisciplinary',
-                    ],
-                ]);
-            }
-
-            return response()->json(['error' => 'Invalid email or password'], 401);
+        // استعلام المستخدم المقترن بالمستأجر الحالي
+        $query = User::where('email', $request->email);
+        if ($tenant) {
+            $query->where('tenant_id', $tenant->_id);
         }
 
-        // Ensure user belongs to this tenant if tenant context is specified
-        if ($tenant && $user->role !== 'superadmin' && (string)$user->tenant_id !== (string)$tenant->_id) {
-            return response()->json(['error' => 'Unauthorized for this clinic domain'], 403);
+        $user = $query->first();
+
+        // التحقق من صحة المستخدم وكلمة المرور وحالة الحساب
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['البيانات المدخلة غير صحيحة.'],
+            ]);
         }
 
-        $token = JWTAuth::fromUser($user);
+        if (isset($user->is_active) && !$user->is_active) {
+            return response()->json(['message' => 'هذا الحساب معطل حالياً.'], 403);
+        }
+
+        // إنشاء Token بصلاحيات الدور الخاص بالمستخدم
+        $token = $user->createToken('clinic-token', [$user->role])->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
-            'token'  => $token,
-            'user'   => $user,
-            'tenant' => $tenant ?: $user->tenant,
+            'message' => 'تم تسجيل الدخول بنجاح',
+            'token'   => $token,
+            'user'    => [
+                'id'        => $user->_id,
+                'name'      => $user->name,
+                'email'     => $user->email,
+                'role'      => $user->role,
+                'specialty' => $user->specialty ?? null,
+                'tenant_id' => $user->tenant_id ?? null,
+            ]
         ]);
     }
 
     /**
-     * Get Current Authenticated User Profile
+     * تسجيل الخروج وإلغاء الـ Token الحالي
+     */
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(['message' => 'تم تسجيل الخروج بنجاح']);
+    }
+
+    /**
+     * جلب بيانات المستخدم المسجل حالياً
      */
     public function me(Request $request)
     {
-        $user = auth()->user() ?? [
-            'id'    => 'user_mock_01',
-            'name'  => 'د. نادية مرابط',
-            'email' => 'specialist@elamal.local',
-            'role'  => 'orthophoniste',
-        ];
-
-        return response()->json(['user' => $user]);
-    }
-
-    /**
-     * Logout
-     */
-    public function logout()
-    {
-        try {
-            JWTAuth::invalidate(JWTAuth::getToken());
-        } catch (\Exception $e) {
-            // Ignored
-        }
-
-        return response()->json(['message' => 'Successfully logged out']);
+        return response()->json($request->user());
     }
 }
