@@ -10,9 +10,9 @@ return [
             'driver'   => 'mongodb',
             'host'     => env('DB_HOST', '127.0.0.1'),
             'port'     => env('DB_PORT', 27017),
-            'database' => env('DB_DATABASE', 'psypro_saas_db'),
+            'database' => env('DB_DATABASE', 'clinic_saas_db'),
             'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', 'secure_psypro_password'),
+            'password' => env('DB_PASSWORD', 'secretpassword'),
             'options'  => [
                 'database' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
             ],
