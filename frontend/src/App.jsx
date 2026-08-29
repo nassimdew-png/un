@@ -15,6 +15,7 @@ import ScaleScorer from './pages/psychology/ScaleScorer';
 import KioskSession from './pages/tablet/KioskSession';
 import CustomDomainSettingsView from './components/settings/CustomDomainSettingsView';
 import PublicClinicMiniSiteView from './components/public/PublicClinicMiniSiteView';
+import ExercisesBankView from './pages/exercises/ExercisesBankView';
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/orthophonie/bilan" element={<BilanGenerator />} />
           <Route path="/psychology/session-notes" element={<SessionNotes />} />
           <Route path="/psychology/scales" element={<ScaleScorer />} />
+          <Route path="/exercises-bank" element={<ExercisesBankView />} />
           <Route path="/settings/domains" element={<CustomDomainSettingsView />} />
         </Route>
 

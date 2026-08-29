@@ -10,9 +10,10 @@ import {
   Tablet, 
   ShieldCheck, 
   Settings, 
-  Stethoscope,
-  Sparkles,
-  Globe
+  Stethoscope, 
+  Sparkles, 
+  Globe,
+  BookOpen
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -29,6 +30,7 @@ export default function Sidebar() {
     { label: 'الحصيلة الأرطوفونية (AI)', path: '/orthophonie/bilan', icon: FileText },
     { label: 'ملاحظات الجلسة (SOAP)', path: '/psychology/session-notes', icon: Activity },
     { label: 'المقاييس النفسية', path: '/psychology/scales', icon: BrainCircuit },
+    { label: 'بنك التمارين والكراسات', path: '/exercises-bank', icon: BookOpen },
     { label: 'النطاق المخصص وSSL', path: '/settings/domains', icon: Globe },
     { label: 'وضع التابلت التفاعلي', path: '/tablet/kiosk', icon: Tablet },
   ];

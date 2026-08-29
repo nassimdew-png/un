@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
 use App\Http\Controllers\Api\PublicClinicBookingController;
 use App\Http\Controllers\Api\SuperAdmin\BaridiMobPaymentController;
+use App\Http\Controllers\Api\ExercisesBankController;
 
 // 1. Public Health Check
 Route::get('/health', function () {
@@ -16,7 +17,8 @@ Route::get('/health', function () {
         'features' => [
             'custom_domains_ssl' => 'active',
             'public_mini_sites'  => 'active',
-            'baridimob_approval' => 'active'
+            'baridimob_approval' => 'active',
+            'exercises_bank'     => 'active'
         ]
     ]);
 });
@@ -28,10 +30,17 @@ Route::prefix('public/clinic')->group(function () {
     Route::post('/{slug}/book', [PublicClinicBookingController::class, 'book']);
 });
 
-// 3. Auth Routes
+// 3. Clinical Exercises & Workbooks Bank
+Route::prefix('exercises')->group(function () {
+    Route::get('/bank', [ExercisesBankController::class, 'index']);
+    Route::get('/categories', [ExercisesBankController::class, 'categories']);
+    Route::post('/assign', [ExercisesBankController::class, 'assign']);
+});
+
+// 4. Auth Routes
 Route::post('/login', [AuthController::class, 'login']);
 
-// 4. Clinic Custom Domains Management
+// 5. Clinic Custom Domains Management
 Route::prefix('clinic/domains')->group(function () {
     Route::get('/', [CustomDomainManagerController::class, 'index']);
     Route::post('/', [CustomDomainManagerController::class, 'store']);
@@ -41,13 +50,13 @@ Route::prefix('clinic/domains')->group(function () {
     Route::delete('/{id}', [CustomDomainManagerController::class, 'destroy']);
 });
 
-// 5. Clinic Subscription & BaridiMob Transfer Receipts
+// 6. Clinic Subscription & BaridiMob Transfer Receipts
 Route::prefix('clinic/subscription')->group(function () {
     Route::get('/status', [BaridiMobPaymentController::class, 'getClinicStatus']);
     Route::post('/upload-receipt', [BaridiMobPaymentController::class, 'uploadReceipt']);
 });
 
-// 6. SuperAdmin SaaS Management
+// 7. SuperAdmin SaaS Management
 Route::prefix('superadmin')->group(function () {
     // Domains
     Route::get('/domains', [SuperAdminDomainController::class, 'index']);
@@ -60,7 +69,7 @@ Route::prefix('superadmin')->group(function () {
     Route::post('/payments/{id}/reject', [BaridiMobPaymentController::class, 'reject']);
 });
 
-// 7. Protected Sanctum Routes
+// 8. Protected Sanctum Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
