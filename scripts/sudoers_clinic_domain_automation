@@ -1,0 +1,3 @@
+# /etc/sudoers.d/clinic_domain_automation
+# Allow web server / PHP worker (www-data) to run domain provisioning without password prompt
+www-data ALL=(ALL) NOPASSWD: /usr/local/bin/provision-clinic-domain.sh, /usr/local/bin/remove-clinic-domain.sh

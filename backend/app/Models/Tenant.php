@@ -21,4 +21,9 @@ class Tenant extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function customDomains()
+    {
+        return $this->hasMany(ClinicCustomDomain::class, 'clinic_id', '_id');
+    }
 }

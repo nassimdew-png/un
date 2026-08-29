@@ -11,24 +11,25 @@ import {
   ShieldCheck, 
   Settings, 
   Stethoscope,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
-  const isSuperAdmin = user.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin';
 
   const navItems = isSuperAdmin ? [
     { label: 'لوحة التحكم العامة', path: '/superadmin', icon: ShieldCheck },
-    { label: 'العيادات والمشتركون', path: '/superadmin/tenants', icon: Users },
-    { label: 'إحصائيات الذكاء الاصطناعي', path: '/superadmin/ai-metrics', icon: Sparkles },
-    { label: 'إعدادات النظام', path: '/superadmin/settings', icon: Settings },
+    { label: 'إدارة النطاقات وSSL', path: '/superadmin', icon: Globe },
+    { label: 'العيادات والمشتركون', path: '/superadmin', icon: Users },
   ] : [
     { label: 'رزنامة المواعيد', path: '/appointments', icon: Calendar },
     { label: 'ملفات المرضى', path: '/patients', icon: Users },
     { label: 'الحصيلة الأرطوفونية (AI)', path: '/orthophonie/bilan', icon: FileText },
     { label: 'ملاحظات الجلسة (SOAP)', path: '/psychology/session-notes', icon: Activity },
     { label: 'المقاييس النفسية', path: '/psychology/scales', icon: BrainCircuit },
+    { label: 'النطاق المخصص وSSL', path: '/settings/domains', icon: Globe },
     { label: 'وضع التابلت التفاعلي', path: '/tablet/kiosk', icon: Tablet },
   ];
 
@@ -76,11 +77,11 @@ export default function Sidebar() {
         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--slate-400)', padding: '0.5rem 0.75rem' }}>
           {isSuperAdmin ? 'إدارة المنصة السحابية' : 'الوحدات الإكلينيكية'}
         </div>
-        {navItems.map((item) => {
+        {navItems.map((item, index) => {
           const Icon = item.icon;
           return (
             <NavLink
-              key={item.path}
+              key={item.path + index}
               to={item.path}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
               style={({ isActive }) => ({

@@ -8,13 +8,19 @@ import {
   Plus, 
   CheckCircle2, 
   CreditCard,
-  Search
+  Search,
+  Globe,
+  Lock,
+  RefreshCw,
+  Layers
 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
+import SuperAdminCustomDomainsView from '../../components/super-admin/SuperAdminCustomDomainsView';
 
 export default function SuperAdminDashboard() {
   const { availableTenants } = useTenantStore();
   const [tenants, setTenants] = useState(availableTenants);
+  const [activeTab, setActiveTab] = useState('domains'); // 'domains' | 'clinics'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newClinic, setNewClinic] = useState({
     name: '',
@@ -44,126 +50,188 @@ export default function SuperAdminDashboard() {
   return (
     <div>
       {/* Top Title & Quick Action */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="title-xl">لوحة إدارة المنصة العامة (SuperAdmin)</h1>
-          <p className="subtitle">إدارة عيادات ومراكز علم النفس والأرطوفونيا المشتركة بالسحابة</p>
+          <p className="subtitle">إدارة عيادات ومراكز علم النفس والأرطوفونيا المشتركة والنطاقات المخصصة بالسحابة</p>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setIsAddModalOpen(true)}
+        {activeTab === 'clinics' && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            <Plus size={18} />
+            <span>إضافة عيادة جديدة</span>
+          </button>
+        )}
+      </div>
+
+      {/* Tabs Navigation */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        borderBottom: '1px solid var(--slate-200)',
+        marginBottom: '2rem'
+      }}>
+        <button
+          onClick={() => setActiveTab('domains')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.85rem 1.25rem',
+            border: 'none',
+            background: 'none',
+            fontSize: '0.925rem',
+            fontWeight: activeTab === 'domains' ? 800 : 500,
+            color: activeTab === 'domains' ? 'var(--primary-700)' : 'var(--slate-600)',
+            borderBottom: activeTab === 'domains' ? '3px solid var(--primary-600)' : '3px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <Plus size={18} />
-          <span>إضافة عيادة جديدة</span>
+          <Globe size={18} color={activeTab === 'domains' ? 'var(--primary-600)' : 'var(--slate-400)'} />
+          <span>🌐 النطاقات المخصصة وSSL</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('clinics')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.85rem 1.25rem',
+            border: 'none',
+            background: 'none',
+            fontSize: '0.925rem',
+            fontWeight: activeTab === 'clinics' ? 800 : 500,
+            color: activeTab === 'clinics' ? 'var(--primary-700)' : 'var(--slate-600)',
+            borderBottom: activeTab === 'clinics' ? '3px solid var(--primary-600)' : '3px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <Building2 size={18} color={activeTab === 'clinics' ? 'var(--primary-600)' : 'var(--slate-400)'} />
+          <span>🏢 العيادات والمستأجرون (Tenants)</span>
         </button>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--primary-50)', color: 'var(--primary-600)' }}>
-            <Building2 size={24} />
-          </div>
-          <div>
-            <div className="subtitle">إجمالي العيادات النشطة</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{tenants.length} عيادات</div>
-          </div>
-        </div>
+      {/* Tab 1: Custom Domains and SSL */}
+      {activeTab === 'domains' && (
+        <SuperAdminCustomDomainsView />
+      )}
 
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--accent-50)', color: 'var(--accent-600)' }}>
-            <Users size={24} />
-          </div>
-          <div>
-            <div className="subtitle">سجلات المرضى النشطة</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>109 مريض</div>
-          </div>
-        </div>
+      {/* Tab 2: Clinics Management Table */}
+      {activeTab === 'clinics' && (
+        <>
+          {/* KPI Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--primary-50)', color: 'var(--primary-600)' }}>
+                <Building2 size={24} />
+              </div>
+              <div>
+                <div className="subtitle">إجمالي العيادات النشطة</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{tenants.length} عيادات</div>
+              </div>
+            </div>
 
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--indigo-50)', color: 'var(--indigo-600)' }}>
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <div className="subtitle">حصائل مولدة بالذكاء الاصطناعي</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>342 تقرير</div>
-          </div>
-        </div>
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--accent-50)', color: 'var(--accent-600)' }}>
+                <Users size={24} />
+              </div>
+              <div>
+                <div className="subtitle">سجلات المرضى النشطة</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>109 مريض</div>
+              </div>
+            </div>
 
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--success-50)', color: 'var(--success-700)' }}>
-            <CreditCard size={24} />
-          </div>
-          <div>
-            <div className="subtitle">نسبة تجديد الاشتراكات</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>98.4%</div>
-          </div>
-        </div>
-      </div>
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--indigo-50)', color: 'var(--indigo-600)' }}>
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <div className="subtitle">حصائل مولدة بالذكاء الاصطناعي</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>342 تقرير</div>
+              </div>
+            </div>
 
-      {/* Clinics Multi-Tenant Management Table */}
-      <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 className="title-lg" style={{ fontSize: '1.1rem' }}>قائمة العيادات والمراكز المشتركة</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-50)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-            <Search size={15} color="var(--slate-400)" />
-            <input 
-              type="text" 
-              placeholder="بحث عن عيادة أو نطاق..." 
-              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontFamily: 'inherit' }}
-            />
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--success-50)', color: 'var(--success-700)' }}>
+                <CreditCard size={24} />
+              </div>
+              <div>
+                <div className="subtitle">نسبة تجديد الاشتراكات</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>98.4%</div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-          <thead>
-            <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
-              <th style={{ padding: '0.85rem 1.5rem' }}>اسم العيادة</th>
-              <th style={{ padding: '0.85rem 1rem' }}>النطاق الفرعي (Subdomain)</th>
-              <th style={{ padding: '0.85rem 1rem' }}>التخصص الإكلينيكي</th>
-              <th style={{ padding: '0.85rem 1rem' }}>حالة الاشتراك</th>
-              <th style={{ padding: '0.85rem 1rem' }}>سجلات المرضى</th>
-              <th style={{ padding: '0.85rem 1.5rem', textAlign: 'left' }}>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tenants.map((t) => (
-              <tr key={t.id} style={{ borderBottom: '1px solid var(--slate-100)', fontSize: '0.875rem' }}>
-                <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: 'var(--slate-900)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Building2 size={16} color="var(--primary-600)" />
-                    {t.name}
-                  </div>
-                </td>
-                <td style={{ padding: '1rem 1rem' }}>
-                  <code style={{ background: 'var(--slate-100)', padding: '0.2rem 0.4rem', borderRadius: '4px', color: 'var(--accent-700)', fontSize: '0.8rem' }}>
-                    {t.subdomain}.psypro.local
-                  </code>
-                </td>
-                <td style={{ padding: '1rem 1rem' }}>
-                  <span className="badge badge-accent">
-                    {t.specialty_type === 'orthophonie' ? 'أرطوفونيا' : (t.specialty_type === 'psychology' ? 'علم نفس' : 'متعدد التخصصات')}
-                  </span>
-                </td>
-                <td style={{ padding: '1rem 1rem' }}>
-                  <span className="badge badge-success">
-                    <CheckCircle2 size={12} />
-                    نشط (ساري)
-                  </span>
-                </td>
-                <td style={{ padding: '1rem 1rem', fontWeight: 600 }}>
-                  {t.patientsCount || 48} ملف
-                </td>
-                <td style={{ padding: '1rem 1.5rem', textAlign: 'left' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
-                    إدارة الحساب
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 className="title-lg" style={{ fontSize: '1.1rem' }}>قائمة العيادات والمراكز المشتركة</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-50)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <Search size={15} color="var(--slate-400)" />
+                <input 
+                  type="text" 
+                  placeholder="بحث عن عيادة أو نطاق..." 
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontFamily: 'inherit' }}
+                />
+              </div>
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
+                  <th style={{ padding: '0.85rem 1.5rem' }}>اسم العيادة</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>النطاق الفرعي (Subdomain)</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>التخصص الإكلينيكي</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>حالة الاشتراك</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>سجلات المرضى</th>
+                  <th style={{ padding: '0.85rem 1.5rem', textAlign: 'left' }}>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenants.map((t) => (
+                  <tr key={t.id} style={{ borderBottom: '1px solid var(--slate-100)', fontSize: '0.875rem' }}>
+                    <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: 'var(--slate-900)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Building2 size={16} color="var(--primary-600)" />
+                        {t.name}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1rem 1rem' }}>
+                      <code style={{ background: 'var(--slate-100)', padding: '0.2rem 0.4rem', borderRadius: '4px', color: 'var(--accent-700)', fontSize: '0.8rem' }}>
+                        {t.subdomain}.psypro.local
+                      </code>
+                    </td>
+                    <td style={{ padding: '1rem 1rem' }}>
+                      <span className="badge badge-accent">
+                        {t.specialty_type === 'orthophonie' ? 'أرطوفونيا' : (t.specialty_type === 'psychology' ? 'علم نفس' : 'متعدد التخصصات')}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1rem 1rem' }}>
+                      <span className="badge badge-success">
+                        <CheckCircle2 size={12} />
+                        نشط (ساري)
+                      </span>
+                    </td>
+                    <td style={{ padding: '1rem 1rem', fontWeight: 600 }}>
+                      {t.patientsCount || 48} ملف
+                    </td>
+                    <td style={{ padding: '1rem 1.5rem', textAlign: 'left' }}>
+                      <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
+                        إدارة الحساب
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Add Clinic Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="إنشاء عيادة جديدة وتفعيل النطاق">

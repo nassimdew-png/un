@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from './layouts/AdminLayout';
 import TabletLayout from './layouts/TabletLayout';
 
-// Pages
+// Pages & Components
 import Login from './pages/auth/Login';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import AppointmentsCalendar from './pages/appointments/AppointmentsCalendar';
@@ -13,6 +13,7 @@ import BilanGenerator from './pages/orthophonie/BilanGenerator';
 import SessionNotes from './pages/psychology/SessionNotes';
 import ScaleScorer from './pages/psychology/ScaleScorer';
 import KioskSession from './pages/tablet/KioskSession';
+import CustomDomainSettingsView from './components/settings/CustomDomainSettingsView';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/orthophonie/bilan" element={<BilanGenerator />} />
           <Route path="/psychology/session-notes" element={<SessionNotes />} />
           <Route path="/psychology/scales" element={<ScaleScorer />} />
+          <Route path="/settings/domains" element={<CustomDomainSettingsView />} />
         </Route>
 
         {/* Fallback */}
