@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
 use App\Http\Controllers\Api\PublicClinicBookingController;
 use App\Http\Controllers\Api\SuperAdmin\BaridiMobPaymentController;
-use App\Http\Controllers\Api\ExercisesBankController;
+use App\Http\Controllers\Api\ExerciseBankController;
 
 // 1. Public Health Check
 Route::get('/health', function () {
@@ -32,9 +32,10 @@ Route::prefix('public/clinic')->group(function () {
 
 // 3. Clinical Exercises & Workbooks Bank
 Route::prefix('exercises')->group(function () {
-    Route::get('/bank', [ExercisesBankController::class, 'index']);
-    Route::get('/categories', [ExercisesBankController::class, 'categories']);
-    Route::post('/assign', [ExercisesBankController::class, 'assign']);
+    Route::get('/', [ExerciseBankController::class, 'index']);
+    Route::get('/bank', [ExerciseBankController::class, 'index']);
+    Route::post('/assign-to-patient', [ExerciseBankController::class, 'assignToPatient']);
+    Route::post('/assign', [ExerciseBankController::class, 'assignToPatient']);
 });
 
 // 4. Auth Routes
@@ -73,4 +74,6 @@ Route::prefix('superadmin')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/exercises', [ExerciseBankController::class, 'index']);
+    Route::post('/exercises/assign-to-patient', [ExerciseBankController::class, 'assignToPatient']);
 });
