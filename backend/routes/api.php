@@ -4,21 +4,34 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
+use App\Http\Controllers\Api\PublicClinicBookingController;
+use App\Http\Controllers\Api\SuperAdmin\BaridiMobPaymentController;
 
-// Public Health Check
+// 1. Public Health Check
 Route::get('/health', function () {
     return response()->json([
         'status' => 'healthy',
         'backend' => 'Laravel 11',
         'database' => 'MongoDB',
-        'ssl_engine' => 'Certbot + Nginx Automation Ready'
+        'features' => [
+            'custom_domains_ssl' => 'active',
+            'public_mini_sites'  => 'active',
+            'baridimob_approval' => 'active'
+        ]
     ]);
 });
 
-// المسارات العامة (Public Routes)
+// 2. Public Clinic Landing & Interactive Booking Routes (No Auth Required)
+Route::prefix('public/clinic')->group(function () {
+    Route::get('/{slug}', [PublicClinicBookingController::class, 'show']);
+    Route::get('/{slug}/available-slots', [PublicClinicBookingController::class, 'availableSlots']);
+    Route::post('/{slug}/book', [PublicClinicBookingController::class, 'book']);
+});
+
+// 3. Auth Routes
 Route::post('/login', [AuthController::class, 'login']);
 
-// Clinic Custom Domains Management
+// 4. Clinic Custom Domains Management
 Route::prefix('clinic/domains')->group(function () {
     Route::get('/', [CustomDomainManagerController::class, 'index']);
     Route::post('/', [CustomDomainManagerController::class, 'store']);
@@ -28,14 +41,26 @@ Route::prefix('clinic/domains')->group(function () {
     Route::delete('/{id}', [CustomDomainManagerController::class, 'destroy']);
 });
 
-// SuperAdmin SaaS-Wide Custom Domains Management
-Route::prefix('superadmin/domains')->group(function () {
-    Route::get('/', [SuperAdminDomainController::class, 'index']);
-    Route::post('/{id}/force-renew', [SuperAdminDomainController::class, 'forceRenew']);
-    Route::delete('/{id}', [SuperAdminDomainController::class, 'destroy']);
+// 5. Clinic Subscription & BaridiMob Transfer Receipts
+Route::prefix('clinic/subscription')->group(function () {
+    Route::get('/status', [BaridiMobPaymentController::class, 'getClinicStatus']);
+    Route::post('/upload-receipt', [BaridiMobPaymentController::class, 'uploadReceipt']);
 });
 
-// المسارات المحمية بواسطة Sanctum
+// 6. SuperAdmin SaaS Management
+Route::prefix('superadmin')->group(function () {
+    // Domains
+    Route::get('/domains', [SuperAdminDomainController::class, 'index']);
+    Route::post('/domains/{id}/force-renew', [SuperAdminDomainController::class, 'forceRenew']);
+    Route::delete('/domains/{id}', [SuperAdminDomainController::class, 'destroy']);
+
+    // BaridiMob Receipts Verification & Approval
+    Route::get('/payments/pending-receipts', [BaridiMobPaymentController::class, 'getPendingReceipts']);
+    Route::post('/payments/{id}/approve', [BaridiMobPaymentController::class, 'approve']);
+    Route::post('/payments/{id}/reject', [BaridiMobPaymentController::class, 'reject']);
+});
+
+// 7. Protected Sanctum Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);

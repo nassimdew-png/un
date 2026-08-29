@@ -7,20 +7,21 @@ import {
   TrendingUp, 
   Plus, 
   CheckCircle2, 
-  CreditCard,
-  Search,
-  Globe,
-  Lock,
-  RefreshCw,
-  Layers
+  CreditCard, 
+  Search, 
+  Globe, 
+  Receipt,
+  FileCheck,
+  RefreshCw 
 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import SuperAdminCustomDomainsView from '../../components/super-admin/SuperAdminCustomDomainsView';
+import BaridiMobApprovalInbox from '../../components/super-admin/BaridiMobApprovalInbox';
 
 export default function SuperAdminDashboard() {
   const { availableTenants } = useTenantStore();
   const [tenants, setTenants] = useState(availableTenants);
-  const [activeTab, setActiveTab] = useState('domains'); // 'domains' | 'clinics'
+  const [activeTab, setActiveTab] = useState('payments'); // 'payments' | 'domains' | 'clinics'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newClinic, setNewClinic] = useState({
     name: '',
@@ -49,11 +50,11 @@ export default function SuperAdminDashboard() {
 
   return (
     <div>
-      {/* Top Title & Quick Action */}
+      {/* Top Title & Action */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="title-xl">لوحة إدارة المنصة العامة (SuperAdmin)</h1>
-          <p className="subtitle">إدارة عيادات ومراكز علم النفس والأرطوفونيا المشتركة والنطاقات المخصصة بالسحابة</p>
+          <p className="subtitle">إدارة اشتراكات بريدي موب، النطاقات المخصصة بالسحابة، وعيادات علم النفس والأرطوفونيا</p>
         </div>
         {activeTab === 'clinics' && (
           <button 
@@ -72,8 +73,31 @@ export default function SuperAdminDashboard() {
         alignItems: 'center',
         gap: '0.5rem',
         borderBottom: '1px solid var(--slate-200)',
-        marginBottom: '2rem'
+        marginBottom: '2rem',
+        overflowX: 'auto'
       }}>
+        <button
+          onClick={() => setActiveTab('payments')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.85rem 1.25rem',
+            border: 'none',
+            background: 'none',
+            fontSize: '0.925rem',
+            fontWeight: activeTab === 'payments' ? 800 : 500,
+            color: activeTab === 'payments' ? 'var(--primary-700)' : 'var(--slate-600)',
+            borderBottom: activeTab === 'payments' ? '3px solid var(--primary-600)' : '3px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Receipt size={18} color={activeTab === 'payments' ? 'var(--primary-600)' : 'var(--slate-400)'} />
+          <span>📑 المعاملات ووصولات الدفع (BaridiMob & CCP)</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('domains')}
           style={{
@@ -88,7 +112,8 @@ export default function SuperAdminDashboard() {
             color: activeTab === 'domains' ? 'var(--primary-700)' : 'var(--slate-600)',
             borderBottom: activeTab === 'domains' ? '3px solid var(--primary-600)' : '3px solid transparent',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
           }}
         >
           <Globe size={18} color={activeTab === 'domains' ? 'var(--primary-600)' : 'var(--slate-400)'} />
@@ -109,7 +134,8 @@ export default function SuperAdminDashboard() {
             color: activeTab === 'clinics' ? 'var(--primary-700)' : 'var(--slate-600)',
             borderBottom: activeTab === 'clinics' ? '3px solid var(--primary-600)' : '3px solid transparent',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
           }}
         >
           <Building2 size={18} color={activeTab === 'clinics' ? 'var(--primary-600)' : 'var(--slate-400)'} />
@@ -117,12 +143,17 @@ export default function SuperAdminDashboard() {
         </button>
       </div>
 
-      {/* Tab 1: Custom Domains and SSL */}
+      {/* Tab 1: Payments & BaridiMob Receipts */}
+      {activeTab === 'payments' && (
+        <BaridiMobApprovalInbox />
+      )}
+
+      {/* Tab 2: Custom Domains & SSL */}
       {activeTab === 'domains' && (
         <SuperAdminCustomDomainsView />
       )}
 
-      {/* Tab 2: Clinics Management Table */}
+      {/* Tab 3: Clinics Management Table */}
       {activeTab === 'clinics' && (
         <>
           {/* KPI Stats Grid */}

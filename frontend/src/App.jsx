@@ -14,11 +14,16 @@ import SessionNotes from './pages/psychology/SessionNotes';
 import ScaleScorer from './pages/psychology/ScaleScorer';
 import KioskSession from './pages/tablet/KioskSession';
 import CustomDomainSettingsView from './components/settings/CustomDomainSettingsView';
+import PublicClinicMiniSiteView from './components/public/PublicClinicMiniSiteView';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Clinic Mini-Site & Direct Booking Routes */}
+        <Route path="/c/:slug" element={<PublicClinicMiniSiteView />} />
+        <Route path="/c" element={<PublicClinicMiniSiteView />} />
+
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
 
