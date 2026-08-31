@@ -38,9 +38,16 @@ Route::prefix('exercises')->group(function () {
     Route::post('/assign', [ExerciseBankController::class, 'assignToPatient']);
 });
 
-// 4. Auth Routes
+// 4. Authentication Routes (Supporting both /api/login and /api/auth/login)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/login', fn() => response()->json(['message' => 'Unauthenticated.'], 401));
+
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/login', fn() => response()->json(['message' => 'Unauthenticated.'], 401));
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+});
 
 // 5. Clinic Custom Domains Management
 Route::prefix('clinic/domains')->group(function () {
