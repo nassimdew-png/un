@@ -5,8 +5,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
-use App\Http\Controllers\Api\PublicClinicBookingController;
 use App\Http\Controllers\Api\SuperAdmin\BaridiMobPaymentController;
+use App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController;
+use App\Http\Controllers\Api\SuperAdmin\AIProviderManagerController;
+use App\Http\Controllers\Api\SuperAdmin\FeatureSwitchController;
+use App\Http\Controllers\Api\SuperAdmin\ClinicQuotaController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanManagerController;
+use App\Http\Controllers\Api\PublicClinicBookingController;
 use App\Http\Controllers\Api\ExerciseBankController;
 
 // 1. Public Health Check
@@ -16,12 +21,16 @@ Route::get('/health', function () {
         'backend'  => 'Laravel 11',
         'database' => 'Connected',
         'features' => [
-            'authentication'     => 'active',
-            'patients_crud'      => 'active',
-            'custom_domains_ssl' => 'active',
-            'public_mini_sites'  => 'active',
-            'baridimob_approval' => 'active',
-            'exercises_bank'     => 'active'
+            'authentication'          => 'active',
+            'patients_crud'           => 'active',
+            'superadmin_ai_providers' => 'active',
+            'communication_gateways'  => 'active',
+            'feature_switches'        => 'active',
+            'clinic_quotas'           => 'active',
+            'custom_domains_ssl'      => 'active',
+            'public_mini_sites'       => 'active',
+            'baridimob_approval'      => 'active',
+            'exercises_bank'          => 'active'
         ]
     ]);
 });
@@ -84,6 +93,33 @@ Route::prefix('superadmin')->group(function () {
     Route::get('/payments/pending-receipts', [BaridiMobPaymentController::class, 'getPendingReceipts']);
     Route::post('/payments/{id}/approve', [BaridiMobPaymentController::class, 'approve']);
     Route::post('/payments/{id}/reject', [BaridiMobPaymentController::class, 'reject']);
+
+    // Communication Gateways (SMTP / SMS / WhatsApp)
+    Route::get('/communication-settings', [CommunicationGatewayController::class, 'getSettings']);
+    Route::post('/communication-settings/save', [CommunicationGatewayController::class, 'saveSettings']);
+    Route::post('/communication-settings/test-email', [CommunicationGatewayController::class, 'testEmail']);
+    Route::post('/communication-settings/test-sms', [CommunicationGatewayController::class, 'testSms']);
+    Route::post('/communication-settings/test-whatsapp', [CommunicationGatewayController::class, 'testWhatsapp']);
+
+    // AI Provider Management (Gemini / OpenAI / DeepSeek / Claude)
+    Route::get('/ai-providers', [AIProviderManagerController::class, 'getProviders']);
+    Route::post('/ai-providers/save', [AIProviderManagerController::class, 'saveKey']);
+    Route::post('/ai-providers/test', [AIProviderManagerController::class, 'testConnection']);
+    Route::post('/ai-providers/toggle', [AIProviderManagerController::class, 'toggleProvider']);
+
+    // Feature Master Switches
+    Route::get('/feature-switches', [FeatureSwitchController::class, 'getSwitches']);
+    Route::post('/feature-switches/update', [FeatureSwitchController::class, 'updateSwitch']);
+
+    // Clinic Quotas & Overrides
+    Route::get('/clinics/quotas', [ClinicQuotaController::class, 'getQuotas']);
+    Route::put('/clinics/{id}/quota', [ClinicQuotaController::class, 'updateClinicQuota']);
+
+    // Subscription Plans & Pricing
+    Route::get('/plans', [SubscriptionPlanManagerController::class, 'index']);
+    Route::post('/plans', [SubscriptionPlanManagerController::class, 'store']);
+    Route::put('/plans/{id}', [SubscriptionPlanManagerController::class, 'update']);
+    Route::delete('/plans/{id}', [SubscriptionPlanManagerController::class, 'destroy']);
 });
 
 // 9. Authenticated Sanctum Routes
