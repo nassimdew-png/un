@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
 use App\Http\Controllers\Api\PublicClinicBookingController;
@@ -16,6 +17,7 @@ Route::get('/health', function () {
         'database' => 'Connected',
         'features' => [
             'authentication'     => 'active',
+            'patients_crud'      => 'active',
             'custom_domains_ssl' => 'active',
             'public_mini_sites'  => 'active',
             'baridimob_approval' => 'active',
@@ -35,14 +37,19 @@ Route::prefix('auth')->group(function () {
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
 
-// 3. Public Clinic Landing & Interactive Booking Routes (No Auth Required)
+// 3. Patients API Endpoints (Direct access fallback)
+Route::apiResource('patients', PatientController::class);
+Route::get('/patients/{id}/history', [PatientController::class, 'history']);
+Route::post('/patients/{id}/upload-avatar', [PatientController::class, 'uploadAvatar']);
+
+// 4. Public Clinic Landing & Interactive Booking Routes (No Auth Required)
 Route::prefix('public/clinic')->group(function () {
     Route::get('/{slug}', [PublicClinicBookingController::class, 'show']);
     Route::get('/{slug}/available-slots', [PublicClinicBookingController::class, 'availableSlots']);
     Route::post('/{slug}/book', [PublicClinicBookingController::class, 'book']);
 });
 
-// 4. Clinical Exercises & Workbooks Bank
+// 5. Clinical Exercises & Workbooks Bank
 Route::prefix('exercises')->group(function () {
     Route::get('/', [ExerciseBankController::class, 'index']);
     Route::get('/bank', [ExerciseBankController::class, 'index']);
@@ -50,7 +57,7 @@ Route::prefix('exercises')->group(function () {
     Route::post('/assign', [ExerciseBankController::class, 'assignToPatient']);
 });
 
-// 5. Clinic Custom Domains Management
+// 6. Clinic Custom Domains Management
 Route::prefix('clinic/domains')->group(function () {
     Route::get('/', [CustomDomainManagerController::class, 'index']);
     Route::post('/', [CustomDomainManagerController::class, 'store']);
@@ -60,13 +67,13 @@ Route::prefix('clinic/domains')->group(function () {
     Route::delete('/{id}', [CustomDomainManagerController::class, 'destroy']);
 });
 
-// 6. Clinic Subscription & BaridiMob Transfer Receipts
+// 7. Clinic Subscription & BaridiMob Transfer Receipts
 Route::prefix('clinic/subscription')->group(function () {
     Route::get('/status', [BaridiMobPaymentController::class, 'getClinicStatus']);
     Route::post('/upload-receipt', [BaridiMobPaymentController::class, 'uploadReceipt']);
 });
 
-// 7. SuperAdmin SaaS Management
+// 8. SuperAdmin SaaS Management
 Route::prefix('superadmin')->group(function () {
     // Domains
     Route::get('/domains', [SuperAdminDomainController::class, 'index']);
@@ -79,11 +86,21 @@ Route::prefix('superadmin')->group(function () {
     Route::post('/payments/{id}/reject', [BaridiMobPaymentController::class, 'reject']);
 });
 
-// 8. Authenticated Auth & User Endpoints
+// 9. Authenticated Sanctum Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::get('/user', [AuthController::class, 'me']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Patient CRUD & Sub-resources
+    Route::apiResource('patients', PatientController::class);
+    Route::get('/patients/{id}/history', [PatientController::class, 'history']);
+    Route::post('/patients/{id}/upload-avatar', [PatientController::class, 'uploadAvatar']);
+
+    // Compatibility alias for clinic prefix:
+    Route::prefix('clinic')->group(function () {
+        Route::apiResource('patients', PatientController::class);
+    });
 });
