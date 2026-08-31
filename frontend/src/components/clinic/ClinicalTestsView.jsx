@@ -1,487 +1,463 @@
 import React, { useState } from 'react';
 import { 
-  BrainCircuit, 
-  Search, 
-  Sparkles, 
-  Calculator, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Tablet, 
-  Printer, 
-  ExternalLink, 
-  Clock, 
-  Users, 
-  Layers, 
-  FileText, 
-  Eye, 
-  Play, 
-  ChevronLeft,
-  Activity,
-  HeartPulse,
-  Scale
+  FileText, Play, CheckCircle2, AlertTriangle, Printer,
+  Tablet, Search, Sparkles, Filter, Activity, Clock, Award,
+  ChevronLeft, BarChart3, HelpCircle, X, Download
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import Modal from '../common/Modal';
+
+const DIAGNOSTIC_TESTS = [
+  {
+    id: 'arabic_articulation_pcc',
+    title: 'رائز الفحص النطقي العربي المعياري (PCC)',
+    category: 'orthophonie',
+    categoryName: 'تقويم النطق والتخاطب',
+    duration: '20-30 دقيقة',
+    targetAge: '3 سنوات فما فوق',
+    normStandard: 'المعيار الصوتي العربي / الجزائري',
+    description: 'تقييم شامل لجميع الصوامت العربية في المواضع الثلاثة (البداية، الوسط، النهاية) وحساب النسبة المئوية للصوامت الصحيحة (PCC Score) لتشخيص اللدغات واضطرابات النطق النمائية.',
+    badge: 'معتمد رسمياً',
+    badgeColor: 'emerald',
+    questionsCount: 28,
+    scoringType: 'pcc_percentage',
+    sampleItems: [
+      { id: 'item_r', label: 'صوت الراء /ر/ (رمّان - مركب - قمر)', phoneme: 'ر', targetWord: 'رمّان' },
+      { id: 'item_s', label: 'صوت السين /س/ (سمكة - مسبح - شمس)', phoneme: 'س', targetWord: 'سمكة' },
+      { id: 'item_k', label: 'صوت الكاف /ك/ (كتاب - مكتب - سمك)', phoneme: 'ك', targetWord: 'كتاب' },
+      { id: 'item_l', label: 'صوت اللام /ل/ (ليمون - قلم - جمل)', phoneme: 'ل', targetWord: 'ليمون' },
+      { id: 'item_j', label: 'صوت الجيم /ج/ (جزر - شجرة - تاج)', phoneme: 'ج', targetWord: 'جزر' },
+    ]
+  },
+  {
+    id: 'cars_2_autism',
+    title: 'مقياس تقدير التوحد الطفولي (CARS-2)',
+    category: 'autism',
+    categoryName: 'طيف التوحد والنمو',
+    duration: '30-45 دقيقة',
+    targetAge: 'سنتان فما فوق',
+    normStandard: 'Childhood Autism Rating Scale (CARS-2-ST)',
+    description: 'المقياس الإكلينيكي الذهبي لتقييم 15 مجالاً سلوكياً ونمائياً لتشخيص اضطراب طيف التوحد وتحديد شدته بدقة إحصائية عالية.',
+    badge: 'المعيار الذهبي',
+    badgeColor: 'amber',
+    questionsCount: 15,
+    scoringType: 'sum_total',
+    sampleItems: [
+      { id: 'c1', label: 'العلاقات مع الناس (التفاعل الاجتماعي والتواصل المتبادل)', max: 4 },
+      { id: 'c2', label: 'التقليد والمحاكاة الحركية واللفظية', max: 4 },
+      { id: 'c3', label: 'الاستجابة العاطفية وملاءمة الانفعالات', max: 4 },
+      { id: 'c4', label: 'استخدام الجسم وحركات اليدين النمطية', max: 4 },
+      { id: 'c5', label: 'استخدام الأشياء واللعب النمطي وغير الوظيفي', max: 4 },
+    ]
+  },
+  {
+    id: 'bdi_2_depression',
+    title: 'مقياس بيك للاكتئاب السريري (BDI-II)',
+    category: 'psychology',
+    categoryName: 'العيادة النفسية للبالغين والمراهقين',
+    duration: '10-15 دقيقة',
+    targetAge: '13 سنة فما فوق',
+    normStandard: 'Beck Depression Inventory (BDI-II)',
+    description: 'استمارة التقييم النفسي الذاتي الأكثر استخداماً عالمياً المكونة من 21 بنداً لقياس الأعراض المعرفية والوجدانية والجسدية للاكتئاب.',
+    badge: 'مقنن دولياً',
+    badgeColor: 'blue',
+    questionsCount: 21,
+    scoringType: 'bdi_sum',
+    sampleItems: [
+      { id: 'b1', label: 'الحزن والشعور بالكآبة (0 إلى 3 درجات)' },
+      { id: 'b2', label: 'التشاؤم وتوقع المستقبل السلبي' },
+      { id: 'b3', label: 'الإحساس بالفشل والإخفاق المستمر' },
+      { id: 'b4', label: 'فقدان المتعة والاهتمام بالأنشطة (Anhedonia)' },
+      { id: 'b5', label: 'مشاعر الذنب ولوم الذات' },
+    ]
+  },
+  {
+    id: 'conners_3_adhd',
+    title: 'مقياس كونرز لفرط الحركة وتشتت الانتباه (Conners-3)',
+    category: 'psychology',
+    categoryName: 'صعوبات التعلم والانتباه',
+    duration: '20 دقيقة',
+    targetAge: '6 - 18 سنة',
+    normStandard: 'Conners 3rd Edition (Teacher & Parent Rating)',
+    description: 'تقييم شامل لأعراض نقص الانتباه، فرط النشاط، والاندفاعية مع مؤشرات الوظائف التنفيذية وصعوبات التعلم الأكاديمية.',
+    badge: 'ADHD تشخيص',
+    badgeColor: 'purple',
+    questionsCount: 24,
+    scoringType: 'sum_total',
+    sampleItems: [
+      { id: 'cn1', label: 'صعوبة البقاء منتبهاً في المهام الطويلة أو أثناء الدرس' },
+      { id: 'cn2', label: 'كثرة الحركة والتململ وصعوبة الجلوس في المكان' },
+      { id: 'cn3', label: 'الاندفاع في الإجابة ومقاطعة الآخرين أثناء الحديث' },
+      { id: 'cn4', label: 'نسيان الأدوات المدرسية والواجبات اليومية' },
+    ]
+  },
+  {
+    id: 'ssi_4_stuttering',
+    title: 'مقياس اضطراب طلاقة الكلام والتأتأة (SSI-4)',
+    category: 'orthophonie',
+    categoryName: 'تقويم النطق والتخاطب',
+    duration: '25 دقيقة',
+    targetAge: 'أطفال وبالغين',
+    normStandard: 'Stuttering Severity Instrument (SSI-4)',
+    description: 'أداة قياس كمية دقيقة لحساب تكرارات التأتأة، الإطالات، والحبسات الصوتية مع قياس زمن التوقف والحركات المصاحبة بالرأس والوجه.',
+    badge: 'الطلاقة الكلامية',
+    badgeColor: 'teal',
+    questionsCount: 12,
+    scoringType: 'sum_total',
+    sampleItems: [
+      { id: 's1', label: 'نسبة المقاطع المتلعثمة أثناء القراءة الجهرية (%SS)' },
+      { id: 's2', label: 'نسبة المقاطع المتلعثمة في المحادثة الحرة العفوية' },
+      { id: 's3', label: 'مدة أطول ثلاث فترات احتباس صوتي بالثواني' },
+      { id: 's4', label: 'الحركات الجسمية المصاحبة (رمش العينين، شد الفك، توتر الرقبة)' },
+    ]
+  },
+  {
+    id: 'dyslexia_battery',
+    title: 'بطارية عسر القراءة وصعوبات التعلم النمائية',
+    category: 'learning_disabilities',
+    categoryName: 'صعوبات التعلم والتأهيل المعرفي',
+    duration: '35 دقيقة',
+    targetAge: '6 - 12 سنة',
+    normStandard: 'المعيار المعرفي الفونولوجي',
+    description: 'اختبار تشخيصي يقيس الوعي الفونولوجي، التسمية التلقائية السريعة (RAN)، القراءة المجهورة للكلمات غير المألوفة، والذاكرة السمعية اللفظية قصيرة المدى.',
+    badge: 'ديسليكسيا',
+    badgeColor: 'rose',
+    questionsCount: 18,
+    scoringType: 'sum_total',
+    sampleItems: [
+      { id: 'd1', label: 'اختبار حذف وإضافة المقاطع الصوتية (Phonological Manipulation)' },
+      { id: 'd2', label: 'اختبار التسمية السريعة للأشكال والألوان (Rapid Naming)' },
+      { id: 'd3', label: 'قراءة قائمة الكلمات المضللة / الزائفة (Pseudowords Reading)' },
+      { id: 'd4', label: 'اختبار الإملاء والتمييز البصري للحروف المتشابهة' },
+    ]
+  }
+];
 
 export default function ClinicalTestsView() {
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAge, setSelectedAge] = useState('all');
-
-  // Test Runner State
-  const [activeTest, setActiveTest] = useState(null);
-  const [answers, setAnswers] = useState({});
+  const [activeTestModal, setActiveTestModal] = useState(null);
+  const [scores, setScores] = useState({});
   const [testResult, setTestResult] = useState(null);
-  const [patientName, setPatientName] = useState('يوسف بلقاسم');
-  const [loading, setLoading] = useState(false);
 
   const categories = [
-    { id: 'all', name: 'جميع الاختبارات والروائز', count: 32 },
-    { id: 'orthophonie', name: '🗣️ روائز النطق واللغة (Speech & Language)', count: 12 },
-    { id: 'psychology', name: '🧠 المقاييس النفسية والشخصية (Psychology)', count: 9 },
-    { id: 'autism', name: '🌟 التوحد والنمو العصبي (Autism & CARS)', count: 6 },
-    { id: 'adhd', name: '🧩 الانتباه وصعوبات التعلم (ADHD & Learning)', count: 5 },
+    { id: 'all', label: '📋 جميع الروائز والمقاييس' },
+    { id: 'orthophonie', label: '🗣️ تقويم النطق والأرطوفونيا' },
+    { id: 'psychology', label: '🧠 العيادة النفسية والمعرفية' },
+    { id: 'autism', label: '🌟 طيف التوحد والنمو' },
+    { id: 'learning_disabilities', label: '📖 صعوبات التعلم والديسليكسيا' },
   ];
 
-  const testsList = [
-    {
-      id: 'test_bdi',
-      title: 'مقياس بيك للاكتئاب السريري (BDI-II - Beck Depression Inventory)',
-      category: 'psychology',
-      specialty: 'psychology',
-      target_age: 'teens_adults',
-      duration_minutes: 15,
-      items_count: 21,
-      standard_cutoff: '14+ (مؤشر اكتئاب خفيف)، 20+ (متوسط)، 29+ (شديد)',
-      description: 'المعيار الذهبي لتقييم حدة الأعراض الاكتئابية، التشاؤم، فقدان المتعة، والميول الانتحارية لدى المراهقين والبالغين.',
-      items: [
-        { id: 1, title: '1. الحزن والكآبة', options: ['لا أشعر بالحزن (0)', 'أشعر بالحزن أغلب الوقت (1)', 'أنا حزين طوال الوقت ولا أستطيع الخروج من ذلك (2)', 'أنا حزين لدرجة لا تُطاق (3)'] },
-        { id: 2, title: '2. التشاؤم والمستقبل', options: ['لست محبطاً بشأن مستقبلي (0)', 'أشعر بالإحباط بشأن المستقبل أكثر من المعتاد (1)', 'لا أتوقع أن تتحسن الأمور (2)', 'أشعر أنه لا يوجد أمل وأن الأمور ستزداد سوءاً (3)'] },
-        { id: 3, title: '3. الإحساس بالفشل', options: ['لا أشعر أنني فاشل (0)', 'لقد فشلت أكثر مما ينبغي (1)', 'عندما أنظر إلى ماضي أرى الكثير من الإخفاقات (2)', 'أشعر أنني فاشل تماماً كشخص (3)'] },
-        { id: 4, title: '4. فقدان المتعة والاهتمام', options: ['أحصل على نفس المتعة كالمعتاد (0)', 'لا أستمتع بالأشياء كما كنت في السابق (1)', 'أحصل على متعة قليلة جداً من الأشياء (2)', 'لا أستطيع الحصول على أي متعة إطلاقاً (3)'] },
-        { id: 5, title: '5. الشعور بالذنب', options: ['لا أشعر بالذنب بشكل خاص (0)', 'أشعر بالذنب بشأن أشياء كثيرة فعلتها (1)', 'أشعر بالذنب أغلب الوقت (2)', 'أشعر بالذنب باستمرار وبشكل مؤلم (3)'] }
-      ]
-    },
-    {
-      id: 'test_cars',
-      title: 'مقياس تقدير التوحد الطفولي (CARS-2 - Childhood Autism Rating Scale)',
-      category: 'autism',
-      specialty: 'multidisciplinary',
-      target_age: '3-6',
-      duration_minutes: 25,
-      items_count: 15,
-      standard_cutoff: '30-36.5 (توحد خفيف إلى متوسط)، 37+ (توحد شديد)',
-      description: 'رائز إكلينيكي رائد لتقييم السلوكيات النمطية، التواصل اللفظي وغير اللفظي، الاستجابة السمعية، والتفاعل مع البيئة لدى الأطفال.',
-      items: [
-        { id: 1, title: '1. التفاعل والعلاقات مع الناس', options: ['علاقات طبيعية مناسبة للعمر (1)', 'تجنب طفيف للتواصل البصري أو مبالغة في التعلق (2)', 'انعزال ملحوظ وتجاهل للأشخاص (3)', 'انفصال تام وصعوبة بالغة في جذب الانتباه (4)'] },
-        { id: 2, title: '2. التقليد الحركي والصوتي', options: ['تقليد فوري وتلقائي سليم (1)', 'تقليد بسيط بعد التكرار والمساعدة (2)', 'تقليد متأخر أو جزئي فقط (3)', 'غياب تام لمهارة التقليد (4)'] },
-        { id: 3, title: '3. الاستجابة الانفعالية والعاطفية', options: ['استجابات ملائمة للمواقف (1)', 'ردود فعل انفعالية مبالغ فيها أو متبلدة قليلاً (2)', 'نوبات غضب غير مبررة أو ضحك دون سبب (3)', 'تقلبات حادة وانفعالات غير متوقعة إطلاقاً (4)'] }
-      ]
-    },
-    {
-      id: 'test_speech_arabic',
-      title: 'رائز الفحص النطقي العربي المعياري (Standard Arabic Articulation Test)',
-      category: 'orthophonie',
-      specialty: 'orthophonie',
-      target_age: '3-6',
-      duration_minutes: 20,
-      items_count: 28,
-      standard_cutoff: 'مؤشر النطق الصوتي الصحيح (PCC: Percentage of Consonants Correct)',
-      description: 'تقييم شامل لجميع الصوامت العربية في مواضع الكلمة الثلاثة (البداية، الوسط، النهاية) وتحديد نوع الاضطراب (حذف، إبدال، تشويه، إضافة).',
-      items: [
-        { id: 1, title: 'صوت الراء /r/ في (رَأْس، قَمَر، نَهْر)', options: ['سليم وخالٍ من العيوب (0)', 'إبدال إلى ياء أو لام (1)', 'تشويه ولدغة رائية (2)', 'حذف تام للصوت (3)'] },
-        { id: 2, title: 'صوت السين /s/ في (سَيَّارَة، مَسْجِد، شَمْس)', options: ['صفير نقي وسليم (0)', 'لدغة بين سنية أمامية (1)', 'لدغة جانبية (2)', 'تشويه أو إبدال إلى ثاء (3)'] },
-        { id: 3, title: 'صوت الكاف /k/ في (كَلْب، سَمَكَة، شُبَّاك)', options: ['انفجاري طبقي سليم (0)', 'إبدال أمامي إلى تاء (Fronting) (1)', 'تشويه رخو (2)', 'حذف (3)'] }
-      ]
-    },
-    {
-      id: 'test_conners',
-      title: 'مقياس كونرز لفرط الحركة وتشتت الانتباه (Conners-3 Rating Scale)',
-      category: 'adhd',
-      specialty: 'psychology',
-      target_age: '7-12',
-      duration_minutes: 20,
-      items_count: 20,
-      standard_cutoff: 'T-Score > 65 (دلالة إكلينيكية مرتفعة لـ ADHD)',
-      description: 'استمارة تقييم شاملة معيارية للمعلمين والآباء لتحديد مؤشرات فرط النشاط، الاندفاعية، وتشتت الانتباه الأكاديمي.',
-      items: [
-        { id: 1, title: '1. صعوبة في الحفاظ على الانتباه في الواجبات المدرسية', options: ['أبداً / نادراً (0)', 'أحياناً (1)', 'غالباً (2)', 'دائماً تقريباً (3)'] },
-        { id: 2, title: '2. التململ في المقعد أو تحريك اليدين والقدمين بكثرة', options: ['أبداً / نادراً (0)', 'أحياناً (1)', 'غالباً (2)', 'دائماً تقريباً (3)'] },
-        { id: 3, title: '3. الاندفاع في الإجابة قبل انتهاء السؤال', options: ['أبداً / نادراً (0)', 'أحياناً (1)', 'غالباً (2)', 'دائماً تقريباً (3)'] }
-      ]
-    }
-  ];
+  const filteredTests = DIAGNOSTIC_TESTS.filter(test => {
+    const matchesCategory = selectedCategory === 'all' || test.category === selectedCategory;
+    const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          test.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          test.normStandard.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const handleStartTest = (test) => {
-    setActiveTest(test);
-    const initial = {};
-    test.items.forEach((item, idx) => {
-      initial[idx] = 0;
-    });
-    setAnswers(initial);
+    setActiveTestModal(test);
+    setScores({});
     setTestResult(null);
   };
 
-  const handleAnswerSelect = (itemIdx, scoreValue) => {
-    setAnswers({
-      ...answers,
-      [itemIdx]: scoreValue
-    });
+  const handleScoreChange = (itemId, val) => {
+    setScores(prev => ({
+      ...prev,
+      [itemId]: parseInt(val) || 0
+    }));
   };
 
-  const calculateScore = () => {
-    setLoading(true);
-    setTimeout(() => {
-      let total = 0;
-      Object.values(answers).forEach(val => {
-        total += Number(val);
-      });
+  const calculateResult = () => {
+    if (!activeTestModal) return;
 
-      let severity = 'طبيعي / ضمن الحدود السوية';
-      let badgeColor = 'badge-success';
-      let interpretation = 'الدرجة المحصلة لا تشير إلى وجود مؤشرات إكلينيكية دالة على اضطراب حاد.';
-
-      if (activeTest.id === 'test_bdi') {
-        if (total >= 10) {
-          severity = 'اكتئاب متوسط إلى شديد';
-          badgeColor = 'badge-danger';
-          interpretation = 'الدرجة تشير إلى وجود أعراض اكتئابية واضحة تتطلب تدخلاً علاجياً معرفياً سلوكياً (CBT) ومتابعة دورية.';
-        } else if (total >= 5) {
-          severity = 'أعراض اكتئابية خفيفة';
-          badgeColor = 'badge-warning';
-          interpretation = 'توجد مؤشرات طفيفة لتقلب المزاج يوصى بدعم نفسي واستكشاف مصادر الضغط.';
-        }
-      } else if (activeTest.id === 'test_cars') {
-        if (total >= 8) {
-          severity = 'مؤشرات دالة على طيف التوحد (متوسط إلى شديد)';
-          badgeColor = 'badge-danger';
-          interpretation = 'الاستجابات تظهر صعوبات واضحة في التفاعل الاجتماعي، التقليد، والتواصل البصري. يوصى ببرنامج تدخل مبكر (PECS / TEACCH).';
-        } else if (total >= 5) {
-          severity = 'سمات توحد خفيفة / اضطراب تواصل اجتماعي';
-          badgeColor = 'badge-warning';
-          interpretation = 'توجد سمات تواصلية تحتاج لتأهيل أرطوفوني وبرنامج تنمية مهارات تفاعلية.';
-        }
-      } else if (activeTest.id === 'test_conners') {
-        if (total >= 6) {
-          severity = 'مؤشر إيجابي دال على ADHD (تشتت وفرط حركة)';
-          badgeColor = 'badge-danger';
-          interpretation = 'الدرجة تشير إلى اندفاعية حركية ملحوظة وتشتت انتباه يؤثر على الأداء الأكاديمي، يوصى ببرنامج تدريب الوظائف التنفيذية وتعديل السلوك.';
-        }
+    if (activeTestModal.id === 'bdi_2_depression') {
+      const sum = Object.values(scores).reduce((a, b) => a + b, 0);
+      let interpretation = 'طبيعي - لا توجد مؤشرات اكتئاب سريري ملحوظة (Minimal Depression)';
+      let severity = 'success';
+      if (sum >= 14 && sum <= 19) {
+        interpretation = 'اكتئاب سريري طفيف إلى خفيف (Mild Depression)';
+        severity = 'info';
+      } else if (sum >= 20 && sum <= 28) {
+        interpretation = 'اكتئاب سريري متوسط الشدة (Moderate Depression) - يُوصى بجلسات علاج معرفي سلوكي';
+        severity = 'warning';
+      } else if (sum >= 29) {
+        interpretation = 'اكتئاب سريري شديد وحاد (Severe Depression) - يتطلب تدخلاً طبياً ونفسياً عاجلاً';
+        severity = 'danger';
       }
-
-      setTestResult({
-        total_score: total,
-        severity,
-        badgeColor,
-        interpretation,
-        test_title: activeTest.title,
-        patient_name: patientName,
-        date: new Date().toLocaleDateString('ar-DZ')
+      setTestResult({ sum, interpretation, severity });
+    } else if (activeTestModal.id === 'arabic_articulation_pcc') {
+      const totalCorrect = Object.values(scores).reduce((a, b) => a + (b === 1 ? 1 : 0), 0);
+      const totalItems = activeTestModal.sampleItems.length;
+      const percentage = Math.round((totalCorrect / totalItems) * 100);
+      let severity = 'success';
+      let interpretation = `مؤشر الصوامت الصحيحة (PCC): ${percentage}%. نطق سليم وطبيعي.`;
+      if (percentage < 50) {
+        interpretation = `مؤشر الصوامت الصحيحة (PCC): ${percentage}%. اضطراب نطقي شديد (Severe Articulation Disorder).`;
+        severity = 'danger';
+      } else if (percentage < 65) {
+        interpretation = `مؤشر الصوامت الصحيحة (PCC): ${percentage}%. اضطراب نطقي متوسط إلى شديد.`;
+        severity = 'warning';
+      } else if (percentage < 85) {
+        interpretation = `مؤشر الصوامت الصحيحة (PCC): ${percentage}%. اضطراب نطقي خفيف إلى متوسط.`;
+        severity = 'info';
+      }
+      setTestResult({ sum: percentage, interpretation, severity });
+    } else {
+      const sum = Object.values(scores).reduce((a, b) => a + b, 0);
+      setTestResult({ 
+        sum, 
+        interpretation: `المجموع الخام: ${sum} نقطة. تم حفظ بيانات التقييم في ملف المريض.`, 
+        severity: 'info' 
       });
-      setLoading(false);
-    }, 600);
+    }
   };
 
-  const filteredTests = testsList.filter(t => {
-    if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
-    if (selectedAge !== 'all' && t.target_age !== selectedAge) return false;
-    if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase()) && !t.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
+  const handlePrint = (test) => {
+    window.print();
+  };
 
   return (
-    <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
-      {/* 1. Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-        borderRadius: '16px',
-        padding: '2.25rem',
-        color: 'white',
-        marginBottom: '2rem',
-        boxShadow: 'var(--shadow-md)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1.5rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '18px',
-            background: 'linear-gradient(135deg, #818cf8, #6366f1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
-            border: '2px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <Scale size={32} color="white" />
+    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-gradient-to-r from-teal-900 to-slate-900 p-6 rounded-2xl text-white shadow-xl">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="p-2.5 bg-teal-500/20 text-teal-300 rounded-xl border border-teal-500/30">
+              <Activity className="w-6 h-6" />
+            </span>
+            <h1 className="text-2xl font-bold">
+              🧩 بنك الروائز والمقاييس التشخيصية المعتمدة
+            </h1>
           </div>
+          <p className="text-slate-300 text-sm max-w-3xl leading-relaxed">
+            المكتبة السريرية المعتمدة للمقاييس النفسية، الأرطوفونية، واختبارات التوحد وصعوبات التعلم المقننة بالمعيار الجزائري والعربي.
+          </p>
+        </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>
-                🧩 بنك الروائز والاختبارات الإكلينيكية (Clinical Tests & Diagnostic Scales)
-              </h1>
-              <span style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                padding: '3px 10px',
-                borderRadius: '20px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#c7d2fe'
-              }}>
-                روائز تشخيصية معيارية مع حساب فوري
-              </span>
-            </div>
-            <p style={{ margin: '0.4rem 0 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
-              مكتبة الروائز التشخيصية النفسية والأرطوفونية المعيارية، استمارات التصحيح الآلي، منحنيات الدرجات التئينية، ووضع التابلت التفاعلي
-            </p>
+        <div className="flex items-center gap-3">
+          <a
+            href="/tablet/kiosk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-teal-900/40"
+          >
+            <Tablet className="w-4 h-4" />
+            <span>فتح واجهة التابلت التفاعلية</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Search & Category Filter */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 space-y-4">
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full">
+            <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="ابحث باسم المقياس، المعيار السريري، أو الاضطراب (مثال: بيك، CARS-2، نطق، ديسليكسيا)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-4 pr-11 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
           </div>
         </div>
 
-        <Link
-          to="/tablet/kiosk"
-          className="btn"
-          style={{ background: 'rgba(255, 255, 255, 0.12)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.25)', padding: '0.65rem 1.15rem', borderRadius: '12px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
-        >
-          <Tablet size={16} />
-          <span>فتح الاختبار على التابلت (Kiosk)</span>
-        </Link>
-      </div>
-
-      {/* 2. Category Tabs */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        borderBottom: '1px solid var(--slate-200)',
-        marginBottom: '1.75rem',
-        overflowX: 'auto'
-      }}>
-        {categories.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
+        {/* Category Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-sm border-t border-slate-100 pt-3">
+          {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                padding: '0.85rem 1.25rem',
-                border: 'none',
-                background: 'none',
-                fontSize: '0.9rem',
-                fontWeight: isActive ? 800 : 600,
-                color: isActive ? '#4f46e5' : 'var(--slate-600)',
-                borderBottom: isActive ? '3px solid #4f46e5' : '3px solid transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap'
-              }}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
+                selectedCategory === cat.id
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
             >
-              <span>{cat.name}</span>
-              <span style={{
-                fontSize: '0.7rem',
-                background: isActive ? '#e0e7ff' : 'var(--slate-100)',
-                color: isActive ? '#3730a3' : 'var(--slate-500)',
-                padding: '2px 7px',
-                borderRadius: '10px',
-                fontWeight: 700
-              }}>
-                {cat.count}
-              </span>
+              {cat.label}
             </button>
-          );
-        })}
-      </div>
-
-      {/* 3. Search & Age Filter */}
-      <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '260px', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-50)', padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid var(--slate-200)' }}>
-          <Search size={18} color="var(--slate-400)" />
-          <input
-            type="text"
-            placeholder="ابحث باسم الرائز أو المقياس (مثال: بيك، كارز، كونرز، النطق العربي...)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.9rem', fontFamily: 'inherit' }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 600 }}>الفئة المستهدفة:</span>
-          <select
-            className="form-select"
-            value={selectedAge}
-            onChange={(e) => setSelectedAge(e.target.value)}
-            style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
-          >
-            <option value="all">جميع الفئات</option>
-            <option value="3-6">طفولة مبكرة (3-6 سنوات)</option>
-            <option value="7-12">أطفال متمدرسين (7-12 سنة)</option>
-            <option value="teens_adults">مراهقين وبالغين</option>
-          </select>
+          ))}
         </div>
       </div>
 
-      {/* 4. Tests Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+      {/* Test Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTests.map((test) => (
-          <div
-            key={test.id}
-            className="card"
-            style={{
-              padding: '1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: 'var(--shadow-sm)',
-              border: '1px solid var(--slate-200)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-            }}
+          <div 
+            key={test.id} 
+            className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className="badge" style={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 800 }}>
-                  {test.specialty === 'orthophonie' ? 'رائز أرطوفوني' : (test.specialty === 'psychology' ? 'مقياس نفسي عيادي' : 'تقييم مشترك')}
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <span className="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-md border border-teal-100">
+                  {test.categoryName}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Clock size={13} />
-                  <span>{test.duration_minutes} دقيقة</span>
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-md border ${
+                  test.badgeColor === 'emerald' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  test.badgeColor === 'amber' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  test.badgeColor === 'purple' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                  test.badgeColor === 'teal' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                  test.badgeColor === 'rose' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                  'bg-blue-50 text-blue-700 border-blue-200'
+                }`}>
+                  {test.badge}
                 </span>
               </div>
 
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--slate-900)', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
+              <h3 className="font-bold text-slate-900 text-base mb-2 leading-snug">
                 {test.title}
               </h3>
-              <p style={{ color: 'var(--slate-600)', fontSize: '0.85rem', lineHeight: 1.6, margin: '0 0 1rem 0' }}>
+
+              <p className="text-slate-600 text-xs leading-relaxed mb-4 line-clamp-3">
                 {test.description}
               </p>
 
-              {/* Cutoff Standard Box */}
-              <div style={{ background: 'var(--slate-50)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--slate-200)', marginBottom: '1.25rem', fontSize: '0.78rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--slate-700)', marginBottom: '0.2rem' }}>
-                  📊 معايير ونقاط القطع (Norms & Cutoffs):
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1.5 mb-4">
+                <div className="flex items-center justify-between text-slate-600">
+                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /> مدة التطبيق:</span>
+                  <span className="font-semibold text-slate-800">{test.duration}</span>
                 </div>
-                <div style={{ color: 'var(--slate-600)' }}>{test.standard_cutoff}</div>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-slate-400" /> الفئة العمرية:</span>
+                  <span className="font-semibold text-slate-800">{test.targetAge}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-slate-400" /> عدد البنود:</span>
+                  <span className="font-semibold text-slate-800">{test.questionsCount} بنداً</span>
+                </div>
               </div>
             </div>
 
-            {/* Action Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--slate-100)' }}>
+            <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
               <button
-                type="button"
-                className="btn btn-primary"
-                style={{ flex: 1, padding: '0.55rem', fontSize: '0.85rem', background: 'linear-gradient(135deg, #4f46e5, #4338ca)', gap: '0.4rem' }}
                 onClick={() => handleStartTest(test)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold transition"
               >
-                <Calculator size={15} />
-                <span>بدء التطبيق والتصحيح الآلي</span>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>بدء التقييم السريري</span>
               </button>
 
-              <Link
-                to="/tablet/kiosk"
-                className="btn btn-secondary"
-                style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
-                title="إرسال للتابلت التفاعلي"
+              <button
+                onClick={() => handlePrint(test)}
+                title="طباعة الاستمارة السريرية الفارغة"
+                className="p-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition"
               >
-                <Tablet size={16} color="var(--primary-600)" />
-              </Link>
+                <Printer className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 5. Interactive Test Assessment & Auto-Scoring Modal */}
-      {activeTest && (
-        <Modal
-          isOpen={true}
-          onClose={() => setActiveTest(null)}
-          title={`🧪 تطبيق وتصحيح: ${activeTest.title}`}
-        >
-          <div>
-            {/* Patient Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--slate-50)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--slate-200)', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                <Users size={16} color="#4f46e5" />
-                <span>ملف المريض: <strong>{patientName}</strong></span>
+      {/* Interactive Diagnostic Test Modal */}
+      {activeTestModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-teal-800 to-slate-900 text-white flex items-start justify-between gap-4">
+              <div>
+                <span className="px-2 py-0.5 bg-teal-500/20 text-teal-300 text-xs rounded border border-teal-400/30">
+                  {activeTestModal.categoryName}
+                </span>
+                <h2 className="text-lg font-bold mt-1.5">{activeTestModal.title}</h2>
+                <p className="text-xs text-slate-300 mt-1">{activeTestModal.normStandard}</p>
               </div>
-              <span className="badge badge-primary">{activeTest.items.length} بنود إكلينيكية</span>
+              <button 
+                onClick={() => setActiveTestModal(null)}
+                className="p-1 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Test Items Form */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '55vh', overflowY: 'auto', paddingLeft: '0.5rem', marginBottom: '1.25rem' }}>
-              {activeTest.items.map((item, idx) => (
-                <div key={item.id} style={{ background: 'white', border: '1px solid var(--slate-200)', borderRadius: '10px', padding: '1rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--slate-900)', marginBottom: '0.6rem' }}>
-                    {item.title}
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4 text-sm">
+              <div className="bg-teal-50 border border-teal-100 p-3.5 rounded-xl text-teal-900 text-xs leading-relaxed">
+                ℹ️ قم بتسجيل درجات كل بند لحساب النتيجة الفورية ومقارنتها بنقاط القطع المعيارية (Cut-off Score).
+              </div>
+
+              <div className="space-y-3">
+                {activeTestModal.sampleItems?.map((item, idx) => (
+                  <div key={item.id || idx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-4">
+                    <span className="text-slate-800 font-medium text-xs leading-relaxed">
+                      {idx + 1}. {item.label}
+                    </span>
+
+                    {activeTestModal.id === 'arabic_articulation_pcc' ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleScoreChange(item.id, 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                            scores[item.id] === 1 ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          صحيح (1)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleScoreChange(item.id, 0)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                            scores[item.id] === 0 ? 'bg-rose-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          خطأ (0)
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={scores[item.id] ?? 0}
+                        onChange={(e) => handleScoreChange(item.id, e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      >
+                        <option value={0}>0 - لا ينطبق / طبيعي</option>
+                        <option value={1}>1 - خفيف / نادراً</option>
+                        <option value={2}>2 - متوسط / أحياناً</option>
+                        <option value={3}>3 - شديد / دائماً</option>
+                      </select>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    {item.options.map((opt, optIdx) => (
-                      <label key={optIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', cursor: 'pointer', padding: '0.35rem 0.5rem', borderRadius: '6px', background: answers[idx] === optIdx ? '#e0e7ff' : 'transparent', color: answers[idx] === optIdx ? '#3730a3' : 'var(--slate-700)', fontWeight: answers[idx] === optIdx ? 700 : 500 }}>
-                        <input
-                          type="radio"
-                          name={`item_${item.id}`}
-                          value={optIdx}
-                          checked={answers[idx] === optIdx}
-                          onChange={() => handleAnswerSelect(idx, optIdx)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
+                ))}
+              </div>
+
+              {testResult && (
+                <div className={`p-4 rounded-xl border text-xs space-y-1.5 ${
+                  testResult.severity === 'danger' ? 'bg-rose-50 border-rose-200 text-rose-900' :
+                  testResult.severity === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                  testResult.severity === 'info' ? 'bg-blue-50 border-blue-200 text-blue-900' :
+                  'bg-emerald-50 border-emerald-200 text-emerald-900'
+                }`}>
+                  <div className="font-bold flex items-center gap-2 text-sm">
+                    <Activity className="w-4 h-4" />
+                    <span>التأويل الإكلينيكي للنتيجة:</span>
                   </div>
+                  <p className="leading-relaxed font-medium">{testResult.interpretation}</p>
                 </div>
-              ))}
+              )}
             </div>
 
-            {/* Calculated Result Box */}
-            {testResult && (
-              <div style={{
-                background: 'linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%)',
-                border: '1px solid #c7d2fe',
-                borderRadius: '12px',
-                padding: '1.25rem',
-                marginBottom: '1.25rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--slate-700)' }}>مجموع الدرجات الخام:</span>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#3730a3' }}>
-                    {testResult.total_score}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                  <span className={`badge ${testResult.badgeColor}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
-                    {testResult.severity}
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--slate-800)', lineHeight: 1.6 }}>
-                  {testResult.interpretation}
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--slate-200)' }}>
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
               <button
                 type="button"
-                className="btn btn-primary"
-                style={{ flex: 1, padding: '0.75rem', background: 'linear-gradient(135deg, #4f46e5, #4338ca)', fontWeight: 800 }}
-                onClick={calculateScore}
-                disabled={loading}
+                onClick={() => setActiveTestModal(null)}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 transition"
               >
-                {loading ? 'جاري حساب الدرجات...' : 'حساب الدرجة واستخراج النتيجة التشخيصية 📊'}
-              </button>
-
-              <button type="button" className="btn btn-secondary" onClick={() => setActiveTest(null)}>
                 إغلاق
               </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={calculateResult}
+                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+                >
+                  حساب النتيجة والتأويل السريري
+                </button>
+              </div>
             </div>
           </div>
-        </Modal>
+        </div>
       )}
     </div>
   );
