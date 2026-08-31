@@ -12,11 +12,9 @@ class Patient extends Model
         'tenant_id',
         'first_name',
         'last_name',
-        'full_name',
         'birth_date',
         'gender', // 'male', 'female'
         'guardian_name',
-        'guardian_relationship',
         'phone',
         'phone_operator',
         'email',
@@ -25,35 +23,43 @@ class Patient extends Model
         'commune_name',
         'national_id',
         'emergency_contact',
-        'primary_specialist_id',
-        'anamnese_generale',
+        'kiosk_pin',
         'anamnesis_data',
-        'clinical_tags',
-        'notes',
-        'diagnosis',
+        'family_genogram',
+        'sensory_profile',
         'portal_access_token',
         'portal_pin',
         'portal_enabled',
     ];
 
     protected $casts = [
-        'anamnese_generale' => 'array',
         'anamnesis_data'    => 'array',
-        'clinical_tags'     => 'array',
+        'family_genogram'   => 'array',
+        'sensory_profile'   => 'array',
         'birth_date'        => 'date',
         'portal_enabled'    => 'boolean',
     ];
 
-    protected $appends = ['name', 'full_name'];
+    protected $appends = ['name', 'full_name', 'notes', 'diagnosis'];
 
     public function getNameAttribute()
     {
-        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? '')) ?: ($this->attributes['full_name'] ?? 'مريض');
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? '')) ?: 'مريض';
     }
 
     public function getFullNameAttribute()
     {
         return $this->getNameAttribute();
+    }
+
+    public function getNotesAttribute()
+    {
+        return $this->anamnesis_data['notes'] ?? null;
+    }
+
+    public function getDiagnosisAttribute()
+    {
+        return $this->anamnesis_data['diagnosis'] ?? null;
     }
 
     public function tenant()

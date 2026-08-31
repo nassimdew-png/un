@@ -35,40 +35,46 @@ class PatientController extends Controller
             if ($patients->isEmpty() && $tenantId) {
                 $samples = [
                     [
-                        'tenant_id'     => $tenantId,
-                        'first_name'    => 'ياسين',
-                        'last_name'     => 'بن علي',
-                        'birth_date'    => '2018-05-12',
-                        'gender'        => 'male',
-                        'guardian_name' => 'محمد بن علي (الأب)',
-                        'phone'         => '0661000000',
-                        'clinical_tags' => ['تأخر لغوي', 'اضطراب نطق'],
-                        'diagnosis'     => 'تأخر لغوي نمائي ولدغة رائية',
-                        'notes'         => 'ولادة طبيعية، متابعة أسبوعية',
+                        'tenant_id'      => $tenantId,
+                        'first_name'     => 'ياسين',
+                        'last_name'      => 'بن علي',
+                        'birth_date'     => '2018-05-12',
+                        'gender'         => 'male',
+                        'guardian_name'  => 'محمد بن علي (الأب)',
+                        'phone'          => '0661000000',
+                        'anamnesis_data' => [
+                            'diagnosis'     => 'تأخر لغوي نمائي ولدغة رائية',
+                            'notes'         => 'ولادة طبيعية، متابعة أسبوعية',
+                            'clinical_tags' => ['تأخر لغوي', 'اضطراب نطق']
+                        ]
                     ],
                     [
-                        'tenant_id'     => $tenantId,
-                        'first_name'    => 'سارة',
-                        'last_name'     => 'قدور',
-                        'birth_date'    => '2015-11-04',
-                        'gender'        => 'female',
-                        'guardian_name' => 'فاطمة قدور (الأم)',
-                        'phone'         => '0552334455',
-                        'clinical_tags' => ['تأتأة نمائية', 'قلق اجتماعي'],
-                        'diagnosis'     => 'تأتأة وحبسات صوتية متكررة',
-                        'notes'         => 'تحسن ملحوظ في الطلاقة',
+                        'tenant_id'      => $tenantId,
+                        'first_name'     => 'سارة',
+                        'last_name'      => 'قدور',
+                        'birth_date'     => '2015-11-04',
+                        'gender'         => 'female',
+                        'guardian_name'  => 'فاطمة قدور (الأم)',
+                        'phone'          => '0552334455',
+                        'anamnesis_data' => [
+                            'diagnosis'     => 'تأتأة وحبسات صوتية متكررة',
+                            'notes'         => 'تحسن ملحوظ في الطلاقة',
+                            'clinical_tags' => ['تأتأة نمائية', 'قلق اجتماعي']
+                        ]
                     ],
                     [
-                        'tenant_id'     => $tenantId,
-                        'first_name'    => 'أمين',
-                        'last_name'     => 'بلحاج',
-                        'birth_date'    => '1996-03-20',
-                        'gender'        => 'male',
-                        'guardian_name' => 'ذاتي',
-                        'phone'         => '0770998877',
-                        'clinical_tags' => ['استشارة نفسية', 'اكتئاب وتوتر'],
-                        'diagnosis'     => 'أعراض قلق واكتئاب متوسط',
-                        'notes'         => 'جلسات علاج معرفي سلوكي CBT',
+                        'tenant_id'      => $tenantId,
+                        'first_name'     => 'أمين',
+                        'last_name'      => 'بلحاج',
+                        'birth_date'     => '1996-03-20',
+                        'gender'         => 'male',
+                        'guardian_name'  => 'ذاتي',
+                        'phone'          => '0770998877',
+                        'anamnesis_data' => [
+                            'diagnosis'     => 'أعراض قلق واكتئاب متوسط',
+                            'notes'         => 'جلسات علاج معرفي سلوكي CBT',
+                            'clinical_tags' => ['استشارة نفسية', 'اكتئاب وتوتر']
+                        ]
                     ]
                 ];
 
@@ -136,15 +142,31 @@ class PatientController extends Controller
 
         if (isset($validated['parent_name'])) {
             $validated['guardian_name'] = $validated['parent_name'];
+            unset($validated['parent_name']);
         }
         if (empty($validated['phone']) && !empty($validated['parent_phone'])) {
             $validated['phone'] = $validated['parent_phone'];
         }
+        unset($validated['parent_phone']);
+
         if (empty($validated['phone'])) {
             $validated['phone'] = '0550000000';
         }
         if (empty($validated['birth_date'])) {
             $validated['birth_date'] = now()->subYears(6)->toDateString();
+        }
+
+        $anamnesis = [];
+        if (isset($validated['notes'])) {
+            $anamnesis['notes'] = $validated['notes'];
+            unset($validated['notes']);
+        }
+        if (isset($validated['diagnosis'])) {
+            $anamnesis['diagnosis'] = $validated['diagnosis'];
+            unset($validated['diagnosis']);
+        }
+        if (!empty($anamnesis)) {
+            $validated['anamnesis_data'] = $anamnesis;
         }
 
         $validated['tenant_id'] = $clinicId;
@@ -205,6 +227,17 @@ class PatientController extends Controller
             if ($validated['gender'] === 'ذكر') $validated['gender'] = 'male';
             if ($validated['gender'] === 'أنثى') $validated['gender'] = 'female';
         }
+
+        $anamnesis = $patient->anamnesis_data ?? [];
+        if (isset($validated['notes'])) {
+            $anamnesis['notes'] = $validated['notes'];
+            unset($validated['notes']);
+        }
+        if (isset($validated['diagnosis'])) {
+            $anamnesis['diagnosis'] = $validated['diagnosis'];
+            unset($validated['diagnosis']);
+        }
+        $validated['anamnesis_data'] = $anamnesis;
 
         $patient->update($validated);
 
