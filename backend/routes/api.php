@@ -39,7 +39,8 @@ Route::prefix('exercises')->group(function () {
 });
 
 // 4. Auth Routes
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/login', fn() => response()->json(['message' => 'Unauthenticated.'], 401));
 
 // 5. Clinic Custom Domains Management
 Route::prefix('clinic/domains')->group(function () {
@@ -74,6 +75,4 @@ Route::prefix('superadmin')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    Route::get('/exercises', [ExerciseBankController::class, 'index']);
-    Route::post('/exercises/assign-to-patient', [ExerciseBankController::class, 'assignToPatient']);
 });
