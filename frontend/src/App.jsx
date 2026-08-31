@@ -15,6 +15,7 @@ import ScaleScorer from './pages/psychology/ScaleScorer';
 import KioskSession from './pages/tablet/KioskSession';
 import CustomDomainSettingsView from './components/settings/CustomDomainSettingsView';
 import PublicClinicMiniSiteView from './components/public/PublicClinicMiniSiteView';
+import ClinicalTestsView from './components/clinic/ClinicalTestsView';
 import ExercisesBankView from './components/clinic/ExercisesBankView';
 
 export default function App() {
@@ -45,7 +46,11 @@ export default function App() {
           <Route path="/psychology/session-notes" element={<SessionNotes />} />
           <Route path="/psychology/scales" element={<ScaleScorer />} />
           
-          {/* Exercises & Workbooks Bank Routes */}
+          {/* 1. Clinical Tests & Scales Bank */}
+          <Route path="/clinical-tests" element={<ClinicalTestsView />} />
+          <Route path="/tests-bank" element={<Navigate to="/clinical-tests" replace />} />
+
+          {/* 2. Exercises & Workbooks Bank */}
           <Route path="/exercises-bank" element={<ExercisesBankView />} />
           <Route path="/exercises" element={<Navigate to="/exercises-bank" replace />} />
           

@@ -13,7 +13,8 @@ import {
   Stethoscope, 
   Sparkles, 
   Globe,
-  BookOpen
+  BookOpen,
+  Scale
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -29,7 +30,7 @@ export default function Sidebar() {
     { label: 'ملفات المرضى', path: '/patients', icon: Users },
     { label: 'الحصيلة الأرطوفونية (AI)', path: '/orthophonie/bilan', icon: FileText },
     { label: 'ملاحظات الجلسة (SOAP)', path: '/psychology/session-notes', icon: Activity },
-    { label: 'المقاييس النفسية', path: '/psychology/scales', icon: BrainCircuit },
+    { label: 'بنك الروائز والاختبارات', path: '/clinical-tests', icon: Scale },
     { label: 'بنك التمارين والكراسات', path: '/exercises-bank', icon: BookOpen },
     { label: 'النطاق المخصص وSSL', path: '/settings/domains', icon: Globe },
     { label: 'وضع التابلت التفاعلي', path: '/tablet/kiosk', icon: Tablet },

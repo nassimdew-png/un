@@ -27,42 +27,94 @@ import {
   Users,
   Plus,
   Mic,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  Send
 } from 'lucide-react';
 import Modal from '../common/Modal';
 
 export default function ExercisesBankView() {
-  const [activeTab, setActiveTab] = useState('articulation'); // 'articulation' | 'printable' | 'pecs' | 'executive'
+  const [activeTab, setActiveTab] = useState('articulation'); // 'articulation' | 'printable' | 'pecs' | 'cognitive'
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAge, setSelectedAge] = useState('all');
   const [selectedDisorder, setSelectedDisorder] = useState('all');
 
-  // Modals & Interactive Player State
-  const [previewItem, setPreviewItem] = useState(null);
-  const [assigningItem, setAssigningItem] = useState(null);
+  // Phoneme selector for Speech tab
+  const [selectedPhoneme, setSelectedPhoneme] = useState('ر');
+  const phonemes = ['ر', 'س', 'ك', 'ل', 'ج', 'ش', 'ف'];
+
+  // Sound positions and interactive counters
   const [selectedSoundPosition, setSelectedSoundPosition] = useState('initial'); // 'initial' | 'medial' | 'final'
   const [repetitionCount, setRepetitionCount] = useState(0);
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [previewItem, setPreviewItem] = useState(null);
+  const [assigningItem, setAssigningItem] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [patientList, setPatientList] = useState([]);
 
-  // Assignment form state
+  // Assignment Form State
   const [assignForm, setAssignForm] = useState({
     patient_id: '',
     frequency_weekly: 'daily',
     due_date: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-    therapist_notes: ''
+    therapist_notes: '',
+    notify_whatsapp: true
   });
   const [assignSuccess, setAssignSuccess] = useState(null);
 
   const tabs = [
     { id: 'articulation', label: '🗣️ تمارين مخارج الأصوات والنطق', count: 45, icon: MessageSquare },
     { id: 'printable', label: '📖 كراسات وأوراق عمل قابلة للطباعة', count: 38, icon: Printer },
-    { id: 'pecs', label: '🧩 القصص الاجتماعية وبطاقات PECS', count: 24, icon: Smile },
-    { id: 'executive', label: '🧠 تمارين الانتباه والذاكرة التنفيذية', count: 28, icon: Brain },
+    { id: 'pecs', label: '🃏 بطاقات التواصل البصري والقصص الاجتماعية (PECS)', count: 24, icon: Smile },
+    { id: 'cognitive', label: '🧠 أنشطة التفكير المنطقي والذاكرة العاملة', count: 28, icon: Brain },
   ];
+
+  // Phoneme drills bank dictionary
+  const phonemeDrills = {
+    'ر': {
+      name: 'صوت الراء /r/ (انفجاري ترددي لثوي)',
+      initial: ['رَأْس', 'رِجْل', 'رُمَّان', 'رَمْل', 'رَبِيع', 'رَفّ'],
+      medial: ['قَمَر', 'كُرَة', 'مِرْآة', 'قِطَار', 'جَرَس', 'مَطَر'],
+      final: ['نَهْر', 'بَحْر', 'سُور', 'طَيْر', 'زَهْر', 'ثَوْر']
+    },
+    'س': {
+      name: 'صوت السين /s/ (صفيري احتكاكي أسناني)',
+      initial: ['سَيَّارَة', 'سَمَكَة', 'سَاعَة', 'سُلَحْفَاة', 'سُلَّم', 'سَفِينَة'],
+      medial: ['مَسْجِد', 'فُسْتَان', 'عَسَل', 'جِسْر', 'مِسْطَرَة', 'كُرْسِيّ'],
+      final: ['شَمْس', 'خَسّ', 'فَأْس', 'طَاوُوس', 'جَرَس', 'قَوْس']
+    },
+    'ك': {
+      name: 'صوت الكاف /k/ (انفجاري طبقي)',
+      initial: ['كَلْب', 'كِتَاب', 'كُرَة', 'كُوب', 'كَعْكَة', 'كَمَّاشَة'],
+      medial: ['سَمَكَة', 'مَكْتَب', 'دُكَّان', 'شَوْكَة', 'حَقِيبَة', 'عَنْكَبُوت'],
+      final: ['شُبَّاك', 'مَلِك', 'دِيك', 'شَوْك', 'ضِحْك', 'سَمَك']
+    },
+    'ل': {
+      name: 'صوت اللام /l/ (جانبي لثوي)',
+      initial: ['لَيْمُون', 'لِسَان', 'لُعْبَة', 'لَوْحَة', 'لَحْم', 'لِبَاس'],
+      medial: ['قَلَم', 'عَلَم', 'سُلَّم', 'بَلَح', 'جَمَل', 'هِلَال'],
+      final: ['فِيل', 'جَبَل', 'حَبْل', 'عَسَل', 'طَبْل', 'غَزَال']
+    },
+    'ج': {
+      name: 'صوت الجيم /dʒ/ (مركب غاري)',
+      initial: ['جَمَل', 'جَزَر', 'جَرَس', 'جِسْر', 'جُنْدِيّ', 'جَوْز'],
+      medial: ['شَجَرَة', 'مَسْجِد', 'نَجْمَة', 'حَجَر', 'دَرَّاجَة', 'فِنْجَان'],
+      final: ['ثَلْج', 'تَاج', 'بُرْج', 'دَجَاج', 'سِيَاج', 'عِلَاج']
+    },
+    'ش': {
+      name: 'صوت الشين /ʃ/ (احتكاكي غاري لثوي)',
+      initial: ['شَمْس', 'شَجَرَة', 'شَوْكَة', 'شَمْعَة', 'شُرْطِيّ', 'شَاحِنَة'],
+      medial: ['مِشْمِش', 'مِنْشَار', 'عُشْب', 'فَرَاشَة', 'خَشَب', 'نَشَّافَة'],
+      final: ['عُشّ', 'رِيش', 'جَيْش', 'كَبْش', 'قِرْش', 'وَحْش']
+    },
+    'ف': {
+      name: 'صوت الفاء /f/ (احتكاكي أسناني شفوي)',
+      initial: ['فِيل', 'فَرَاوْلَة', 'فَرَاشَة', 'فَأْس', 'فُسْتَان', 'فَم'],
+      medial: ['دَفْتَر', 'عُصْفُور', 'سَفِينَة', 'تُفَّاح', 'مِفْتَاح', 'ضِفْدَع'],
+      final: ['خَرُوف', 'صَيْف', 'هَاتِف', 'أَنْف', 'سَيْف', 'رَصِيف']
+    }
+  };
 
   useEffect(() => {
     fetchExercises();
@@ -84,7 +136,7 @@ export default function ExercisesBankView() {
         setExercises(data.exercises || []);
       }
     } catch (e) {
-      console.log('Using local fallback exercises:', e);
+      console.log('Using local exercises data:', e);
     } finally {
       setLoading(false);
     }
@@ -107,6 +159,18 @@ export default function ExercisesBankView() {
     }
   };
 
+  const playSpeechAudio = (word) => {
+    if ('speechSynthesis' in window) {
+      setIsPlayingAudio(true);
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = 'ar-SA';
+      utterance.rate = 0.75;
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const handlePrint = (item) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -115,7 +179,7 @@ export default function ExercisesBankView() {
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
       <head>
-        <title>${item.title} - ورقة عمل إكلينيكية</title>
+        <title>${item.title || 'كراس علاجي'} - ورقة عمل إكلينيكية</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 2rem; color: #1e293b; }
           .header { text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 1.25rem; margin-bottom: 1.5rem; }
@@ -133,39 +197,18 @@ export default function ExercisesBankView() {
         <div class="header">
           <div style="font-weight: 800; color: #0284c7; font-size: 1.1rem;">منصة PsyPro للحلول الإكلينيكية والتشخيصية</div>
           <h1 class="title">${item.title}</h1>
-          <div class="meta">الفئة المستهدفة: ${item.target_age} سنوات | التخصص: ${item.specialty} | عدد الصفحات: ${item.pages_count}</div>
+          <div class="meta">الفئة المستهدفة: ${item.target_age || '3-6'} سنوات | التخصص: ${item.specialty || 'أرطوفونيا'} | عدد الصفحات: ${item.pages_count || 10}</div>
         </div>
 
         <div class="card">
           <h3 style="margin-top:0;">📌 الأهداف الإكلينيكية للتدريب:</h3>
           <ul class="goals">
-            ${(item.clinical_goals || []).map(g => `<li>${g}</li>`).join('')}
+            ${(item.clinical_goals || ['تحسين الأداء الوظيفي والتعبيري للمريض']).map(g => `<li>${g}</li>`).join('')}
           </ul>
         </div>
 
-        ${item.sound_positions ? `
-          <div class="card">
-            <h3 style="margin-top:0;">🗣️ الكلمات المستهدفة للتكرار المنزلي:</h3>
-            <div class="words-grid">
-              ${(item.sound_positions.initial || []).map(w => `<div class="word-box">${w}</div>`).join('')}
-              ${(item.sound_positions.medial || []).map(w => `<div class="word-box">${w}</div>`).join('')}
-              ${(item.sound_positions.final || []).map(w => `<div class="word-box">${w}</div>`).join('')}
-            </div>
-          </div>
-        ` : ''}
-
         <div class="card">
-          <h3 style="margin-top:0;">📋 خطوات التطبيق:</h3>
-          ${(item.interactive_steps || []).map(s => `
-            <div class="step">
-              <strong>الخطوة ${s.step}: ${s.name}</strong>
-              <p style="margin: 0.35rem 0 0 0; color: #475569;">${s.guide}</p>
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="card">
-          <h3 style="margin-top:0;">🩺 تعليمات وتوجيهات الأخصائي:</h3>
+          <h3 style="margin-top:0;">📋 خطوات وتوجيهات التطبيق:</h3>
           <p>${item.instructions || 'تطبيق التمرين يومياً بمعدل 15 دقيقة مع التعزيز الإيجابي الفوري للمريض.'}</p>
         </div>
 
@@ -200,7 +243,7 @@ export default function ExercisesBankView() {
       setTimeout(() => {
         setAssignSuccess(null);
         setAssigningItem(null);
-        setAssignForm({ patient_id: '', frequency_weekly: 'daily', due_date: '', therapist_notes: '' });
+        setAssignForm({ patient_id: '', frequency_weekly: 'daily', due_date: '', therapist_notes: '', notify_whatsapp: true });
       }, 2000);
     } catch (err) {
       setAssignSuccess(`تم إسناد "${assigningItem.title}" كواجب منزلي بنجاح!`);
@@ -208,18 +251,6 @@ export default function ExercisesBankView() {
         setAssignSuccess(null);
         setAssigningItem(null);
       }, 2000);
-    }
-  };
-
-  const playSpeechAudio = (word) => {
-    if ('speechSynthesis' in window) {
-      setIsPlayingAudio(true);
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = 'ar-SA';
-      utterance.rate = 0.8;
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => setIsPlayingAudio(false);
-      window.speechSynthesis.speak(utterance);
     }
   };
 
@@ -257,7 +288,7 @@ export default function ExercisesBankView() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>
-                📚 بنك التمارين والكراسات العلاجية (Clinical Exercises & Workbooks Bank)
+                📚 بنك التمارين والكراسات العلاجية (Therapeutic Workbooks & Exercises)
               </h1>
               <span style={{
                 background: 'rgba(255, 255, 255, 0.15)',
@@ -267,17 +298,17 @@ export default function ExercisesBankView() {
                 fontWeight: 700,
                 color: '#38bdf8'
               }}>
-                150+ تمرين وكراس علاجي معتمد
+                مكتبة تأهيلية علاجية شاملة
               </span>
             </div>
             <p style={{ margin: '0.4rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>
-              منصة إكلينيكية متكاملة لتمارين مخارج الأصوات، كراسات أوراق العمل القابلة للطباعة، وسائل PECS، وتمارين الوظائف التنفيذية
+              تمارين مخارج الأصوات التفاعلية، كراسات أوراق العمل القابلة للطباعة، وسائل وبطاقات PECS، وأنشطة تنمية الذاكرة التنفيذية
             </p>
           </div>
         </div>
       </div>
 
-      {/* 2. Interactive Category Tabs */}
+      {/* 2. Independent Category Tabs */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -326,21 +357,21 @@ export default function ExercisesBankView() {
         })}
       </div>
 
-      {/* 3. Search & Filter Bar */}
+      {/* 3. Search & Quick Filters */}
       <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        {/* Search Input */}
+        {/* Search */}
         <div style={{ flex: 1, minWidth: '260px', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-50)', padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid var(--slate-200)' }}>
           <Search size={18} color="var(--slate-400)" />
           <input
             type="text"
-            placeholder="ابحث بالاسم أو الحرف المستهدف (مثال: الراء، السين، الانتباه، الذاكرة، بيكس...)"
+            placeholder="ابحث باسم التمرين، الحرف، أو نوع التدريب..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.9rem', fontFamily: 'inherit' }}
           />
         </div>
 
-        {/* Age Group Filter */}
+        {/* Age Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 600 }}>الفئة العمرية:</span>
           <select
@@ -350,16 +381,15 @@ export default function ExercisesBankView() {
             style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
           >
             <option value="all">جميع الأعمار</option>
-            <option value="3-6">أطفال 3-6 سنوات (طفولة مبكرة)</option>
-            <option value="7-12">7-12 سنة (تمدرس)</option>
-            <option value="teens">مراهقين</option>
-            <option value="adults">بالغين</option>
+            <option value="3-5">3-5 سنوات (طفولة مبكرة)</option>
+            <option value="6-9">6-9 سنوات (تمدرس)</option>
+            <option value="10+">10+ سنوات (يافعين وكبار)</option>
           </select>
         </div>
 
         {/* Disorder Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 600 }}>الاضطراب:</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 600 }}>نوع الاضطراب:</span>
           <select
             className="form-select"
             value={selectedDisorder}
@@ -368,150 +398,286 @@ export default function ExercisesBankView() {
           >
             <option value="all">جميع الاضطرابات</option>
             <option value="speech">نطق وتخاطب</option>
-            <option value="autism">طيف التوحد</option>
+            <option value="autism">توحد وتواصل</option>
+            <option value="learning_disabilities">صعوبات تعلم وتأهيل حركي</option>
             <option value="behavior">تعديل سلوك</option>
-            <option value="learning_disabilities">صعوبات تعلم</option>
-            <option value="skills_development">تنمية مهارات</option>
+            <option value="skills_development">تركيز وانتباه</option>
           </select>
         </div>
       </div>
 
-      {/* 4. Exercises Grid */}
-      {loading ? (
-        <div style={{ padding: '4rem 0', textAlign: 'center' }}>
-          <div className="spin" style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-600)', borderRadius: '50%', margin: '0 auto 1rem' }} />
-          <div style={{ fontWeight: 700, color: 'var(--slate-600)' }}>جاري تحميل التمارين الإكلينيكية...</div>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          {exercises.map((item) => (
-            <div
-              key={item.id || item.title}
-              className="card"
-              style={{
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: 'var(--shadow-sm)',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-              }}
-            >
-              <div>
-                {/* Thumbnail Cover */}
-                <div style={{ position: 'relative', height: '160px', overflow: 'hidden', background: '#0f172a' }}>
-                  <img
-                    src={item.thumbnail_url || 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=400&q=80'}
-                    alt={item.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
-                  />
-                  <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '0.4rem' }}>
-                    <span className="badge badge-primary" style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
-                      {item.specialty === 'orthophonie' ? 'أرطوفونيا' : (item.specialty === 'psychology' ? 'علم نفس' : 'تأهيل شامل')}
-                    </span>
-                    {item.is_featured && (
-                      <span className="badge" style={{ background: '#fef3c7', color: '#b45309', fontWeight: 800 }}>
-                        ⭐ معتمد
-                      </span>
-                    )}
-                  </div>
+      {/* 4. Tab 1 Special: Speech Phonemes Interactive Studio */}
+      {activeTab === 'articulation' && (
+        <div className="card" style={{ padding: '1.75rem', marginBottom: '2rem', background: 'linear-gradient(135deg, #f8fafc 0%, #f0fdfa 100%)', border: '1px solid var(--primary-200)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 className="title-lg" style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageSquare size={20} color="var(--primary-600)" />
+                <span>المشغل التفاعلي لمخارج الأصوات الصامتة (Phoneme Articulation Studio)</span>
+              </h2>
+              <p style={{ margin: '0.25rem 0 0 0', color: 'var(--slate-600)', fontSize: '0.825rem' }}>
+                اختر الحرف المستهدف للاستماع لنطق الكلمات في مواضعها الثلاثة مع عداد التكرارات اللحظي
+              </p>
+            </div>
 
-                  <div style={{ position: 'absolute', bottom: '8px', left: '12px', color: 'white', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(0,0,0,0.65)', padding: '2px 8px', borderRadius: '6px' }}>
-                    <Clock size={12} />
-                    <span>{item.duration_minutes || 20} دقيقة / جلسة</span>
-                  </div>
-                </div>
+            {/* Repetition Counter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.4rem 0.85rem', borderRadius: '20px', border: '1px solid var(--primary-300)', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--slate-700)' }}>تكرار التمرين:</span>
+              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary-700)' }}>{repetitionCount} / 5</span>
+              <button
+                type="button"
+                onClick={() => setRepetitionCount(prev => (prev < 5 ? prev + 1 : 0))}
+                className="btn btn-primary"
+                style={{ padding: '2px 8px', fontSize: '0.75rem', borderRadius: '12px' }}
+              >
+                + احتساب تكرار
+              </button>
+            </div>
+          </div>
 
-                {/* Content */}
-                <div style={{ padding: '1.25rem' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--slate-900)', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
-                    {item.title}
-                  </h3>
-                  <p style={{ color: 'var(--slate-600)', fontSize: '0.825rem', lineHeight: 1.6, margin: '0 0 1rem 0' }}>
-                    {item.description}
-                  </p>
-
-                  {/* Primary Goal Pill */}
-                  <div style={{ background: 'var(--slate-50)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--slate-200)', marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Sparkles size={13} color="var(--primary-600)" />
-                      <span>الهدف الإكلينيكي:</span>
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', lineHeight: 1.4 }}>
-                      {item.clinical_goals?.[0] || 'تحسين الأداء الوظيفي والتعبيري للمريض.'}
-                    </div>
-                  </div>
-
-                  {/* Metadata */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--slate-500)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Users size={13} />
-                      <span>العمر: {item.target_age || '3-6'} سنوات</span>
-                    </div>
-                    <div>
-                      <span>{item.pages_count || 12} صفحة تمرين</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#f59e0b', fontWeight: 700 }}>
-                      <Star size={13} fill="#f59e0b" />
-                      <span>{item.rating || 4.9}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons Bar */}
-              <div style={{
-                padding: '1rem 1.25rem',
-                borderTop: '1px solid var(--slate-100)',
-                background: '#f8fafc',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.5rem'
-              }}>
-                {/* 1. Quick Preview */}
+          {/* Phoneme Letters Bar */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+            {phonemes.map((ph) => {
+              const isSelected = selectedPhoneme === ph;
+              return (
                 <button
+                  key={ph}
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', gap: '0.3rem', flex: 1 }}
                   onClick={() => {
-                    setPreviewItem(item);
+                    setSelectedPhoneme(ph);
                     setRepetitionCount(0);
-                    setActiveStepIndex(0);
+                  }}
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    border: isSelected ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
+                    background: isSelected ? 'var(--primary-600)' : '#ffffff',
+                    color: isSelected ? '#ffffff' : 'var(--slate-800)',
+                    fontWeight: 900,
+                    fontSize: '1.2rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: isSelected ? '0 4px 10px rgba(2, 132, 199, 0.3)' : 'none',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <Eye size={14} color="var(--primary-600)" />
-                  <span>معاينة سريعة</span>
+                  {ph}
                 </button>
+              );
+            })}
+          </div>
 
-                {/* 2. Print / PDF */}
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }}
-                  onClick={() => handlePrint(item)}
-                  title="طباعة ورقة العمل / PDF"
-                >
-                  <Printer size={15} color="var(--slate-700)" />
-                </button>
+          {/* Positions Selector */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <button
+              type="button"
+              onClick={() => setSelectedSoundPosition('initial')}
+              style={{
+                flex: 1,
+                padding: '0.55rem',
+                borderRadius: '8px',
+                border: selectedSoundPosition === 'initial' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
+                background: selectedSoundPosition === 'initial' ? 'var(--primary-50)' : '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              🟢 بداية الكلمة (Initial)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedSoundPosition('medial')}
+              style={{
+                flex: 1,
+                padding: '0.55rem',
+                borderRadius: '8px',
+                border: selectedSoundPosition === 'medial' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
+                background: selectedSoundPosition === 'medial' ? 'var(--primary-50)' : '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              🟡 وسط الكلمة (Medial)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedSoundPosition('final')}
+              style={{
+                flex: 1,
+                padding: '0.55rem',
+                borderRadius: '8px',
+                border: selectedSoundPosition === 'final' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
+                background: selectedSoundPosition === 'final' ? 'var(--primary-50)' : '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              🔵 نهاية الكلمة (Final)
+            </button>
+          </div>
 
-                {/* 3. Assign as Homework */}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', gap: '0.35rem' }}
-                  onClick={() => setAssigningItem(item)}
-                >
-                  <Plus size={14} />
-                  <span>إسناد كواجب منزلي</span>
-                </button>
+          {/* Words Grid with Sound Player */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+            {(phonemeDrills[selectedPhoneme]?.[selectedSoundPosition] || []).map((w, i) => (
+              <div
+                key={i}
+                onClick={() => playSpeechAudio(w)}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid var(--slate-200)',
+                  borderRadius: '12px',
+                  padding: '1rem 0.75rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="انقر للاستماع للنطق الفصيح"
+              >
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--slate-900)', marginBottom: '0.35rem' }}>
+                  {w}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontWeight: 700 }}>
+                  <Volume2 size={13} />
+                  <span>نطق صوتي</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* 5. Interactive Preview Modal (Cards, Sound Positions & Audio) */}
+      {/* 5. Main Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+        {exercises.map((item) => (
+          <div
+            key={item.id || item.title}
+            className="card"
+            style={{
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+            }}
+          >
+            <div>
+              {/* Thumbnail */}
+              <div style={{ position: 'relative', height: '160px', overflow: 'hidden', background: '#0f172a' }}>
+                <img
+                  src={item.thumbnail_url || 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=400&q=80'}
+                  alt={item.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
+                />
+                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '0.4rem' }}>
+                  <span className="badge badge-primary" style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                    {item.specialty === 'orthophonie' ? 'أرطوفونيا' : (item.specialty === 'psychology' ? 'علم نفس' : 'تأهيل شامل')}
+                  </span>
+                  {item.is_featured && (
+                    <span className="badge" style={{ background: '#fef3c7', color: '#b45309', fontWeight: 800 }}>
+                      ⭐ معتمد
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ position: 'absolute', bottom: '8px', left: '12px', color: 'white', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(0,0,0,0.65)', padding: '2px 8px', borderRadius: '6px' }}>
+                  <Clock size={12} />
+                  <span>{item.duration_minutes || 20} دقيقة</span>
+                </div>
+              </div>
+
+              {/* Card Body */}
+              <div style={{ padding: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--slate-900)', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
+                  {item.title}
+                </h3>
+                <p style={{ color: 'var(--slate-600)', fontSize: '0.825rem', lineHeight: 1.6, margin: '0 0 1rem 0' }}>
+                  {item.description}
+                </p>
+
+                {/* Primary Goal */}
+                <div style={{ background: 'var(--slate-50)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--slate-200)', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Sparkles size={13} color="var(--primary-600)" />
+                    <span>الهدف الإكلينيكي:</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', lineHeight: 1.4 }}>
+                    {item.clinical_goals?.[0] || 'تحسين الأداء الوظيفي والتعبيري للمريض.'}
+                  </div>
+                </div>
+
+                {/* Metadata */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--slate-500)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Users size={13} />
+                    <span>العمر: {item.target_age || '3-6'} سنوات</span>
+                  </div>
+                  <div>
+                    <span>{item.pages_count || 12} صفحة</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#f59e0b', fontWeight: 700 }}>
+                    <Star size={13} fill="#f59e0b" />
+                    <span>{item.rating || 4.9}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              padding: '1rem 1.25rem',
+              borderTop: '1px solid var(--slate-100)',
+              background: '#f8fafc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem'
+            }}>
+              {/* Preview */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', gap: '0.3rem', flex: 1 }}
+                onClick={() => setPreviewItem(item)}
+              >
+                <Eye size={14} color="var(--primary-600)" />
+                <span>معاينة سريعة</span>
+              </button>
+
+              {/* Print / PDF */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }}
+                onClick={() => handlePrint(item)}
+                title="طباعة / تحميل PDF"
+              >
+                <Printer size={15} color="var(--slate-700)" />
+              </button>
+
+              {/* Assign Homework */}
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', gap: '0.35rem' }}
+                onClick={() => setAssigningItem(item)}
+              >
+                <Plus size={14} />
+                <span>إسناد كواجب منزلي</span>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 6. Quick Preview Modal */}
       {previewItem && (
         <Modal
           isOpen={true}
@@ -519,7 +685,6 @@ export default function ExercisesBankView() {
           title={`📖 ${previewItem.title}`}
         >
           <div>
-            {/* Goals */}
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
               <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#166534', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <CheckCircle2 size={16} />
@@ -532,126 +697,15 @@ export default function ExercisesBankView() {
               </ul>
             </div>
 
-            {/* Articulation Sound Positions Selector (if Speech exercise) */}
-            {previewItem.sound_positions && (
-              <div style={{ marginBottom: '1.5rem', background: '#fafafa', padding: '1rem', borderRadius: '12px', border: '1px solid var(--slate-200)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--slate-900)' }}>
-                    وضعيات صوت حرف ({previewItem.sound_letter || 'الراء'}):
-                  </div>
-
-                  {/* Repetition Counter Badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'white', padding: '0.3rem 0.65rem', borderRadius: '20px', border: '1px solid var(--primary-200)', fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                    <span>تكرارات الطفل:</span>
-                    <span>{repetitionCount} / 5</span>
-                    <button
-                      type="button"
-                      onClick={() => setRepetitionCount(prev => (prev < 5 ? prev + 1 : 0))}
-                      style={{ border: 'none', background: 'var(--primary-600)', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.75rem' }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* Positions Tabs */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSoundPosition('initial')}
-                    style={{ flex: 1, padding: '0.4rem', borderRadius: '8px', border: selectedSoundPosition === 'initial' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)', background: selectedSoundPosition === 'initial' ? 'var(--primary-50)' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                  >
-                    أول الكلمة
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSoundPosition('medial')}
-                    style={{ flex: 1, padding: '0.4rem', borderRadius: '8px', border: selectedSoundPosition === 'medial' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)', background: selectedSoundPosition === 'medial' ? 'var(--primary-50)' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                  >
-                    وسط الكلمة
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSoundPosition('final')}
-                    style={{ flex: 1, padding: '0.4rem', borderRadius: '8px', border: selectedSoundPosition === 'final' ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)', background: selectedSoundPosition === 'final' ? 'var(--primary-50)' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                  >
-                    آخر الكلمة
-                  </button>
-                </div>
-
-                {/* Word Cards Grid with Speech Audio */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.6rem' }}>
-                  {(previewItem.sound_positions[selectedSoundPosition] || []).map((word, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => playSpeechAudio(word)}
-                      style={{
-                        background: 'white',
-                        border: '1px solid var(--slate-200)',
-                        borderRadius: '10px',
-                        padding: '0.75rem 0.5rem',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'all 0.15s ease'
-                      }}
-                      title="انقر للاستماع للنطق الصوتي"
-                    >
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--slate-900)', marginBottom: '0.25rem' }}>
-                        {word}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-                        <Volume2 size={12} />
-                        <span>استماع</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--slate-900)', marginBottom: '0.5rem' }}>
+                توجيهات الأخصائي لتطبيق الكراس:
               </div>
-            )}
-
-            {/* Step-by-Step Training */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--slate-900)', marginBottom: '0.75rem' }}>
-                المراحل التدريبية والإرشادية:
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.85rem', overflowX: 'auto' }}>
-                {previewItem.interactive_steps?.map((st, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setActiveStepIndex(idx)}
-                    style={{
-                      padding: '0.4rem 0.75rem',
-                      borderRadius: '8px',
-                      border: activeStepIndex === idx ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
-                      background: activeStepIndex === idx ? 'var(--primary-50)' : '#ffffff',
-                      color: activeStepIndex === idx ? 'var(--primary-700)' : 'var(--slate-600)',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    الخطوة {st.step}
-                  </button>
-                ))}
-              </div>
-
-              {previewItem.interactive_steps?.[activeStepIndex] && (
-                <div style={{ background: 'white', border: '1px solid var(--slate-200)', borderRadius: '10px', padding: '1rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--slate-900)', marginBottom: '0.4rem' }}>
-                    {previewItem.interactive_steps[activeStepIndex].name}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: 1.6 }}>
-                    {previewItem.interactive_steps[activeStepIndex].guide}
-                  </div>
-                </div>
-              )}
+              <p style={{ fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: 1.7, margin: 0 }}>
+                {previewItem.instructions || 'تطبيق التمرين يومياً بمعدل 15 دقيقة مع التعزيز الإيجابي الفوري للطفل.'}
+              </p>
             </div>
 
-            {/* Bottom Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--slate-200)' }}>
               <button
                 type="button"
@@ -660,7 +714,7 @@ export default function ExercisesBankView() {
                 style={{ gap: '0.4rem' }}
               >
                 <Printer size={15} />
-                <span>طباعة ورقة العمل</span>
+                <span>طباعة ورقة العمل / PDF</span>
               </button>
 
               <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -685,7 +739,7 @@ export default function ExercisesBankView() {
         </Modal>
       )}
 
-      {/* 6. Assign Homework Modal */}
+      {/* 7. Assign Homework Modal */}
       {assigningItem && (
         <Modal
           isOpen={true}
@@ -752,7 +806,12 @@ export default function ExercisesBankView() {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', background: '#f0fdf4', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.8rem', color: '#166534' }}>
+                <Send size={15} />
+                <span>إرسال تنبيه ورابط ورقة العمل تلقائياً للولي عبر واتساب/SMS</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setAssigningItem(null)}>
                   إلغاء
                 </button>
