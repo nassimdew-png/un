@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\ClinicalTestController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
+use App\Http\Controllers\Api\SuperAdmin\SuperAdminDashboardController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
 use App\Http\Controllers\Api\SuperAdmin\BaridiMobPaymentController;
 use App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController;
@@ -26,6 +27,7 @@ Route::get('/health', function () {
             'patients_crud'           => 'active',
             'clinical_tests'          => 'active',
             'exercises_bank'          => 'active',
+            'superadmin_stats'        => 'active',
             'superadmin_ai_providers' => 'active',
             'communication_gateways'  => 'active',
             'feature_switches'        => 'active',
@@ -90,6 +92,11 @@ Route::prefix('clinic/subscription')->group(function () {
 
 // 9. SuperAdmin SaaS Management
 Route::prefix('superadmin')->group(function () {
+    // Dashboard Metrics & Statistics
+    Route::get('/stats', [SuperAdminDashboardController::class, 'getStats']);
+    Route::get('/dashboard-stats', [SuperAdminDashboardController::class, 'getStats']);
+    Route::get('/dashboard', [SuperAdminDashboardController::class, 'getStats']);
+
     // Domains
     Route::get('/domains', [SuperAdminDomainController::class, 'index']);
     Route::post('/domains/{id}/force-renew', [SuperAdminDomainController::class, 'forceRenew']);
@@ -135,6 +142,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // SuperAdmin Dashboard Stats
+    Route::get('/superadmin/stats', [SuperAdminDashboardController::class, 'getStats']);
+    Route::get('/superadmin/dashboard-stats', [SuperAdminDashboardController::class, 'getStats']);
 
     // Patient CRUD & Sub-resources
     Route::apiResource('patients', PatientController::class);
