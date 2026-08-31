@@ -1,87 +1,67 @@
-# 🏥 PsyPro - Cloud Platform for Psychology & Orthophonie Clinics
+# 🧠 PsyPro Tech (Clinical Management SaaS for Psychology & Speech Therapy Clinics)
 
-**PsyPro** (SaaS MVP) is a specialized multi-tenant clinical management system tailored for Speech Therapy (الأرطوفونيا / Orthophonie) and Psychology clinics. Featuring clinical AI pipelines, automated Bilan generation, interactive Tablet Kiosk mode, and multi-tenant MongoDB data isolation.
-
----
-
-## 🏛️ Architecture Overview
-
-- **Frontend**: React 18 + Vite (PWA / Responsive Tablet Kiosk Mode / RTL Arabic & LTR)
-- **Backend API**: PHP / Laravel 11 (Multi-tenancy Subdomain Isolation, RBAC, REST API)
-- **AI Clinical Microservice**: Python / FastAPI (Clinical NLP, De-identification Anonymizer, Ortho Bilan Generator, Psychometric Test Scoring)
-- **Database**: MongoDB 6.0 Engine
-- **Reverse Proxy**: Traefik 2.10 (Subdomain Routing & SSL Termination)
+A comprehensive cloud-based SaaS platform tailored for clinical psychologists, speech-language pathologists (SLPs), and rehabilitation centers. It provides electronic medical records, standardized diagnostic testing batteries, therapeutic exercise banks, and advanced clinical AI workflows.
 
 ---
 
-## 📁 Monorepo Structure
+## 🛠️ Tech Stack
 
-```text
-psypro/
-├── .github/workflows/deploy.yml   # CI/CD deployment pipeline
-├── docker-compose.yml             # Full-stack Docker orchestration
-├── .env.example                   # Global environment template
-├── scaffold.md                    # System architecture specification
-│
-├── frontend/                      # React + Vite PWA Application
-│   ├── src/
-│   │   ├── components/            # Reusable UI components
-│   │   ├── layouts/               # AdminLayout, SpecialistLayout, TabletLayout
-│   │   ├── pages/                 # Auth, Superadmin, Patients, Orthophonie, Psychology, Tablet
-│   │   ├── services/              # API Client (Subdomain aware)
-│   │   └── store/                 # Zustand state management
-│
-├── backend/                       # Laravel 11 REST API
-│   ├── app/Http/Controllers/      # Auth, Tenant, Patient, Appointment, OrthoBilan, TabletSession
-│   ├── app/Http/Middleware/       # TenantResolver (Subdomain), RoleMiddleware
-│   ├── app/Models/                # Tenant, User, Patient, Appointment, OrthoBilan, TabletSession
-│   ├── app/Services/              # AIServiceClient, PDFReportGenerator
-│   └── routes/api.php             # REST API Routes
-│
-├── ai-service/                    # FastAPI AI Clinical Microservice
-│   ├── app/routes/                # /bilan/generate, /tests/score, /session/soap-summary
-│   ├── app/prompts/               # Orthophonie and Psychology clinical prompts
-│   └── app/utils/anonymizer.py    # Strict PII de-identification sanitizer
-│
-└── proxy/
-    └── traefik.yml                # Traefik configuration
+* **Backend:** Laravel 11 (PHP 8.2+), Laravel Sanctum (Token Authentication), MySQL Database.
+* **Frontend:** React 18, Vite, Tailwind CSS, Lucide Icons, Axios, Zustand.
+* **Infrastructure & Server:** Ubuntu Linux VPS, Nginx, PM2 Process Manager, SSL (Let's Encrypt).
+* **AI Integrations:** Google Gemini 1.5/2.0, DeepSeek V3/R1, OpenAI GPT-4o.
+
+---
+
+## 🧩 Core Platform Modules
+
+### 1. Clinical Tests & Standardized Scales (`/clinical-tests`)
+* Standardized Arabic & Algerian diagnostic batteries (BDI-II, CARS-2, Conners-3, SSI-4, PCC).
+* Instant automated scoring and one-click psychological/speech report generation.
+* Dedicated Tablet/Kiosk mode (`/tablet/kiosk`) for patient self-administration.
+
+### 2. Therapeutic Exercises & Workbooks Bank (`/exercises-bank`)
+* Phoneme articulation cards and speech training with an interactive audio player.
+* Printable PDF therapeutic workbooks (mazes, fine motor tracking, visual perception).
+* Picture Exchange Communication System (PECS) and social story sets.
+* Direct homework assignment workflow linked to patient charts.
+
+### 3. Clinic & Electronic Medical Records (EMR)
+* Comprehensive pediatric and adult patient records, longitudinal history, and SOAP clinical notes.
+* Appointment scheduling, waiting list triage, and smart waiting room queue (Kiosk Mode).
+* Billing, automated invoices, and local Algerian payment verification (BaridiMob / CCP).
+
+### 4. Super Admin Control Panel
+* Clinic subscription lifecycle, license tiers, and resource quota management.
+* Unified AI provider gateway with real-time token and latency connection testing.
+* Communication gateways (WhatsApp Cloud API, SMS gateways, SMTP).
+* Global Feature Master Switches for zero-downtime feature rollouts.
+
+---
+
+## 🛡️ Safe Git Development Workflow
+
+To ensure production server stability and prevent file loss:
+
+1. **Main Branch (`master`):** Reserved exclusively for tested, production-ready releases.
+2. **Feature Branches (`feature/*`):** All active development and refactoring take place in isolated branches.
+3. **Safety Rules:**
+   * Destructive commands like `git reset --hard` and `npm audit fix --force` are strictly forbidden on production.
+   * Full frontend build checks (`npm run build`) and cache clearing must pass before merging.
+
+---
+
+## 🚀 Quick Maintenance Commands
+
+```bash
+# Clear and optimize Laravel backend caches
+cd /var/www/clinic-saas/backend
+php artisan optimize:clear
+
+# Build frontend production bundle
+cd /var/www/clinic-saas/frontend
+npm run build
+
+# Restart runtime services
+pm2 restart all
 ```
-
----
-
-## 🚀 Quick Start (Docker)
-
-1. **Clone & Setup Environment**:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Launch All Services**:
-   ```bash
-   docker compose up --build -d
-   ```
-
-3. **Access Services**:
-   - **Frontend App**: `http://psypro.local` (or `http://localhost:3000`)
-   - **Tenant Subdomain Example**: `http://elamal.psypro.local`
-   - **Superadmin Panel**: `http://admin.psypro.local`
-   - **Backend API**: `http://api.psypro.local`
-   - **AI Microservice Docs**: `http://localhost:8000/docs`
-   - **Traefik Dashboard**: `http://localhost:8080`
-
----
-
-## 🧩 Database Collections (MongoDB)
-
-1. **`tenants`**: Clinic metadata, custom subdomain, specialty (`orthophonie`, `psychology`, `multidisciplinary`), subscription plans.
-2. **`users`**: Staff accounts with roles (`superadmin`, `clinic_admin`, `orthophoniste`, `psychologue`, `receptionist`).
-3. **`patients`**: Anamnesis notes, pregnancy, motor milestones, language background.
-4. **`ortho_bilans`**: Clinical diagnostic observations, AI-generated comprehensive bilans, PDF links.
-5. **`tablet_sessions`**: Kiosk test sessions, 4-digit PIN access, answers array, psychometric score interpretations (BDI-II, etc.).
-6. **`appointments`**: Scheduling, status, and clinic specialist assignments.
-
----
-
-## 🔒 Clinical AI Confidentiality & Privacy
-
-All AI synthesis requests pass through `app/utils/anonymizer.py` before hitting external LLMs (Gemini / OpenAI). Names, phone numbers, addresses, and identifying dates are masked and replaced with clinical tokens (e.g. `[PATIENT_NAME]`, `[PHONE]`) to uphold strict medical ethics and data privacy regulations.
