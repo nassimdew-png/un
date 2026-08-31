@@ -3,17 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Tenant extends Model
 {
     protected $table = 'tenants';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
+        'id',
         'name',
         'subdomain',
         'slug',
+        'type',
         'specialty_type', // psychology | orthophony | multidisciplinary
         'subscription',   // status, plan, expires_at
+        'status',
         'subscription_status',
         'subscription_plan_id',
         'subscription_ends_at',
@@ -39,6 +45,16 @@ class Tenant extends Model
         'services_json'         => 'array',
         'subscription_ends_at'  => 'datetime',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function users()
     {
