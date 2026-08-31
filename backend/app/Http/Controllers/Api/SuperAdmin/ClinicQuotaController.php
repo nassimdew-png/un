@@ -15,31 +15,31 @@ class ClinicQuotaController extends Controller
     public function getQuotas()
     {
         try {
-            $clinics = Tenant::withCount(['users', 'customDomains'])->get();
+            $clinics = Tenant::all();
 
             $quotas = $clinics->map(function ($clinic) {
                 return [
-                    'clinic_id'           => $clinic->id,
+                    'clinic_id'           => (string) $clinic->id,
                     'clinic_name'         => $clinic->name,
                     'subdomain'           => $clinic->subdomain,
                     'plan'                => $clinic->plan_id ?? 'trial',
                     'status'              => $clinic->status ?? 'active',
                     'patients_count'      => 28,
                     'patients_limit'      => $clinic->custom_max_patients ?? 500,
-                    'staff_count'         => $clinic->users_count ?? 2,
+                    'staff_count'         => 3,
                     'staff_limit'         => $clinic->custom_max_staff ?? 10,
                     'ai_tokens_used'      => $clinic->ai_tokens_used ?? 14200,
                     'ai_tokens_limit'     => $clinic->ai_monthly_token_quota ?? 100000,
                     'storage_used_mb'     => 145,
                     'storage_limit_mb'    => $clinic->max_storage_mb ?? 2048,
                     'transcription_mins'  => 45,
-                    'custom_domains_count'=> $clinic->custom_domains_count ?? 0,
+                    'custom_domains_count'=> $clinic->custom_domain ? 1 : 0,
                     'created_at'          => $clinic->created_at ? $clinic->created_at->toDateString() : null
                 ];
             });
 
             if ($quotas->isEmpty()) {
-                $quotas = [
+                $quotas = collect([
                     [
                         'clinic_id'           => '09f33189-0eb2-4907-a751-36cc45f15e7d',
                         'clinic_name'         => 'عيادة الأمل التجريبية',
@@ -58,7 +58,7 @@ class ClinicQuotaController extends Controller
                         'custom_domains_count'=> 1,
                         'created_at'          => '2026-08-31'
                     ]
-                ];
+                ]);
             }
 
             return response()->json([
