@@ -51,9 +51,8 @@ return [
         Illuminate\View\ViewServiceProvider::class,
 
         /*
-         * MongoDB & Sanctum Service Providers...
+         * Sanctum Service Provider...
          */
-        MongoDB\Laravel\MongoDBServiceProvider::class,
         Laravel\Sanctum\SanctumServiceProvider::class,
 
         /*
