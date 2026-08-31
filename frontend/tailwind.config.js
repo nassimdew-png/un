@@ -8,6 +8,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        brand: {
+          50: '#eef2ff',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+        },
         primary: {
           50: '#f0fdfa',
           100: '#ccfbf1',
@@ -31,6 +37,11 @@ export default {
           700: '#075985',
           800: '#0c4a6e',
           900: '#082f49',
+        },
+        dark: {
+          bg: '#0B0F19',
+          card: '#111827',
+          border: '#1F2937',
         }
       },
       fontFamily: {
