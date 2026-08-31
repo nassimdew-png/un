@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\SuperAdmin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tenant;
-use App\Models\Clinic;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -38,15 +37,12 @@ class SuperAdminDashboardController extends Controller
             $totalRevenue = 0;
             if (Schema::hasTable('subscription_transactions')) {
                 $totalRevenue = (float) DB::table('subscription_transactions')
-                    ->where(function ($q) {
-                        $q->where('payment_status', 'paid')
-                          ->orWhere('status', 'approved');
-                    })
+                    ->where('payment_status', 'paid')
                     ->sum('amount');
             }
 
             if ($totalRevenue == 0) {
-                $totalRevenue = 45000.0; // Baseline cumulative revenue for active plans
+                $totalRevenue = 45000.0; // Baseline cumulative revenue
             }
 
             $responsePayload = [
