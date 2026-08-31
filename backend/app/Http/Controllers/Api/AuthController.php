@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Throwable;
 
 class AuthController extends Controller
@@ -48,14 +49,16 @@ class AuthController extends Controller
 
             // بذر المستخدم التلقائي للعيادة التجريبية في أول تشغيل
             if (!$user && ($identifier === 'sara@elamal.dz' || $identifier === 'admin@psypro.tech')) {
-                $t = Tenant::firstOrCreate(
-                    ['subdomain' => 'elamal'],
-                    [
-                        'name'           => 'عيادة الأمل التجريبية',
-                        'specialty_type' => 'multidisciplinary',
-                        'subscription'   => ['status' => 'active', 'plan' => 'trial']
-                    ]
-                );
+                $t = Tenant::where('subdomain', 'elamal')->first();
+                if (!$t) {
+                    $t = new Tenant();
+                    $t->id = (string) Str::uuid();
+                    $t->name = 'عيادة الأمل التجريبية';
+                    $t->subdomain = 'elamal';
+                    $t->type = 'multidisciplinary';
+                    $t->status = 'active';
+                    $t->save();
+                }
 
                 $user = User::create([
                     'tenant_id' => $t->id,
