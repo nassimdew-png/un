@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 
 class Tenant extends Model
 {
-    protected $connection = 'mongodb';
-    protected $collection = 'tenants';
+    protected $table = 'tenants';
 
     protected $fillable = [
         'name',
@@ -32,6 +31,8 @@ class Tenant extends Model
     ];
 
     protected $casts = [
+        'subscription'          => 'array',
+        'settings'              => 'array',
         'booking_enabled'       => 'boolean',
         'slot_duration_minutes' => 'integer',
         'working_hours_json'    => 'array',
@@ -41,21 +42,21 @@ class Tenant extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'tenant_id');
     }
 
     public function customDomains()
     {
-        return $this->hasMany(ClinicCustomDomain::class, 'clinic_id', '_id');
+        return $this->hasMany(ClinicCustomDomain::class, 'clinic_id');
     }
 
     public function publicAppointmentRequests()
     {
-        return $this->hasMany(PublicAppointmentRequest::class, 'clinic_id', '_id');
+        return $this->hasMany(PublicAppointmentRequest::class, 'clinic_id');
     }
 
     public function subscriptionTransactions()
     {
-        return $this->hasMany(SubscriptionTransaction::class, 'clinic_id', '_id');
+        return $this->hasMany(SubscriptionTransaction::class, 'clinic_id');
     }
 }

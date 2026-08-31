@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Auth\User as Authenticatable;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
 
-    protected $connection = 'mongodb';
-    protected $collection = 'users';
+    protected $table = 'users';
 
     protected $fillable = [
         'tenant_id',
@@ -29,11 +28,6 @@ class User extends Authenticatable
 
     public function tenant()
     {
-        return $this->belongsTo(Tenant::class);
-    }
-
-    public function tokens()
-    {
-        return $this->morphMany(PersonalAccessToken::class, 'tokenable');
+        return $this->belongsTo(Tenant::class, 'tenant_id');
     }
 }

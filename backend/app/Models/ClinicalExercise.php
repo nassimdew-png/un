@@ -2,21 +2,23 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 
 class ClinicalExercise extends Model
 {
-    protected $connection = 'mongodb';
-    protected $collection = 'clinical_exercises';
+    protected $table = 'clinical_exercises';
 
     protected $fillable = [
         'title',
         'category',           // 'articulation', 'workbook', 'psychology', 'cognitive', 'autism', 'stuttering'
         'specialty',          // 'orthophonie', 'psychology', 'multidisciplinary'
+        'disorder_type',
         'target_age',         // '3-6', '7-12', 'teens', 'adults', 'all'
         'difficulty',         // 'easy', 'medium', 'advanced'
         'pages_count',
         'duration_minutes',
+        'sound_letter',
+        'sound_positions',
         'description',
         'clinical_goals',
         'instructions',
@@ -33,6 +35,7 @@ class ClinicalExercise extends Model
         'clinical_goals'    => 'array',
         'preview_images'    => 'array',
         'interactive_steps' => 'array',
+        'sound_positions'   => 'array',
         'pages_count'       => 'integer',
         'duration_minutes'  => 'integer',
         'assigned_count'    => 'integer',
@@ -42,6 +45,6 @@ class ClinicalExercise extends Model
 
     public function assignments()
     {
-        return $this->hasMany(PatientAssignedExercise::class, 'exercise_id', '_id');
+        return $this->hasMany(PatientAssignedExercise::class, 'exercise_id');
     }
 }

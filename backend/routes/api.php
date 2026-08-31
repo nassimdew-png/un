@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController as SuperAdminDomainController;
 use App\Http\Controllers\Api\PublicClinicBookingController;
@@ -11,10 +11,11 @@ use App\Http\Controllers\Api\ExerciseBankController;
 // 1. Public Health Check
 Route::get('/health', function () {
     return response()->json([
-        'status' => 'healthy',
-        'backend' => 'Laravel 11',
-        'database' => 'MongoDB',
+        'status'   => 'healthy',
+        'backend'  => 'Laravel 11',
+        'database' => 'Connected',
         'features' => [
+            'authentication'     => 'active',
             'custom_domains_ssl' => 'active',
             'public_mini_sites'  => 'active',
             'baridimob_approval' => 'active',
@@ -23,30 +24,30 @@ Route::get('/health', function () {
     ]);
 });
 
-// 2. Public Clinic Landing & Interactive Booking Routes (No Auth Required)
+// 2. Public Authentication Endpoints
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+});
+
+// Backward compatibility aliases:
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
+
+// 3. Public Clinic Landing & Interactive Booking Routes (No Auth Required)
 Route::prefix('public/clinic')->group(function () {
     Route::get('/{slug}', [PublicClinicBookingController::class, 'show']);
     Route::get('/{slug}/available-slots', [PublicClinicBookingController::class, 'availableSlots']);
     Route::post('/{slug}/book', [PublicClinicBookingController::class, 'book']);
 });
 
-// 3. Clinical Exercises & Workbooks Bank
+// 4. Clinical Exercises & Workbooks Bank
 Route::prefix('exercises')->group(function () {
     Route::get('/', [ExerciseBankController::class, 'index']);
     Route::get('/bank', [ExerciseBankController::class, 'index']);
     Route::post('/assign-to-patient', [ExerciseBankController::class, 'assignToPatient']);
     Route::post('/assign', [ExerciseBankController::class, 'assignToPatient']);
-});
-
-// 4. Authentication Routes (Supporting both /api/login and /api/auth/login)
-Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/login', fn() => response()->json(['message' => 'Unauthenticated.'], 401));
-
-Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/login', fn() => response()->json(['message' => 'Unauthenticated.'], 401));
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
 });
 
 // 5. Clinic Custom Domains Management
@@ -78,8 +79,11 @@ Route::prefix('superadmin')->group(function () {
     Route::post('/payments/{id}/reject', [BaridiMobPaymentController::class, 'reject']);
 });
 
-// 8. Protected Sanctum Routes
+// 8. Authenticated Auth & User Endpoints
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/user', [AuthController::class, 'me']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 });

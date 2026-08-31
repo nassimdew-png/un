@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 
 class PatientAssignedExercise extends Model
 {
-    protected $connection = 'mongodb';
-    protected $collection = 'patient_assigned_exercises';
+    protected $table = 'patient_assigned_exercises';
 
     protected $fillable = [
         'clinic_id',
@@ -29,16 +28,16 @@ class PatientAssignedExercise extends Model
 
     public function exercise()
     {
-        return $this->belongsTo(ClinicalExercise::class, 'exercise_id', '_id');
+        return $this->belongsTo(ClinicalExercise::class, 'exercise_id');
     }
 
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'patient_id', '_id');
+        return $this->belongsTo(Patient::class, 'patient_id');
     }
 
     public function clinic()
     {
-        return $this->belongsTo(Tenant::class, 'clinic_id', '_id');
+        return $this->belongsTo(Tenant::class, 'clinic_id');
     }
 }
