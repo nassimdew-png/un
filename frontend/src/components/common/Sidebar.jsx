@@ -14,7 +14,7 @@ import {
   Sparkles, 
   Globe,
   BookOpen,
-  Scale
+  ClipboardCheck
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -30,7 +30,7 @@ export default function Sidebar() {
     { label: 'ملفات المرضى', path: '/patients', icon: Users },
     { label: 'الحصيلة الأرطوفونية (AI)', path: '/orthophonie/bilan', icon: FileText },
     { label: 'ملاحظات الجلسة (SOAP)', path: '/psychology/session-notes', icon: Activity },
-    { label: 'بنك الروائز والاختبارات', path: '/clinical-tests', icon: Scale },
+    { label: 'بنك الروائز والمقاييس', path: '/clinical-tests', icon: ClipboardCheck },
     { label: 'بنك التمارين والكراسات', path: '/exercises-bank', icon: BookOpen },
     { label: 'النطاق المخصص وSSL', path: '/settings/domains', icon: Globe },
     { label: 'وضع التابلت التفاعلي', path: '/tablet/kiosk', icon: Tablet },
@@ -39,8 +39,8 @@ export default function Sidebar() {
   return (
     <aside style={{
       width: '260px',
-      background: '#ffffff',
-      borderLeft: '1px solid var(--slate-200)',
+      background: '#111827',
+      borderLeft: '1px solid #1F2937',
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
@@ -52,32 +52,32 @@ export default function Sidebar() {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        borderBottom: '1px solid var(--slate-100)'
+        borderBottom: '1px solid #1F2937'
       }}>
         <div style={{
           width: '40px',
           height: '40px',
           borderRadius: '12px',
-          background: 'linear-gradient(135deg, var(--primary-600), var(--accent-600))',
+          background: 'linear-gradient(135deg, #0d9488, #0284c7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'white',
-          boxShadow: 'var(--shadow-glow)'
+          boxShadow: '0 0 20px -5px rgba(20, 184, 166, 0.35)'
         }}>
           <Stethoscope size={22} />
         </div>
         <div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--slate-900)', letterSpacing: '-0.03em' }}>
-            Psy<span style={{ color: 'var(--primary-600)' }}>Pro</span>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f9fafb', letterSpacing: '-0.03em' }}>
+            Psy<span style={{ color: '#14b8a6' }}>Pro</span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--slate-400)', fontWeight: 600 }}>Clinical SaaS Platform</div>
+          <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 600 }}>Clinical SaaS Platform</div>
         </div>
       </div>
 
       {/* Navigation Links */}
       <nav style={{ flex: 1, padding: '1.25rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--slate-400)', padding: '0.5rem 0.75rem' }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b7280', padding: '0.5rem 0.75rem' }}>
           {isSuperAdmin ? 'إدارة المنصة السحابية' : 'الوحدات الإكلينيكية'}
         </div>
         {navItems.map((item, index) => {
@@ -92,13 +92,13 @@ export default function Sidebar() {
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.7rem 0.85rem',
-                borderRadius: 'var(--radius-md)',
+                borderRadius: '8px',
                 textDecoration: 'none',
                 fontSize: '0.875rem',
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? 'var(--primary-700)' : 'var(--slate-600)',
-                background: isActive ? 'var(--primary-50)' : 'transparent',
-                border: isActive ? '1px solid var(--primary-200)' : '1px solid transparent',
+                color: isActive ? '#5eead4' : '#9ca3af',
+                background: isActive ? 'rgba(20, 184, 166, 0.12)' : 'transparent',
+                border: isActive ? '1px solid rgba(20, 184, 166, 0.3)' : '1px solid transparent',
                 transition: 'all 0.15s ease'
               })}
             >
@@ -112,13 +112,13 @@ export default function Sidebar() {
       {/* Footer Info */}
       <div style={{
         padding: '1rem',
-        borderTop: '1px solid var(--slate-100)',
-        background: 'var(--slate-50)',
+        borderTop: '1px solid #1F2937',
+        background: '#0B0F19',
         fontSize: '0.75rem',
-        color: 'var(--slate-500)',
+        color: '#6b7280',
         textAlign: 'center'
       }}>
-        <div style={{ fontWeight: 600 }}>PsyPro v1.0 (Clinical AI)</div>
+        <div style={{ fontWeight: 600, color: '#9ca3af' }}>PsyPro v1.0 (Clinical AI)</div>
         <div>نظام عزل متعدد المستأجرين</div>
       </div>
     </aside>
