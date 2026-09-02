@@ -1,0 +1,69 @@
+{
+  "nav": {
+    "dashboard": "Tableau de Bord Clinique",
+    "patients": "Dossiers Patients & Enfants",
+    "appointments": "Rendez-vous & Agenda Médical",
+    "clinical_tests": "Banque de Tests & Évaluations",
+    "exercises_bank": "Banque d'Exercices & Cahiers",
+    "assessments": "Bilans & Rapports Médicaux",
+    "sessions": "Séances & Suivi Thérapeutique",
+    "billing": "Facturation & Règlements",
+    "staff": "Équipe & Praticiens",
+    "audit_logs": "Journal d'Audit & Sécurité",
+    "settings": "Paramètres du Cabinet",
+    "waiting_room": "Salle d'Attente Intelligente",
+    "kiosk": "Borne d'Accueil (Kiosk)",
+    "ai_therapy": "Pôle IA & Rééducation",
+    "help": "Guide d'Utilisation & Support",
+    "analytics": "Analytique & Statistiques BI",
+    "document_processor": "Traitement de Documents & OCR"
+  },
+  "sidebar": {
+    "dashboard": "Tableau de Bord Clinique",
+    "patients": "Dossiers Patients & Enfants",
+    "appointments": "Rendez-vous & Agenda",
+    "therapy": "Tests & Exercices",
+    "clinical_tests": "Banque de Tests Cliniques",
+    "exercises_bank": "Banque d'Exercices",
+    "assessments": "Bilans & Évaluations",
+    "sessions": "Séances Thérapeutiques",
+    "billing": "Facturation & Recettes",
+    "waiting_room": "Salle d'Attente",
+    "kiosk": "Borne Kiosk",
+    "staff": "Équipe & Personnel",
+    "tenant_settings": "Paramètres du Cabinet",
+    "users_management": "Gestion des Praticiens",
+    "audit_logs": "Journal d'Activité",
+    "help": "Guide & Aide",
+    "ai_therapy": "Thérapie IA Pro"
+  },
+  "new": {
+    "therapy": {
+      "suite": "Suite de Rééducation IA Avancée"
+    }
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher...",
+    "filter": "Filtrer",
+    "loading": "Chargement...",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "print": "Imprimer",
+    "export": "Exporter",
+    "close": "Fermer",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "details": "Détails",
+    "assign": "Assigner au patient"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe"
+  }
+}

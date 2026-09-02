@@ -1,0 +1,42 @@
+http:
+  routers:
+    clinic-api-http:
+      rule: "Host(`145.223.116.54.nip.io`) && PathPrefix(`/api`)"
+      service: clinic-api-service
+      entryPoints:
+        - web
+      priority: 100
+
+    clinic-api-https:
+      rule: "Host(`145.223.116.54.nip.io`) && PathPrefix(`/api`)"
+      service: clinic-api-service
+      entryPoints:
+        - websecure
+      tls: {}
+      priority: 100
+
+    clinic-frontend-http:
+      rule: "Host(`145.223.116.54.nip.io`)"
+      service: clinic-frontend-service
+      entryPoints:
+        - web
+      priority: 10
+
+    clinic-frontend-https:
+      rule: "Host(`145.223.116.54.nip.io`)"
+      service: clinic-frontend-service
+      entryPoints:
+        - websecure
+      tls: {}
+      priority: 10
+
+  services:
+    clinic-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.0.1:8000"
+
+    clinic-frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.0.1:3001"
