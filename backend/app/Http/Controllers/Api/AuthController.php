@@ -45,11 +45,23 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Strict Tenant Subdomain Isolation Check
+        // Strict Tenant Subdomain & Custom Domain Isolation Check
         if (!$isRootOrLocal && $currentSubdomainClean) {
             $targetClinic = Tenant::where('subdomain', $currentSubdomainClean)
+                ->orWhere('custom_domain', $currentSubdomainClean)
                 ->orWhere('custom_domain', $request->getHost())
+                ->orWhere('custom_domain', $request->header('X-Custom-Domain'))
                 ->first();
+
+            if (!$targetClinic) {
+                $customRecord = \App\Models\ClinicCustomDomain::where('domain', $currentSubdomainClean)
+                    ->orWhere('domain', $request->getHost())
+                    ->orWhere('domain', $request->header('X-Custom-Domain'))
+                    ->first();
+                if ($customRecord) {
+                    $targetClinic = Tenant::find($customRecord->clinic_id);
+                }
+            }
 
             if ($targetClinic) {
                 // If user is not global superadmin and does not belong to this clinic

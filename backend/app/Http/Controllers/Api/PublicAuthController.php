@@ -33,15 +33,41 @@ class PublicAuthController extends Controller
         if ($subdomain && !in_array(strtolower($subdomain), ['psypro', 'psypro.tech', 'www', 'localhost', '127.0.0.1'])) {
             $sub = strtolower(trim($subdomain));
             $tenant = Tenant::where('subdomain', $sub)
+                ->orWhere('custom_domain', $sub)
                 ->orWhere('id', $sub)
                 ->orWhere('name', $sub)
                 ->first();
+
+            if (!$tenant) {
+                $customDomainRecord = \App\Models\ClinicCustomDomain::where('domain', $sub)->first();
+                if ($customDomainRecord) {
+                    $tenant = Tenant::find($customDomainRecord->clinic_id);
+                }
+            }
+        }
+
+        $customHeader = $request->header('X-Custom-Domain');
+        if (!$tenant && $customHeader) {
+            $tenant = Tenant::where('custom_domain', $customHeader)->first();
+            if (!$tenant) {
+                $customDomainRecord = \App\Models\ClinicCustomDomain::where('domain', $customHeader)->first();
+                if ($customDomainRecord) {
+                    $tenant = Tenant::find($customDomainRecord->clinic_id);
+                }
+            }
         }
 
         if (!$tenant && $host && !in_array($host, ['psypro.tech', 'www.psypro.tech', 'localhost', '127.0.0.1'])) {
             $tenant = Tenant::where('custom_domain', $host)
                 ->orWhere('subdomain', str_replace('.psypro.tech', '', $host))
                 ->first();
+
+            if (!$tenant) {
+                $customDomainRecord = \App\Models\ClinicCustomDomain::where('domain', $host)->first();
+                if ($customDomainRecord) {
+                    $tenant = Tenant::find($customDomainRecord->clinic_id);
+                }
+            }
         }
 
         if (!$tenant) {
