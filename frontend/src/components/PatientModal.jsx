@@ -9,23 +9,13 @@ import {
   Activity,
   GitBranch,
   GraduationCap,
-  Tv,
   Languages,
   Ear,
   Eye,
   CheckCircle2,
   X,
   Phone,
-  Calendar,
-  User,
-  MapPin,
-  FileText,
   AlertTriangle,
-  Clock,
-  Sparkles,
-  Layers,
-  ArrowLeft,
-  ArrowRight,
   ShieldCheck
 } from 'lucide-react';
 
@@ -57,7 +47,7 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
     // Step 2: Perinatal & Motor Milestones
     pregnancy_term: 'full_term', // full_term, preterm, post_term
     gestational_weeks: 39,
-    delivery_type: 'natural', // natural, c_section
+    delivery_type: 'natural', // natural, c_section, instrumental
     birth_cry: 'immediate', // immediate, delayed, absent
     neonatal_anoxia: false,
     incubator_stay: false,
@@ -94,9 +84,9 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
     screen_start_age_months: 18,
 
     // Step 2: Orientation & Referral
-    referred_by_type: 'parents', // pediatrician, neuropediatrician, school_doctor, orl, parents, general_practitioner
+    referred_by_type: 'parents', // pediatrician, neuropediatrician, school_doctor, orl, parents, pedopsychiatrist
     referred_by_name: '',
-    parallel_followups: [], // psychomotrician, speech_therapist, pedopsychiatrist, psychologist, none
+    parallel_followups: [], // psychomotrician, speech_therapist, pedopsychiatrist, psychologist
     medical_history_notes: '',
     allergies: '',
   });
@@ -104,16 +94,16 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
   if (!isOpen) return null;
 
   // Auto detect Algerian Phone Operator
-  const phoneOperator = useMemo(() => {
-    const clean = formData.phone.replace(/\D/g, '');
+  const phoneOperator = (() => {
+    const clean = (formData.phone || '').replace(/\D/g, '');
     if (clean.startsWith('05') || clean.startsWith('2135')) return { name: 'Ooredoo', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
     if (clean.startsWith('06') || clean.startsWith('2136')) return { name: 'Mobilis', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
     if (clean.startsWith('07') || clean.startsWith('2137')) return { name: 'Djezzy', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
     return null;
-  }, [formData.phone]);
+  })();
 
   // Calculate Age in Years & Months
-  const calculatedAge = useMemo(() => {
+  const calculatedAge = (() => {
     if (!formData.birth_date) return null;
     const birth = new Date(formData.birth_date);
     const now = new Date();
@@ -124,7 +114,7 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
       months += 12;
     }
     return { years, months, isChild: years < 18, isInfant: years < 3 };
-  }, [formData.birth_date]);
+  })();
 
   const toggleArrayItem = (key, item) => {
     setFormData((prev) => {
@@ -137,10 +127,10 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
   };
 
   const handleSubmit = async (e) => {
-    e?.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError('');
 
-    if (!formData.first_name.trim() || !formData.last_name.trim()) {
+    if (!formData.first_name || !formData.first_name.trim() || !formData.last_name || !formData.last_name.trim()) {
       setError('يرجى إدخال الاسم واللقب للمريض.');
       return;
     }
