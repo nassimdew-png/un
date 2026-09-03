@@ -206,6 +206,10 @@ Route::get('/portal/{token}', [ParentPortalController::class, 'getPortalData'])-
 Route::post('/portal/{token}/appointment/{appointmentId}/confirm', [ParentPortalController::class, 'confirmAppointment'])->name('portal.appointment.confirm');
 Route::post('/portal/{token}/homework/{homeworkId}/complete', [ParentPortalController::class, 'completeHomework'])->name('portal.homework.complete');
 
+// Public Parent Pre-Intake Self-Anamnesis Portal
+Route::get('/public/pre-intake/{token}', [PatientController::class, 'getPublicPreIntake'])->name('public.pre_intake.get');
+Route::post('/public/pre-intake/{token}', [PatientController::class, 'submitPublicPreIntake'])->name('public.pre_intake.submit');
+
 // Clinic Protected Patient Portal Link Generator
 Route::post('/patients/{id}/generate-portal-link', [ParentPortalController::class, 'generatePortalLink'])->name('clinic.patients.portal_link');
 Route::post('/clinic/patients/{id}/generate-portal-link', [ParentPortalController::class, 'generatePortalLink'])->name('clinic.patients.portal_link_alt');
@@ -361,9 +365,13 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
     Route::delete('clinic/domains/{id}', [CustomDomainManagerController::class, 'destroy'])->name('clinic.domains.destroy');
 
     // Patients Management (Accessible to All Clinic Roles)
-        // Patient AI Therapy Records Attachment
+    // Patient AI Therapy Records Attachment
     Route::post('patients/{id}/ai-records', [PatientController::class, 'storeAiRecord'])->name('patients.store_ai_record');
     Route::get('patients/{id}/ai-records', [PatientController::class, 'getAiRecords'])->name('patients.get_ai_records');
+    Route::post('patients/{id}/generate-pre-intake-link', [PatientController::class, 'generatePreIntakeLink'])->name('patients.generate_pre_intake_link');
+    Route::post('patients/{id}/approve-pre-intake', [PatientController::class, 'approvePreIntake'])->name('patients.approve_pre_intake');
+    Route::post('patients/{id}/save-genogram', [PatientController::class, 'saveGenogram'])->name('patients.save_genogram');
+    Route::post('patients/{id}/save-sensory-body-map', [PatientController::class, 'saveSensoryBodyMap'])->name('patients.save_sensory_body_map');
     Route::apiResource('patients', PatientController::class);
 
     // Patient Attachments

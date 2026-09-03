@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   ShieldCheck
 } from 'lucide-react';
+import AlgerianGeoSelector from './common/AlgerianGeoSelector';
 
 export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
   // Mode: 'quick' (Reception Fast Intake) vs 'clinical' (Deep Clinical Anamnesis)
@@ -443,6 +444,16 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
                     className="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Algerian 58 Wilayas & Communes Smart Cascading Selector */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80">
+                <AlgerianGeoSelector
+                  wilayaCode={formData.wilaya_code}
+                  communeName={formData.commune_name}
+                  onWilayaChange={(code) => setFormData((prev) => ({ ...prev, wilaya_code: code }))}
+                  onCommuneChange={(commune) => setFormData((prev) => ({ ...prev, commune_name: commune }))}
+                />
               </div>
 
               {/* Primary Complaint / Reason for Visit */}

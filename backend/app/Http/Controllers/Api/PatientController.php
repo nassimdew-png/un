@@ -289,4 +289,145 @@ class PatientController extends Controller
             'message' => 'تم حذف تقرير الذكاء الاصطناعي من ملف المريض بنجاح.',
         ]);
     }
+
+    /**
+     * Generate or fetch Pre-Intake Link for Parents.
+     */
+    public function generatePreIntakeLink(string $id): JsonResponse
+    {
+        $patient = Patient::findOrFail($id);
+
+        if (empty($patient->pre_intake_token)) {
+            $patient->pre_intake_token = \Illuminate\Support\Str::random(32);
+        }
+        if ($patient->pre_intake_status === 'not_sent') {
+            $patient->pre_intake_status = 'pending_parent';
+        }
+        $patient->save();
+
+        $frontendUrl = config('app.frontend_url', url('/'));
+        $link = rtrim($frontendUrl, '/') . '/pre-intake/' . $patient->pre_intake_token;
+
+        return response()->json([
+            'success' => true,
+            'token' => $patient->pre_intake_token,
+            'link' => $link,
+            'status' => $patient->pre_intake_status,
+            'phone' => $patient->phone,
+            'patient_name' => $patient->first_name . ' ' . $patient->last_name,
+        ]);
+    }
+
+    /**
+     * Public endpoint to get Pre-Intake questions and patient info by token.
+     */
+    public function getPublicPreIntake(string $token): JsonResponse
+    {
+        $patient = Patient::where('pre_intake_token', $token)->firstOrFail();
+        $tenant = $patient->tenant;
+
+        return response()->json([
+            'success' => true,
+            'patient' => [
+                'first_name' => $patient->first_name,
+                'last_name' => $patient->last_name,
+                'gender' => $patient->gender,
+                'birth_date' => $patient->birth_date,
+            ],
+            'clinic' => [
+                'name' => $tenant ? $tenant->name : 'العيادة التخصصية',
+                'phone' => $tenant ? $tenant->phone : null,
+            ],
+            'pre_intake_status' => $patient->pre_intake_status,
+            'existing_answers' => $patient->pre_intake_data,
+        ]);
+    }
+
+    /**
+     * Public endpoint for parents to submit their completed pre-intake.
+     */
+    public function submitPublicPreIntake(Request $request, string $token): JsonResponse
+    {
+        $patient = Patient::where('pre_intake_token', $token)->firstOrFail();
+
+        $patient->pre_intake_data = $request->all();
+        $patient->pre_intake_status = 'submitted';
+        $patient->pre_intake_submitted_at = now();
+        $patient->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم استلام استمارة السوابق النمائية بنجاح شكراً لكم. ستظهر البيانات فوراً للأخصائي لمراجعتها.',
+        ]);
+    }
+
+    /**
+     * Specialist reviews and approves parent's pre-intake answers, merging them into anamnesis_data.
+     */
+    public function approvePreIntake(string $id): JsonResponse
+    {
+        $patient = Patient::findOrFail($id);
+
+        if (!$patient->pre_intake_data) {
+            return response()->json(['message' => 'لا توجد بيانات استمارة مسبقة واردة من الولي.'], 422);
+        }
+
+        $incoming = $patient->pre_intake_data;
+        $currentAnamnesis = $patient->anamnesis_data ?: [];
+
+        // Deep merge or update sections
+        $mergedAnamnesis = array_merge($currentAnamnesis, [
+            'consultation_reason' => $incoming['consultation_reason'] ?? ($currentAnamnesis['consultation_reason'] ?? null),
+            'perinatal' => array_merge($currentAnamnesis['perinatal'] ?? [], $incoming['perinatal'] ?? []),
+            'milestones' => array_merge($currentAnamnesis['milestones'] ?? [], $incoming['milestones'] ?? []),
+            'family_context' => array_merge($currentAnamnesis['family_context'] ?? [], $incoming['family_context'] ?? []),
+            'school_context' => array_merge($currentAnamnesis['school_context'] ?? [], $incoming['school_context'] ?? []),
+            'organic_exams' => array_merge($currentAnamnesis['organic_exams'] ?? [], $incoming['organic_exams'] ?? []),
+            'parent_notes' => $incoming['parent_notes'] ?? null,
+            'parent_verified_at' => now()->toIso8601String(),
+        ]);
+
+        $patient->anamnesis_data = $mergedAnamnesis;
+        $patient->pre_intake_status = 'reviewed';
+        $patient->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم اعتماد ودمج استمارة الولي في السجل السريري للمريض بنجاح.',
+            'patient' => $patient,
+        ]);
+    }
+
+    /**
+     * Save Interactive Genogram Pedigree data.
+     */
+    public function saveGenogram(string $id, Request $request): JsonResponse
+    {
+        $patient = Patient::findOrFail($id);
+        $patient->family_genogram = $request->all();
+        $patient->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ الشجرة العائلية والقرابة بنجاح.',
+            'family_genogram' => $patient->family_genogram,
+        ]);
+    }
+
+    /**
+     * Save Sensory Body Map data.
+     */
+    public function saveSensoryBodyMap(string $id, Request $request): JsonResponse
+    {
+        $patient = Patient::findOrFail($id);
+        $patient->sensory_body_map = $request->all();
+        $patient->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ خريطة الجسد والملف الحسي بنجاح.',
+            'sensory_body_map' => $patient->sensory_body_map,
+        ]);
+    }
 }
+

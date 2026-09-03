@@ -160,6 +160,21 @@ export const patientApi = {
   deleteAiRecord: (patientId, recordId) => apiRequest(`/patients/${patientId}/ai-records/${recordId}`, {
     method: 'DELETE',
   }),
+  generatePreIntakeLink: (id) => apiRequest(`/patients/${id}/generate-pre-intake-link`, { method: 'POST' }),
+  approvePreIntake: (id) => apiRequest(`/patients/${id}/approve-pre-intake`, { method: 'POST' }),
+  saveGenogram: (id, data) => apiRequest(`/patients/${id}/save-genogram`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  saveSensoryBodyMap: (id, data) => apiRequest(`/patients/${id}/save-sensory-body-map`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getPublicPreIntake: (token) => apiRequest(`/public/pre-intake/${token}`),
+  submitPublicPreIntake: (token, data) => apiRequest(`/public/pre-intake/${token}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };
 
 export const assessmentApi = {

@@ -36,6 +36,7 @@ import StaffManagementView from './components/settings/StaffManagementView';
 import AuditLogsView from './components/settings/AuditLogsView';
 import ClinicSettingsView from './components/settings/ClinicSettingsView';
 import CustomDomainSettingsView from './components/settings/CustomDomainSettingsView';
+import ParentPreIntakePortalView from './components/portal/ParentPreIntakePortalView';
 
 function ClinicApp() {
   const { user, tenant, logout } = useAuth();
@@ -422,6 +423,10 @@ export default function App() {
 
             {/* Public Login Route */}
             <Route path="/login" element={<Login />} />
+
+            {/* Public Parent Pre-Intake Portal */}
+            <Route path="/pre-intake/:token" element={<ParentPreIntakePortalView />} />
+            <Route path="/patient-intake/:token" element={<ParentPreIntakePortalView />} />
 
             {/* Protected Routes */}
             <Route

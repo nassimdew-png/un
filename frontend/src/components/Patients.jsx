@@ -40,8 +40,8 @@ import {
   Zap,
   Target,
   Smartphone,
-  FileSpreadsheet
-
+  FileSpreadsheet,
+  MessageSquare,
 } from 'lucide-react';
 import { patientApi, assessmentApi, sessionApi, attachmentApi, appointmentApi, clinicalTestApi, patientBilanApi, therapyHubApi } from '../api';
 import PatientVoiceArchive from './PatientVoiceArchive';
@@ -63,13 +63,16 @@ import HomeworkPlanCard from './therapy-hub/HomeworkPlanCard';
 import PatientHomeworkBuilderModal from './therapy-hub/PatientHomeworkBuilderModal';
 import GeneratePortalLinkModal from './portal/GeneratePortalLinkModal';
 import DataExportModal from './common/DataExportModal';
+import InteractiveGenogramPedigree from './clinical/InteractiveGenogramPedigree';
+import SensoryBodyMap from './clinical/SensoryBodyMap';
+import PreIntakeReviewModal from './portal/PreIntakeReviewModal';
 
 export default function Patients({ patients = [], loading = false, onRefresh = null, onOpenAddPatient = null, onOpenAddAssessment = null, onOpenAddSession = null, tenant = null, user = null }) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [patientTab, setPatientTab] = useState('anamnesis'); // 'anamnesis', 'behavior', 'flashcards', 'documents', 'voice_archive', 'audio_dictation', 'progression', 'assessments', 'sessions', 'attachments'
+  const [patientTab, setPatientTab] = useState('anamnesis'); // 'anamnesis', 'genogram', 'sensory_map', 'ai_records', ...
   
   const [patientAssessments, setPatientAssessments] = useState([]);
   const [patientSessions, setPatientSessions] = useState([]);
@@ -86,6 +89,7 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
   const [showPortalModal, setShowPortalModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showVoiceSoapModal, setShowVoiceSoapModal] = useState(false);
+  const [showPreIntakeModal, setShowPreIntakeModal] = useState(false);
 
   const isSecretary = user?.role === 'secretary' || user?.role === 'receptionist';
 
@@ -149,6 +153,32 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
     if (phoneNum.startsWith('0')) phoneNum = '213' + phoneNum.substring(1);
     const msg = encodeURIComponent(`Bonjour ${patient.first_name}, nous vous contactons depuis le ${tenant?.name || 'Cabinet Médical'}.`);
     window.open(`https://wa.me/${phoneNum}?text=${msg}`, '_blank');
+  };
+
+  const handleSaveGenogram = async (genogramData) => {
+    if (!selectedPatient?.id) return;
+    try {
+      const res = await patientApi.saveGenogram(selectedPatient.id, genogramData);
+      if (res.success) {
+        setSelectedPatient((prev) => ({ ...prev, family_genogram: res.family_genogram }));
+        if (onRefresh) onRefresh();
+      }
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء حفظ الشجرة العائلية.');
+    }
+  };
+
+  const handleSaveSensoryBodyMap = async (bodyMapData) => {
+    if (!selectedPatient?.id) return;
+    try {
+      const res = await patientApi.saveSensoryBodyMap(selectedPatient.id, bodyMapData);
+      if (res.success) {
+        setSelectedPatient((prev) => ({ ...prev, sensory_body_map: res.sensory_body_map }));
+        if (onRefresh) onRefresh();
+      }
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء حفظ خريطة الجسد.');
+    }
   };
 
   const anamnesis = selectedPatient?.anamnesis_data || {};
@@ -402,6 +432,54 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
                 <button
                   type="button"
+                  onClick={() => setShowPreIntakeModal(true)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center space-x-1.5 space-x-reverse transition-all ${
+                    selectedPatient.pre_intake_status === 'submitted'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-md shadow-amber-500/20'
+                      : 'bg-teal-500/20 text-teal-300 border-teal-500/30 hover:bg-teal-500/30'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>
+                    {selectedPatient.pre_intake_status === 'submitted'
+                      ? '📩 استمارة الولي واردة !'
+                      : '🔗 استمارة الولي (WhatsApp)'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setStartingDirectSession(true);
+                    try {
+                      const today = new Date().toISOString().split('T')[0];
+                      const res = await appointmentApi.create({
+                        patient_id: selectedPatient.id,
+                        appointment_date: today,
+                        start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                        type: 'consultation',
+                        status: 'in_progress',
+                        notes: 'جلسة علاجية فورية من ملف المريض',
+                      });
+                      if (res.data?.id) {
+                        setActiveConsultationId(res.data.id);
+                      }
+                    } catch (err) {
+                      console.error('Error starting direct session:', err);
+                      alert(err.message || 'تعذر بدء الجلسة المباشرة');
+                    } finally {
+                      setStartingDirectSession(false);
+                    }
+                  }}
+                  disabled={startingDirectSession}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center space-x-1.5 space-x-reverse transition-all disabled:opacity-50"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>{startingDirectSession ? 'جارٍ البدء...' : '⚡ بدء جلسة لهذا المريض الآن'}</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setSelectedPatient(null)}
                   className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold transition-all"
                 >
@@ -421,7 +499,33 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                📋 السوابق والشجرة والملف الحسي
+                📋 السوابق النمائية والسريرية
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPatientTab('genogram')}
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center space-x-1.5 space-x-reverse ${
+                  patientTab === 'genogram'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-purple-300 hover:text-white hover:bg-purple-950/40'
+                }`}
+              >
+                <GitBranch className="w-3.5 h-3.5" />
+                <span>🌳 شجرة العائلة والأمراض الوراثية</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPatientTab('sensory_map')}
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center space-x-1.5 space-x-reverse ${
+                  patientTab === 'sensory_map'
+                    ? 'bg-cyan-600 text-white shadow-md'
+                    : 'text-cyan-300 hover:text-white hover:bg-cyan-950/40'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>🧘 خريطة الجسد والأعراض السريرية</span>
               </button>
 
               <button
@@ -726,6 +830,30 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* TAB: Interactive Genogram & Pedigree Tree */}
+              {patientTab === 'genogram' && (
+                <div className="animate-in fade-in">
+                  <InteractiveGenogramPedigree
+                    patient={selectedPatient}
+                    genogramData={selectedPatient.family_genogram}
+                    onSave={handleSaveGenogram}
+                    readOnly={isSecretary}
+                  />
+                </div>
+              )}
+
+              {/* TAB: Symptom & Sensory Body Map */}
+              {patientTab === 'sensory_map' && (
+                <div className="animate-in fade-in">
+                  <SensoryBodyMap
+                    patient={selectedPatient}
+                    bodyMapData={selectedPatient.sensory_body_map}
+                    onSave={handleSaveSensoryBodyMap}
+                    readOnly={isSecretary}
+                  />
                 </div>
               )}
 
@@ -1102,6 +1230,20 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
         onClose={() => setShowExportModal(false)}
         initialDomain="patients"
       />
+
+      {/* Parent Pre-Intake Self-Anamnesis Review Modal */}
+      {showPreIntakeModal && selectedPatient && (
+        <PreIntakeReviewModal
+          isOpen={showPreIntakeModal}
+          onClose={() => setShowPreIntakeModal(false)}
+          patient={selectedPatient}
+          tenant={tenant}
+          onApproved={(updated) => {
+            setSelectedPatient(updated);
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
     </div>
   );
 }

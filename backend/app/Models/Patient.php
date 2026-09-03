@@ -30,9 +30,14 @@ class Patient extends Model
         'portal_access_token',
         'portal_pin',
         'portal_enabled',
+        'pre_intake_token',
+        'pre_intake_status',
+        'pre_intake_data',
+        'pre_intake_submitted_at',
         'anamnesis_data',
         'family_genogram',
         'sensory_profile',
+        'sensory_body_map',
     ];
 
     protected function casts(): array
@@ -40,9 +45,12 @@ class Patient extends Model
         return [
             'birth_date' => 'date',
             'portal_enabled' => 'boolean',
+            'pre_intake_submitted_at' => 'datetime',
+            'pre_intake_data' => 'array',
             'anamnesis_data' => 'array',
             'family_genogram' => 'array',
             'sensory_profile' => 'array',
+            'sensory_body_map' => 'array',
         ];
     }
 
