@@ -77,12 +77,24 @@ class PatientController extends Controller
             'diagnosis_primary' => 'nullable|string|max:255',
             'diagnosis_secondary' => 'nullable|string|max:255',
             'is_active' => 'boolean',
-            'referral_source' => 'nullable|string|max:255',
-            'school_name' => 'nullable|string|max:255',
-            'school_grade' => 'nullable|string|max:100',
+            'kiosk_pin' => 'nullable|string|max:10',
+            'guardian_name' => 'nullable|string|max:255',
+            'anamnesis_data' => 'nullable|array',
+            'family_genogram' => 'nullable|array',
+            'sensory_profile' => 'nullable|array',
             'genogram_data' => 'nullable|array',
             'sensory_profile_data' => 'nullable|array',
         ]);
+
+        if (isset($validated['genogram_data']) && !isset($validated['family_genogram'])) {
+            $validated['family_genogram'] = $validated['genogram_data'];
+        }
+        if (isset($validated['sensory_profile_data']) && !isset($validated['sensory_profile'])) {
+            $validated['sensory_profile'] = $validated['sensory_profile_data'];
+        }
+        if (isset($validated['parent_name']) && empty($validated['guardian_name'])) {
+            $validated['guardian_name'] = $validated['parent_name'];
+        }
 
         $validated['tenant_id'] = $tenantId;
         $validated['created_by'] = $user ? $user->id : null;
@@ -153,13 +165,24 @@ class PatientController extends Controller
             'notes' => 'nullable|string',
             'diagnosis_primary' => 'nullable|string|max:255',
             'diagnosis_secondary' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-            'referral_source' => 'nullable|string|max:255',
-            'school_name' => 'nullable|string|max:255',
-            'school_grade' => 'nullable|string|max:100',
+            'kiosk_pin' => 'nullable|string|max:10',
+            'guardian_name' => 'nullable|string|max:255',
+            'anamnesis_data' => 'nullable|array',
+            'family_genogram' => 'nullable|array',
+            'sensory_profile' => 'nullable|array',
             'genogram_data' => 'nullable|array',
             'sensory_profile_data' => 'nullable|array',
         ]);
+
+        if (isset($validated['genogram_data']) && !isset($validated['family_genogram'])) {
+            $validated['family_genogram'] = $validated['genogram_data'];
+        }
+        if (isset($validated['sensory_profile_data']) && !isset($validated['sensory_profile'])) {
+            $validated['sensory_profile'] = $validated['sensory_profile_data'];
+        }
+        if (isset($validated['parent_name']) && empty($validated['guardian_name'])) {
+            $validated['guardian_name'] = $validated['parent_name'];
+        }
 
         $patient->update($validated);
 

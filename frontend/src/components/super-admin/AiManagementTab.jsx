@@ -155,12 +155,23 @@ export default function AiManagementTab() {
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
+    setFeedback(null);
     try {
       const res = await superAdminAiApi.testConnection({
         provider: 'gemini',
         api_key: settings.gemini_api_key,
       });
       setTestResult(res);
+
+      if (res.success || res.status === 'success') {
+        // Automatically save all settings fields in the database as well
+        await superAdminAiApi.updateSettings(settings);
+        setFeedback({
+          type: 'success',
+          text: '🟢 تم فحص الاتصال بنجاح وتأكيد وحفظ مفتاح الذكاء الاصطناعي في النظام!',
+        });
+        loadData();
+      }
     } catch (err) {
       setTestResult({
         success: false,

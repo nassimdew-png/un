@@ -19,16 +19,30 @@ class Patient extends Model
         'gender',
         'guardian_name',
         'phone',
+        'phone_operator',
+        'email',
+        'address',
+        'wilaya_code',
+        'commune_name',
+        'national_id',
         'emergency_contact',
         'kiosk_pin',
+        'portal_access_token',
+        'portal_pin',
+        'portal_enabled',
         'anamnesis_data',
+        'family_genogram',
+        'sensory_profile',
     ];
 
     protected function casts(): array
     {
         return [
             'birth_date' => 'date',
+            'portal_enabled' => 'boolean',
             'anamnesis_data' => 'array',
+            'family_genogram' => 'array',
+            'sensory_profile' => 'array',
         ];
     }
 

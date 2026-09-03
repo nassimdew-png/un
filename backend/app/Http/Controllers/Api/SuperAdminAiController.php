@@ -21,6 +21,14 @@ class SuperAdminAiController extends Controller
     }
 
     /**
+     * Get Complete AI Hub Settings, Global Usage Metrics & Clinic Consumption Table (alias for getSettings).
+     */
+    public function getOverview(): JsonResponse
+    {
+        return $this->getSettings();
+    }
+
+    /**
      * Get Complete AI Hub Settings, Global Usage Metrics & Clinic Consumption Table.
      */
     public function getSettings(): JsonResponse
@@ -157,7 +165,7 @@ class SuperAdminAiController extends Controller
     }
 
     /**
-     * Live Ping & Latency Test for Gemini API.
+     * Live Ping & Latency Test for Gemini API (with automatic key persistence on success).
      */
     public function testConnection(Request $request): JsonResponse
     {
@@ -170,7 +178,31 @@ class SuperAdminAiController extends Controller
 
         $result = $this->gateway->testProviderConnection($provider, $apiKey);
 
+        // Auto-save the key in database on successful connection probe
+        if (!empty($result['success']) && !empty($apiKey) && !str_contains($apiKey, '••••') && !str_contains($apiKey, '****')) {
+            $cleanKey = trim($apiKey);
+            SystemSetting::set("{$provider}_api_key", $cleanKey, 'ai');
+            SystemSetting::set("gemini_api_key", $cleanKey, 'ai');
+
+            $cfg = \App\Models\SystemApiConfig::firstOrNew(['provider' => $provider]);
+            $cfg->api_key = $cleanKey;
+            $cfg->health_status = 'healthy';
+            $cfg->last_tested_at = now();
+            $cfg->save();
+
+            $result['auto_saved'] = true;
+            $result['message'] = ($result['message'] ?? 'الاتصال سليم بنجاح!') . ' (تم حفظ المفتاح وتفعيله تلقائياً في النظام ✅)';
+        }
+
         return response()->json($result);
+    }
+
+    /**
+     * Update Clinic AI Quota (alias for toggleClinicAiAccess).
+     */
+    public function updateClinicAiQuota($clinicId, Request $request): JsonResponse
+    {
+        return $this->toggleClinicAiAccess($clinicId, $request);
     }
 
     /**

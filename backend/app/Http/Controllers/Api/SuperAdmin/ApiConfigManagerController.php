@@ -195,7 +195,20 @@ class ApiConfigManagerController extends Controller
                 $latencyMs = round((microtime(true) - $startTime) * 1000);
 
                 if ($response->successful()) {
-                    if ($config) {
+                    if (!empty($validated['api_key']) && !str_contains($validated['api_key'], '****')) {
+                        $cleanKey = trim($validated['api_key']);
+                        if (!$config) {
+                            $config = new SystemApiConfig(['provider' => $provider]);
+                        }
+                        $config->api_key = $cleanKey;
+                        $config->health_status = 'healthy';
+                        $config->last_tested_at = now();
+                        $config->save();
+
+                        if ($provider === 'gemini') {
+                            SystemSetting::set('gemini_api_key', $cleanKey, 'ai');
+                        }
+                    } elseif ($config) {
                         $config->update([
                             'health_status' => 'healthy',
                             'last_tested_at' => now(),
@@ -204,8 +217,10 @@ class ApiConfigManagerController extends Controller
 
                     return response()->json([
                         'status' => 'success',
+                        'success' => true,
+                        'auto_saved' => !empty($validated['api_key']),
                         'health_status' => 'healthy',
-                        'message' => "الاتصال بـ Google Gemini ({$model}) سليم وفوري!",
+                        'message' => "الاتصال بـ Google Gemini ({$model}) سليم وفوري!" . (!empty($validated['api_key']) ? ' (تم حفظ المفتاح الجديد تلقائياً ✅)' : ''),
                         'latency_ms' => $latencyMs,
                         'model_tested' => $model,
                     ]);

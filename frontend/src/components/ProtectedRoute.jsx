@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import LandingPageView from './public/LandingPageView';
 import TenantLoginView from './auth/TenantLoginView';
 import { isSubdomain } from '../utils/subdomain';
 
@@ -23,16 +22,11 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user && !token) {
-    // If guest visitor on a clinic subdomain, ALWAYS render the branded TenantLoginView
+    // If guest visitor on a clinic subdomain, render the branded TenantLoginView
     if (onSubdomain) {
       return <TenantLoginView />;
     }
 
-    // If guest visitor at root '/' on main platform, render Landing Page
-    if (location.pathname === '/') {
-      return <LandingPageView />;
-    }
-    
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

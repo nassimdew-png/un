@@ -109,9 +109,10 @@ export default function ApiGatewaySettingsView() {
     setIsTesting(true);
     setTestFeedback(null);
     try {
+      const isCustomKey = geminiKey && !geminiKey.includes('****') && !geminiKey.includes('••••');
       const res = await apiGatewayAdminApi.testConnection({
         provider: 'gemini',
-        api_key: geminiKey.includes('****') ? undefined : geminiKey,
+        api_key: isCustomKey ? geminiKey : undefined,
       });
 
       setLatencyMs(res.latency_ms);
@@ -120,6 +121,11 @@ export default function ApiGatewaySettingsView() {
         type: 'success',
         text: `${res.message} (زمن الاستجابة: ${res.latency_ms}ms)`,
       });
+
+      // Automatically reload configurations to display the updated saved key
+      if (isCustomKey) {
+        await loadConfigs();
+      }
     } catch (err) {
       setHealthStatus('invalid_key');
       setTestFeedback({

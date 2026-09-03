@@ -154,11 +154,12 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
   const anamnesis = selectedPatient?.anamnesis_data || {};
   const perinatal = anamnesis.perinatal || {};
   const milestones = anamnesis.milestones || {};
-  const familyLinguistic = anamnesis.family_linguistic || {};
-  const schooling = anamnesis.schooling || {};
+  const familyLinguistic = anamnesis.family_context || anamnesis.family_linguistic || {};
+  const schooling = anamnesis.school_context || anamnesis.schooling || {};
+  const organicExams = anamnesis.organic_exams || {};
   const medicalHistory = anamnesis.medical_history || {};
   const referral = anamnesis.referral || {};
-  const genogram = selectedPatient?.family_genogram || {};
+  const genogram = selectedPatient?.family_genogram || anamnesis.family_context || {};
   const sensory = selectedPatient?.sensory_profile || {};
 
   return (
@@ -602,116 +603,128 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
                   {/* Grid Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 1. Perinatal & Milestones */}
+                    {/* 1. Perinatal & Motor Milestones */}
                     <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
                       <h5 className="text-xs font-extrabold text-amber-300 flex items-center space-x-1.5 space-x-reverse pb-1.5 border-b border-slate-800/80">
                         <Baby className="w-4 h-4" />
-                        <span>السوابق الولادية والنمو الحركي</span>
+                        <span>السوابق الولادية والنمو الحركي واللغوي</span>
                       </h5>
                       <div className="text-xs space-y-1.5 text-slate-300">
-                        <div><span className="text-slate-500">مدة الحمل:</span> {perinatal.pregnancy_terms === 'preterm' ? 'ولادة مبكرة (<37s)' : 'حمل كامل'}</div>
-                        <div><span className="text-slate-500">نوع الولادة:</span> {perinatal.delivery_type === 'c_section' ? 'قيصرية (Césarienne)' : 'طبيعية (Voie basse)'}</div>
-                        <div><span className="text-slate-500">الوزن عند الولادة:</span> {perinatal.birth_weight ? `${perinatal.birth_weight} kg` : '--'}</div>
-                        <div><span className="text-slate-500">سن المشي المستقل:</span> {milestones.walking_age_months ? `${milestones.walking_age_months} شهر` : '--'}</div>
-                        <div><span className="text-slate-500">ظهور الكلمات الأولى:</span> {milestones.first_words_age_months ? `${milestones.first_words_age_months} شهر` : '--'}</div>
-                        {perinatal.complications && (
-                          <div className="text-amber-300/90 text-[11px] pt-1 bg-amber-500/5 p-2 rounded-lg border border-amber-500/20">
-                            ⚠️ مضاعفات: {perinatal.complications}
+                        <div><span className="text-slate-500">مدة الحمل:</span> {perinatal.pregnancy_term === 'preterm' ? 'ولادة مبكرة (<37 SA)' : perinatal.pregnancy_term === 'post_term' ? 'حمل متأخر (>42 SA)' : 'حمل كامل طبيعي (À terme)'}</div>
+                        <div><span className="text-slate-500">نوع الولادة:</span> {perinatal.delivery_type === 'c_section' ? 'عملية قيصرية (Césarienne)' : perinatal.delivery_type === 'instrumental' ? 'ولادة بأدوات مساعدة' : 'طبيعية (Voie basse)'}</div>
+                        <div><span className="text-slate-500">الوزن عند الولادة:</span> {perinatal.birth_weight_kg ? `${perinatal.birth_weight_kg} kg` : perinatal.birth_weight ? `${perinatal.birth_weight} kg` : '--'}</div>
+                        <div><span className="text-slate-500">المعالم الحركية:</span> جلوس ({milestones.sitting_age_months || '--'} شهر) &bull; مشي ({milestones.walking_age_months || '--'} شهر)</div>
+                        <div><span className="text-slate-500">التطور اللغوي:</span> مناغاة ({milestones.babbling_age_months || '--'} شهر) &bull; أول كلمة ({milestones.first_words_age_months || '--'} شهر) &bull; جمل ({milestones.first_sentences_age_months || '--'} شهر)</div>
+                        {perinatal.neonatal_anoxia && (
+                          <div className="text-amber-300 text-[11px] pt-1 bg-amber-500/10 p-2 rounded-lg border border-amber-500/30">
+                            ⚠️ سوابق نقص أكسجين عند الولادة (Anoxie néonatale)
+                          </div>
+                        )}
+                        {perinatal.incubator_stay && (
+                          <div className="text-cyan-300 text-[11px] pt-1 bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/30">
+                            🏥 إقامة في الحضانة الاصطناعية (Séjour en Couveuse)
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* 2. Family Genogram & Consanguinity */}
+                    {/* 2. Family Genogram & Consanguinity & Linguistic Bain */}
                     <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
                       <h5 className="text-xs font-extrabold text-purple-300 flex items-center space-x-1.5 space-x-reverse pb-1.5 border-b border-slate-800/80">
                         <GitBranch className="w-4 h-4" />
-                        <span>الشجرة العائلية والقرابة الوراثية</span>
+                        <span>الشجرة العائلية والمحيط اللغوي (Contexte DZ)</span>
                       </h5>
                       <div className="text-xs space-y-1.5 text-slate-300">
                         <div>
                           <span className="text-slate-500">القرابة الوالدية:</span>{' '}
-                          {genogram.consanguinity ? (
+                          {genogram.consanguinity && genogram.consanguinity !== 'none' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">
-                              نعم - {genogram.consanguinity_degree === 'first_cousins' ? 'أبناء عم/خال مباشرين' : 'قرابة عائلية'}
+                              نعم - {genogram.consanguinity === 'first_cousins' || genogram.consanguinity_degree === 'first_cousins' ? 'أبناء عم/خال مباشرين' : 'قرابة عائلية'}
                             </span>
                           ) : 'لا توجد قرابة'}
                         </div>
                         <div>
-                          <span className="text-slate-500">سوابق الأب:</span>{' '}
-                          {genogram.father_conditions?.length > 0 ? genogram.father_conditions.join(', ') : 'سليم'}
+                          <span className="text-slate-500">اللغات في البيت:</span>{' '}
+                          <span className="font-bold text-white">
+                            {Array.isArray(familyLinguistic.home_languages)
+                              ? familyLinguistic.home_languages.join(', ')
+                              : familyLinguistic.primary_languages?.join(', ') || 'الدارجة الجزائرية'}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-slate-500">سوابق الأم:</span>{' '}
-                          {genogram.mother_conditions?.length > 0 ? genogram.mother_conditions.join(', ') : 'سليمة'}
+                          <span className="text-slate-500">الترتيب بين الإخوة:</span> {genogram.sibling_rank === 'first_born' ? 'الابن البكر / الأكبر' : genogram.sibling_rank === 'middle' ? 'الأوسط' : genogram.sibling_rank === 'youngest' ? 'الأصغر' : 'طفل وحيد'}
                         </div>
                         <div>
-                          <span className="text-slate-500">الإخوة:</span> {genogram.siblings?.length || 0} إخوة
+                          <span className="text-slate-500">ساعات الشاشات:</span> {familyLinguistic.daily_screen_hours || familyLinguistic.screen_time_hours_daily ? `${familyLinguistic.daily_screen_hours || familyLinguistic.screen_time_hours_daily} ساعات/يوم` : '--'}
                         </div>
                       </div>
                     </div>
 
-                    {/* 3. Sensory Profile */}
-                    <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
-                      <h5 className="text-xs font-extrabold text-cyan-300 flex items-center space-x-1.5 space-x-reverse pb-1.5 border-b border-slate-800/80">
-                        <Activity className="w-4 h-4" />
-                        <span>الملف الحسي والسلوكي (Profil Sensoriel)</span>
-                      </h5>
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
-                        <div><span className="text-slate-500">السمعي:</span> <span className="font-bold">{sensory.auditory || 'طبيعي'}</span></div>
-                        <div><span className="text-slate-500">البصري:</span> <span className="font-bold">{sensory.visual || 'طبيعي'}</span></div>
-                        <div><span className="text-slate-500">اللمسي:</span> <span className="font-bold">{sensory.tactile || 'طبيعي'}</span></div>
-                        <div><span className="text-slate-500">الدهليزي:</span> <span className="font-bold">{sensory.vestibular || 'طبيعي'}</span></div>
-                      </div>
-                      {sensory.stereotypies?.length > 0 && (
-                        <div className="text-cyan-300 text-[10px] pt-1 bg-cyan-500/5 p-2 rounded-lg border border-cyan-500/20">
-                          🌀 حركات نمطية: {sensory.stereotypies.join(', ')}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 4. Schooling & Environment */}
+                    {/* 3. Schooling Context */}
                     <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
                       <h5 className="text-xs font-extrabold text-emerald-300 flex items-center space-x-1.5 space-x-reverse pb-1.5 border-b border-slate-800/80">
                         <GraduationCap className="w-4 h-4" />
-                        <span>المحيط الأسري والمدرسي</span>
+                        <span>التمدرس والتكيف المدرسي</span>
                       </h5>
                       <div className="text-xs space-y-1.5 text-slate-300">
-                        <div><span className="text-slate-500">اللغات:</span> {familyLinguistic.primary_languages?.join(', ') || 'الدارجة'}</div>
-                        <div><span className="text-slate-500">الشاشات:</span> {familyLinguistic.screen_time_hours_daily ? `${familyLinguistic.screen_time_hours_daily} ساعات/يوم` : '--'}</div>
-                        <div><span className="text-slate-500">المؤسسة / القسم:</span> {schooling.school_name || '--'} ({schooling.grade_level || '--'})</div>
-                        <div><span className="text-slate-500">مرافقة AVS:</span> {schooling.has_avs ? 'نعم' : 'لا'}</div>
+                        <div><span className="text-slate-500">المؤسسة / القسم:</span> {schooling.school_name || selectedPatient.school_name || '--'} ({schooling.school_grade || selectedPatient.school_grade || '--'})</div>
+                        <div><span className="text-slate-500">نوع التمدرس:</span> {schooling.schooling_type === 'with_avs' ? 'متمدرس مع مرافقة AVS' : schooling.schooling_type === 'integrated' ? 'قسم مدمج CLIS' : schooling.schooling_type === 'specialized_center' ? 'مركز نفسي بيداغوجي' : 'تمدرس عادي'}</div>
+                        {schooling.teacher_complaints?.length > 0 && (
+                          <div className="pt-1">
+                            <span className="text-slate-500 text-[10px] block mb-1">ملاحظات المعلمين:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {schooling.teacher_complaints.map((c, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* 5. Medical Exams & Referral */}
-                    <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                    {/* 4. Prior Organic Exams & Medical Referral */}
+                    <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
                       <h5 className="text-xs font-extrabold text-indigo-300 flex items-center space-x-1.5 space-x-reverse pb-1.5 border-b border-slate-800/80">
                         <Stethoscope className="w-4 h-4" />
-                        <span>الفحوصات السابقة وتوجيه الطبيب (Examens & Orientation)</span>
+                        <span>الفحوصات العضوية والتوجيه الطبي</span>
                       </h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300">
-                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                          <span className="text-slate-500 block text-[10px]">فحص السمع (Audiogramme)</span>
-                          <span className="font-bold text-white">{medicalHistory.hearing_tested ? 'تم إجراؤه' : 'لم يجرى'}</span>
+                      <div className="text-xs space-y-1.5 text-slate-300">
+                        <div>
+                          <span className="text-slate-500">فحص السمع (Audiogram/PEA):</span>{' '}
+                          <span className="font-bold text-white">{organicExams.hearing?.status === 'normal' ? '🟢 سليم' : organicExams.hearing?.status ? organicExams.hearing.status : 'لم يجرى'}</span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                          <span className="text-slate-500 block text-[10px]">تخطيط الدماغ (EEG)</span>
-                          <span className="font-bold text-white">{medicalHistory.eeg_done ? 'تم إجراؤه' : 'لم يجرى'}</span>
+                        <div>
+                          <span className="text-slate-500">تخطيط الدماغ (EEG):</span>{' '}
+                          <span className="font-bold text-white">{organicExams.eeg?.status === 'normal' ? '🟢 سليم' : organicExams.eeg?.status ? organicExams.eeg.status : 'لم يجرى'}</span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                          <span className="text-slate-500 block text-[10px]">الطبيب الموجه</span>
-                          <span className="font-bold text-white">{referral.referred_by_doctor || 'استشارة مباشرة'} ({referral.referral_specialty || '--'})</span>
+                        <div>
+                          <span className="text-slate-500">جهة التوجيه:</span>{' '}
+                          <span className="font-bold text-indigo-300">{referral.referred_by_name || referral.referred_by_type || selectedPatient.referral_source || 'مبادرة ذاتية من الأولياء'}</span>
                         </div>
+                        {referral.parallel_followups?.length > 0 && (
+                          <div className="pt-1">
+                            <span className="text-slate-500 text-[10px] block mb-1">متابعات علاجية موازية:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {referral.parallel_followups.map((f, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                  {f}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {referral.initial_complaint && (
-                        <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
-                          <strong className="block text-[11px] text-indigo-400 mb-0.5">سبب الاستشارة الرئيسي (Motif Initial):</strong>
-                          {referral.initial_complaint}
-                        </div>
-                      )}
                     </div>
+
+                    {/* 5. Primary Consultation Complaint Banner */}
+                    {(referral.initial_complaint || anamnesis.consultation_reason) && (
+                      <div className="sm:col-span-2 p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-200 text-xs">
+                        <strong className="block text-[11px] text-indigo-400 font-bold mb-0.5">الشكوى والسبب الرئيسي للزيارة (Motif Initial):</strong>
+                        {referral.initial_complaint || anamnesis.consultation_reason}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
