@@ -47,23 +47,95 @@ class AppointmentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = Auth::user();
+        
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'specialist_id' => 'required|exists:users,id',
+            'specialist_id' => 'nullable|exists:users,id',
             'appointment_date' => 'required|date',
-            'type' => 'required|in:initial_consultation,follow_up,assessment,therapy_session',
-            'status' => 'nullable|in:scheduled,confirmed,completed,cancelled,no_show',
+            'start_time' => 'nullable|string',
+            'end_time' => 'nullable|string',
+            'type' => 'nullable|string',
+            'status' => 'nullable|in:scheduled,confirmed,in_progress,completed,cancelled,no_show',
             'notes' => 'nullable|string',
         ]);
 
+        $validated['specialist_id'] = $validated['specialist_id'] ?? ($user ? $user->id : null);
+        $validated['tenant_id'] = $user ? $user->tenant_id : null;
         $validated['status'] = $validated['status'] ?? 'scheduled';
+        $validated['type'] = $validated['type'] ?? 'therapy_session';
+
+        // Map general type aliases
+        if ($validated['type'] === 'consultation') {
+            $validated['type'] = 'initial_consultation';
+        } elseif ($validated['type'] === 'therapy') {
+            $validated['type'] = 'therapy_session';
+        }
 
         $appointment = Appointment::create($validated);
 
         return response()->json([
             'message' => 'Rendez-vous planifié avec succès.',
+            'id' => $appointment->id,
+            'appointment' => $appointment->load(['patient', 'specialist']),
+            'data' => $appointment,
+        ], 201);
+    }
+
+    /**
+     * Quick start immediate session for a patient.
+     */
+    public function quickStartSession(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $patientId = $request->input('patient_id');
+
+        $appointment = Appointment::create([
+            'tenant_id' => $user ? $user->tenant_id : null,
+            'patient_id' => $patientId,
+            'specialist_id' => $request->input('specialist_id', $user ? $user->id : null),
+            'appointment_date' => now()->toDateString(),
+            'type' => 'therapy_session',
+            'status' => 'in_progress',
+            'notes' => $request->input('notes', 'جلسة علاجية فورية ومباشرة'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم بدء الجلسة العلاجية بنجاح.',
+            'id' => $appointment->id,
             'appointment' => $appointment->load(['patient', 'specialist']),
         ], 201);
+    }
+
+    /**
+     * Start an appointment session (mark in_progress).
+     */
+    public function startSession(string $id): JsonResponse
+    {
+        $appointment = Appointment::findOrFail($id);
+        $appointment->update(['status' => 'in_progress']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم بدء الجلسة.',
+            'appointment' => $appointment->load(['patient', 'specialist']),
+        ]);
+    }
+
+    /**
+     * Complete an appointment session.
+     */
+    public function completeSession(string $id): JsonResponse
+    {
+        $appointment = Appointment::findOrFail($id);
+        $appointment->update(['status' => 'completed']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إنهاء الجلسة وحفظ التقرير بنجاح.',
+            'appointment' => $appointment->load(['patient', 'specialist']),
+        ]);
     }
 
     /**
@@ -75,6 +147,7 @@ class AppointmentController extends Controller
 
         return response()->json([
             'appointment' => $appointment,
+            'data' => $appointment,
         ]);
     }
 
@@ -87,9 +160,9 @@ class AppointmentController extends Controller
 
         $validated = $request->validate([
             'appointment_date' => 'sometimes|required|date',
-            'specialist_id' => 'sometimes|required|exists:users,id',
-            'type' => 'sometimes|required|in:initial_consultation,follow_up,assessment,therapy_session',
-            'status' => 'sometimes|required|in:scheduled,confirmed,completed,cancelled,no_show',
+            'specialist_id' => 'sometimes|nullable|exists:users,id',
+            'type' => 'sometimes|nullable|string',
+            'status' => 'sometimes|required|in:scheduled,confirmed,in_progress,completed,cancelled,no_show',
             'notes' => 'nullable|string',
         ]);
 

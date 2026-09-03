@@ -400,38 +400,6 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (startingDirectSession) return;
-                    setStartingDirectSession(true);
-                    try {
-                      const today = new Date().toISOString().split('T')[0];
-                      const res = await appointmentApi.create({
-                        patient_id: selectedPatient.id,
-                        appointment_date: today,
-                        start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                        type: 'consultation',
-                        status: 'in_progress',
-                        notes: 'جلسة علاجية فورية من ملف المريض',
-                      });
-                      if (res.data?.id) {
-                        setActiveConsultationId(res.data.id);
-                      }
-                    } catch (err) {
-                      console.error('Error starting direct session:', err);
-                      alert(err.message || 'تعذر بدء الجلسة المباشرة');
-                    } finally {
-                      setStartingDirectSession(false);
-                    }
-                  }}
-                  disabled={startingDirectSession}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center space-x-1.5 space-x-reverse transition-all disabled:opacity-50"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>{startingDirectSession ? 'جارٍ البدء...' : '⚡ بدء جلسة لهذا المريض الآن'}</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setShowPreIntakeModal(true)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center space-x-1.5 space-x-reverse transition-all ${
                     selectedPatient.pre_intake_status === 'submitted'
@@ -450,19 +418,22 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                 <button
                   type="button"
                   onClick={async () => {
+                    if (startingDirectSession) return;
                     setStartingDirectSession(true);
                     try {
                       const today = new Date().toISOString().split('T')[0];
                       const res = await appointmentApi.create({
                         patient_id: selectedPatient.id,
+                        specialist_id: user?.id || null,
                         appointment_date: today,
                         start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                        type: 'consultation',
+                        type: 'therapy_session',
                         status: 'in_progress',
-                        notes: 'جلسة علاجية فورية من ملف المريض',
+                        notes: 'جلسة علاجية فورية ومباشرة من ملف المريض',
                       });
-                      if (res.data?.id) {
-                        setActiveConsultationId(res.data.id);
+                      const appointmentId = res.id || res.data?.id || res.appointment?.id;
+                      if (appointmentId) {
+                        setActiveConsultationId(appointmentId);
                       }
                     } catch (err) {
                       console.error('Error starting direct session:', err);
