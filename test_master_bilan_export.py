@@ -122,8 +122,23 @@ def run_tests():
     bilans_list = list_res.json().get("bilans", [])
     print(f"✅ 7. Patient Bilans Archive: {len(bilans_list)} bilans recorded for Patient #{patient_id}")
 
+    # 8. Test AI Clinical Copilot Endpoints
+    quota_res = requests.get(f"{BASE_URL}/clinic/ai/quota-status", headers=headers)
+    assert quota_res.status_code == 200, f"AI Quota failed: {quota_res.text}"
+    print(f"✅ 8a. AI Quota Status: {quota_res.json().get('quota', {}).get('status')} (Tokens: {quota_res.json().get('quota', {}).get('tokens_balance')})")
+
+    ai_gen_res = requests.post(f"{BASE_URL}/clinic/ai/generate-bilan", json={
+        "patient_id": patient_id,
+        "language": "ar",
+        "audience": "medical"
+    }, headers=headers)
+    assert ai_gen_res.status_code == 200, f"AI Generate failed: {ai_gen_res.text}"
+    ai_data = ai_gen_res.json().get("data", {})
+    assert "structured_sections" in ai_data, "Missing structured_sections in AI response"
+    print(f"✅ 8b. AI Bilan Generation Engine: provider={ai_data.get('provider')}, model={ai_data.get('model')}")
+
     print("=" * 75)
-    print("🏆 MASTER CLINICAL BILAN EXPORT TO PDF 100% OPERATIONAL & VERIFIED!")
+    print("🏆 MASTER CLINICAL BILAN EXPORT TO PDF & AI COPILOT 100% OPERATIONAL!")
     print("=" * 75)
 
 if __name__ == "__main__":

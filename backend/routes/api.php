@@ -155,24 +155,27 @@ Route::post('/super-admin/ai/test-connection', [SuperAdminAiController::class, '
 Route::put('/super-admin/clinics/{clinicId}/ai-quota', [SuperAdminAiController::class, 'updateClinicAiQuota'])->name('superadmin.clinics.ai_quota');
 Route::post('/super-admin/ai/reset-monthly-usage', [SuperAdminAiController::class, 'resetMonthlyUsage'])->name('superadmin.ai.reset_usage');
 
-// In-Session AI Voice Documentation & SOAP Notes Engine
-Route::post('/clinic/sessions/voice-soap', [SessionDocumentationController::class, 'processVoiceSoap'])->name('clinic.sessions.voice_soap');
-Route::post('/clinic/sessions/save-soap', [SessionDocumentationController::class, 'saveSoapNote'])->name('clinic.sessions.save_soap');
-Route::get('/clinic/patients/{patientId}/soap-history', [SessionDocumentationController::class, 'getPatientSoapHistory'])->name('clinic.patients.soap_history');
-Route::post('/clinic/anamnesis/suggest-questions', [SessionDocumentationController::class, 'suggestAnamnesisQuestions'])->name('clinic.anamnesis.suggest_questions');
+// Protected Clinic Workspace AI & Clinical Automation Endpoints
+Route::middleware(['auth:sanctum'])->group(function () {
+    // In-Session AI Voice Documentation & SOAP Notes Engine
+    Route::post('/clinic/sessions/voice-soap', [SessionDocumentationController::class, 'processVoiceSoap'])->name('clinic.sessions.voice_soap');
+    Route::post('/clinic/sessions/save-soap', [SessionDocumentationController::class, 'saveSoapNote'])->name('clinic.sessions.save_soap');
+    Route::get('/clinic/patients/{patientId}/soap-history', [SessionDocumentationController::class, 'getPatientSoapHistory'])->name('clinic.patients.soap_history');
+    Route::post('/clinic/anamnesis/suggest-questions', [SessionDocumentationController::class, 'suggestAnamnesisQuestions'])->name('clinic.anamnesis.suggest_questions');
 
-// Rehabilitation, PEP/IEP & Algerian-Context Exercises Engine
-Route::get('/clinic/patients/{patientId}/pep', [RehabilitationPlanController::class, 'getPatientPlans'])->name('clinic.patients.pep');
-Route::post('/clinic/patients/{patientId}/pep/ai-generate', [RehabilitationPlanController::class, 'aiGeneratePep'])->name('clinic.patients.pep_generate');
-Route::post('/clinic/patients/{patientId}/pep/save', [RehabilitationPlanController::class, 'savePepPlan'])->name('clinic.patients.pep_save');
-Route::put('/clinic/pep/{planId}/goal-status', [RehabilitationPlanController::class, 'updateGoalStatus'])->name('clinic.pep.goal_status');
-Route::post('/clinic/rehab/ai-generate-content', [RehabilitationPlanController::class, 'aiGenerateContent'])->name('clinic.rehab.generate_content');
-Route::post('/clinic/rehab/dispatch-to-portal', [RehabilitationPlanController::class, 'dispatchToPortal'])->name('clinic.rehab.dispatch_portal');
+    // Rehabilitation, PEP/IEP & Algerian-Context Exercises Engine
+    Route::get('/clinic/patients/{patientId}/pep', [RehabilitationPlanController::class, 'getPatientPlans'])->name('clinic.patients.pep');
+    Route::post('/clinic/patients/{patientId}/pep/ai-generate', [RehabilitationPlanController::class, 'aiGeneratePep'])->name('clinic.patients.pep_generate');
+    Route::post('/clinic/patients/{patientId}/pep/save', [RehabilitationPlanController::class, 'savePepPlan'])->name('clinic.patients.pep_save');
+    Route::put('/clinic/pep/{planId}/goal-status', [RehabilitationPlanController::class, 'updateGoalStatus'])->name('clinic.pep.goal_status');
+    Route::post('/clinic/rehab/ai-generate-content', [RehabilitationPlanController::class, 'aiGenerateContent'])->name('clinic.rehab.generate_content');
+    Route::post('/clinic/rehab/dispatch-to-portal', [RehabilitationPlanController::class, 'dispatchToPortal'])->name('clinic.rehab.dispatch_portal');
 
-// AI Clinical Copilot & Bilan Synthesis Engine
-Route::post('/clinic/ai/generate-bilan', [AiCopilotController::class, 'generateBilan'])->name('clinic.ai.generate_bilan');
-Route::get('/clinic/ai/quota-status', [AiCopilotController::class, 'getQuotaStatus'])->name('clinic.ai.quota_status');
-Route::get('/clinic/ai/logs', [AiCopilotController::class, 'getLogs'])->name('clinic.ai.logs');
+    // AI Clinical Copilot & Bilan Synthesis Engine
+    Route::post('/clinic/ai/generate-bilan', [AiCopilotController::class, 'generateBilan'])->name('clinic.ai.generate_bilan');
+    Route::get('/clinic/ai/quota-status', [AiCopilotController::class, 'getQuotaStatus'])->name('clinic.ai.quota_status');
+    Route::get('/clinic/ai/logs', [AiCopilotController::class, 'getLogs'])->name('clinic.ai.logs');
+});
 
 // Super Admin Off-site Cloud Backup API
 Route::get('/super-admin/backups/cloud-config', [SuperAdminController::class, 'getCloudStorageConfig'])->name('superadmin.backups.cloud_config');
