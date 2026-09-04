@@ -1378,11 +1378,17 @@ export const rehabPlanApi = {
 
 // Clinical Anamnesis & Diagnosis Copilot API
 export const clinicalAiCopilotApi = {
-  suggestAnamnesisQuestions: (data) => apiRequest('/clinic/anamnesis/suggest-questions', {
+  getQuotaStatus: () => apiRequest('/clinic/ai/quota-status'),
+  generateBilan: (data) => apiRequest('/clinic/ai/generate-bilan', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  generateBilanSynthesis: (data) => apiRequest('/clinic/ai/bilan-synthesis', {
+  generateBilanSynthesis: (data) => apiRequest('/clinic/ai/generate-bilan', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getLogs: () => apiRequest('/clinic/ai/logs'),
+  suggestAnamnesisQuestions: (data) => apiRequest('/clinic/anamnesis/suggest-questions', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
