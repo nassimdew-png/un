@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ $isArabic ? 'ar' : 'fr' }}" dir="{{ $isArabic ? 'rtl' : 'ltr' }}">
+<html lang="{{ $isArabic ? 'ar' : 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <title>{{ $bilan->title ?? 'Bilan Clinique' }} - {{ $patient->first_name }} {{ $patient->last_name }}</title>
@@ -14,7 +14,7 @@
             font-size: 10.5px;
             line-height: 1.45;
             color: #1e293b;
-            direction: {{ $isArabic ? 'rtl' : 'ltr' }};
+            direction: ltr;
             text-align: {{ $isArabic ? 'right' : 'left' }};
         }
         .header-table {
@@ -152,6 +152,9 @@
         .page-break {
             page-break-after: always;
         }
+        em, i {
+            font-style: normal;
+        }
     </style>
 </head>
 <body>
@@ -218,7 +221,7 @@
 
     <!-- 4. Reason for Consultation & Referral -->
     <div class="section-header">
-        {{ $isArabic ? '1. سبب الاستشارة والتوجيه (Motif de Consultation)' : '1. Motif de Consultation & Orientation' }}
+        {{ $isArabic ? '1. سبب الاستشارة والتوجيه' : '1. Motif de Consultation & Orientation' }}
     </div>
     <div class="content-box">
         <strong>{{ $isArabic ? 'الشكوى الأولية وسبب الفحص:' : 'Motif initial & Plaintes:' }}</strong> 
@@ -231,7 +234,7 @@
 
     <!-- 5. Developmental & Perinatal Anamnesis -->
     <div class="section-header">
-        {{ $isArabic ? '2. السوابق النمائية والتطورية (Anamnèse Développementale)' : '2. Anamnèse Développementale & Périnatale' }}
+        {{ $isArabic ? '2. السوابق النمائية والولادية' : '2. Anamnèse Développementale & Périnatale' }}
     </div>
     <table class="data-table">
         <tr>
@@ -272,7 +275,7 @@
 
     <!-- 6. Interactive Genogram & Hereditary Disorders -->
     <div class="section-header">
-        {{ $isArabic ? '3. شجرة العائلة والأمراض الوراثية السريرية (Génogramme & Pédigrée Familial)' : '3. Génogramme Clinique & Antécédents Héréditaires' }}
+        {{ $isArabic ? '3. شجرة العائلة والأمراض الوراثية السريرية' : '3. Génogramme Clinique & Antécédents Héréditaires' }}
     </div>
     
     @php
@@ -287,16 +290,16 @@
 
     @if($isConsanguine)
     <div class="alert-box alert-amber">
-        <strong>⚠️ {{ $isArabic ? 'مؤشر القرابة بين الوالدين (Consanguinité Parentale):' : 'Indice de Consanguinité Parentale :' }}</strong>
+        <strong>[!] {{ $isArabic ? 'مؤشر القرابة بين الوالدين:' : 'Indice de Consanguinité Parentale :' }}</strong>
         {{ $degreeLabel }}
         @if(!empty($genogram['consanguinity_notes']))
-            <br><em>{{ $genogram['consanguinity_notes'] }}</em>
+            <br><span style="color: #92400e; font-weight: normal;">{{ $genogram['consanguinity_notes'] }}</span>
         @endif
         <br><span style="font-size: 8.5px; color: #78350f;">{{ $isArabic ? '* يرفع زواج الأقارب من احتمالية التعبير عن الاضطرابات العصبية والنمائية ذات النمط الوراثي المتنحي.' : '* La consanguinité augmente le risque d\'expression d\'anomalies neurodéveloppementales récessives.' }}</span>
     </div>
     @else
     <div class="alert-box alert-teal">
-        <strong>✓ {{ $isArabic ? 'مؤشر القرابة بين الوالدين:' : 'Indice de Consanguinité :' }}</strong> 
+        <strong>[OK] {{ $isArabic ? 'مؤشر القرابة بين الوالدين:' : 'Indice de Consanguinité :' }}</strong> 
         {{ $isArabic ? 'زواج غير أقارب (F = 0)' : 'Parents non consanguins (F = 0).' }}
     </div>
     @endif
@@ -307,26 +310,24 @@
             <tr>
                 <th style="width: 25%;">{{ $isArabic ? 'فرد العائلة' : 'Membre de la Famille' }}</th>
                 <th style="width: 20%;">{{ $isArabic ? 'الجيل والصلة' : 'Génération & Lien' }}</th>
-                <th style="width: 55%;">{{ $isArabic ? 'الاضطرابات والسوابق السريرية المرصودة' : 'Troubles & Antécédents Observés' }}</th>
+                <th style="width: 55%;">{{ $isArabic ? 'الاضطرابات والسوابق المرصودة' : 'Troubles & Antécédents Observés' }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach($genogram['members'] as $m)
-            @if(!empty($m['disorders']) || !empty($m['isPatient']))
             <tr>
-                <td><strong>{{ $m['relation'] ?? $m['name'] }}</strong> {{ !empty($m['isPatient']) ? ($isArabic ? '(المريض المفحوص)' : '(Patient Index)') : '' }}</td>
-                <td>{{ $m['gender'] === 'male' ? ($isArabic ? 'ذكر' : 'Masculin') : ($isArabic ? 'أنثى' : 'Féminin') }} &bull; Gen {{ $m['generation'] ?? 2 }}</td>
+                <td><strong>{{ $m['name'] ?? $m['relationship'] ?? 'N/A' }}</strong></td>
+                <td>{{ $m['gender'] === 'female' ? ($isArabic ? 'أنثى' : 'Féminin') : ($isArabic ? 'ذكر' : 'Masculin') }} &bull; Gen {{ $m['generation'] ?? 1 }}</td>
                 <td>
-                    @if(!empty($m['disorders']))
-                        @foreach($m['disorders'] as $d)
-                            <span class="tag tag-purple">{{ $d }}</span>
+                    @if(!empty($m['disorders']) && is_array($m['disorders']))
+                        @foreach($m['disorders'] as $disorder)
+                            <span class="tag tag-purple">{{ $disorder }}</span>
                         @endforeach
                     @else
-                        <span style="color: #64748b; font-style: italic;">{{ $isArabic ? 'لا توجد سوابق معلنة' : 'Aucun trouble déclaré' }}</span>
+                        <span style="color: #64748b;">{{ $isArabic ? 'لا توجد سوابق مسجلة' : 'Aucun trouble rapporté' }}</span>
                     @endif
                 </td>
             </tr>
-            @endif
             @endforeach
         </tbody>
     </table>
@@ -334,7 +335,7 @@
 
     <!-- 7. Symptom & Sensory Body Map -->
     <div class="section-header">
-        {{ $isArabic ? '4. خريطة الجسد والأعراض السريرية والملف الحسي (Profil Sensoriel & Corporel)' : '4. Cartographie Corporelle, Tics & Profil Sensoriel' }}
+        {{ $isArabic ? '4. خريطة الجسد والأعراض السريرية والملف الحسي' : '4. Cartographie Corporelle, Tics & Profil Sensoriel' }}
     </div>
 
     @php
@@ -346,14 +347,14 @@
     <table class="data-table">
         <tr>
             <td style="width: 50%; vertical-align: top;">
-                <strong>{{ $isArabic ? 'التشنجات والحركات النمطية (Tics / Stéréotypies):' : 'Tics Moteurs & Stéréotypies :' }}</strong>
+                <strong>{{ $isArabic ? 'التشنجات والحركات النمطية:' : 'Tics Moteurs & Stéréotypies :' }}</strong>
                 <div style="margin-top: 4px;">
                     @if(!empty($activeTics))
                         @foreach($activeTics as $tic)
-                            <span class="tag tag-red">⚡ {{ $tic }}</span><br>
+                            <span class="tag tag-red">&bull; {{ $tic }}</span><br>
                         @endforeach
                     @else
-                        <span style="color: #64748b; font-style: italic;">{{ $isArabic ? 'لم تلاحظ حركات لاإرادية أو تشنجات صريحة.' : 'Aucun tic ni stéréotypie motrice notoire observée.' }}</span>
+                        <span style="color: #64748b;">{{ $isArabic ? 'لم تلاحظ حركات لاإرادية أو تشنجات صريحة.' : 'Aucun tic ni stéréotypie motrice notoire observée.' }}</span>
                     @endif
                 </div>
 
@@ -361,21 +362,21 @@
                 <div style="margin-top: 6px; font-size: 9px; color: #475569;">
                     <strong>{{ $isArabic ? 'ملاحظات المناطق التشريحية:' : 'Observations anatomiques:' }}</strong><br>
                     @foreach($zoneNotes as $zone => $note)
-                        &bull; <em>{{ $zone }}:</em> {{ $note }}<br>
+                        &bull; {{ $zone }}: {{ $note }}<br>
                     @endforeach
                 </div>
                 @endif
             </td>
             <td style="width: 50%; vertical-align: top;">
-                <strong>{{ $isArabic ? 'الملف الحسي والتكامل الحسي (Profil Sensoriel):' : 'Profil d\'Intégration Sensorielle :' }}</strong>
+                <strong>{{ $isArabic ? 'الملف الحسي والتكامل الحسي:' : 'Profil d\'Intégration Sensorielle :' }}</strong>
                 <div style="margin-top: 4px;">
                     @php
                         $domains = [
-                            'auditory' => $isArabic ? 'السمعي (Audition)' : 'Auditif',
-                            'tactile' => $isArabic ? 'اللمسي (Tactile)' : 'Tactile',
-                            'visual' => $isArabic ? 'البصري (Vision)' : 'Visuel',
-                            'vestibular' => $isArabic ? 'الدهليزي (Vestibulaire)' : 'Vestibulaire',
-                            'proprioceptive' => $isArabic ? 'العضلي المفصلي (Proprioceptif)' : 'Proprioceptif',
+                            'auditory' => $isArabic ? 'السمعي' : 'Auditif',
+                            'tactile' => $isArabic ? 'اللمسي' : 'Tactile',
+                            'visual' => $isArabic ? 'البصري' : 'Visuel',
+                            'vestibular' => $isArabic ? 'الدهليزي' : 'Vestibulaire',
+                            'proprioceptive' => $isArabic ? 'العضلي المفصلي' : 'Proprioceptif',
                         ];
                     @endphp
                     @foreach($domains as $key => $domainLabel)
@@ -383,11 +384,11 @@
                         <div style="margin-bottom: 2px;">
                             &bull; {{ $domainLabel }}: 
                             @if($val === 'hyper')
-                                <span class="tag tag-red">{{ $isArabic ? 'فرط تحسس (Hyper-réactif)' : 'Hyper-réactivité' }}</span>
+                                <span class="tag tag-red">{{ $isArabic ? 'فرط تحسس' : 'Hyper-réactivité' }}</span>
                             @elseif($val === 'hypo')
-                                <span class="tag tag-amber">{{ $isArabic ? 'نقص وبحث حسي (Hypo-réactif)' : 'Hypo-réactivité' }}</span>
+                                <span class="tag tag-amber">{{ $isArabic ? 'نقص وبحث حسي' : 'Hypo-réactivité' }}</span>
                             @else
-                                <span class="tag tag-teal">{{ $isArabic ? 'طبيعي (Typique)' : 'Typique' }}</span>
+                                <span class="tag tag-teal">{{ $isArabic ? 'طبيعي' : 'Typique' }}</span>
                             @endif
                         </div>
                     @endforeach
@@ -398,7 +399,7 @@
 
     <!-- 8. Psychometric & Clinical Assessments Battery -->
     <div class="section-header">
-        {{ $isArabic ? '5. نتائج المقاييس والاختبارات السريرية (Batterie Psychométrique)' : '5. Évaluations Psychométriques & Orthophoniques' }}
+        {{ $isArabic ? '5. نتائج المقاييس والاختبارات السريرية' : '5. Évaluations Psychométriques & Orthophoniques' }}
     </div>
     @if(!empty($assessments) && count($assessments) > 0)
     <table class="data-table">
@@ -422,14 +423,14 @@
         </tbody>
     </table>
     @else
-    <div class="content-box" style="color: #64748b; font-style: italic;">
+    <div class="content-box" style="color: #64748b;">
         {{ $isArabic ? 'لم ترفق مقاييس فرعية رقمية في هذه الحصيلة؛ التقييم يعتمد على الفحص السريري المباشر.' : 'Aucune batterie psychométrique sélectionnée pour ce bilan.' }}
     </div>
     @endif
 
     <!-- 9. Synthesis & DSM-5 Diagnosis -->
     <div class="section-header">
-        {{ $isArabic ? '6. الخلاصة السريرية والتشخيص (Synthèse Clinique & Diagnostic)' : '6. Synthèse Clinique & Hypothèses Diagnostiques' }}
+        {{ $isArabic ? '6. الخلاصة السريرية والتشخيص' : '6. Synthèse Clinique & Hypothèses Diagnostiques' }}
     </div>
     <div class="content-box">
         @if(!empty($bilan->clinical_summary))
@@ -454,7 +455,7 @@
 
     <!-- 10. Therapeutic Project & Plan -->
     <div class="section-header">
-        {{ $isArabic ? '7. المشروع العلاجي والتوصيات (Projet Thérapeutique & Préconisations)' : '7. Projet Thérapeutique & Préconisations' }}
+        {{ $isArabic ? '7. المشروع العلاجي والتوصيات' : '7. Projet Thérapeutique & Préconisations' }}
     </div>
     <div class="content-box">
         {!! nl2br(e($bilan->therapeutic_project ?? ($isArabic ? 'يوصى ببدء حصص تكفل أرطوفوني/نفسي بمعدل حصتين أسبوعياً مع متابعة أسرية ومدرسية منتظمة.' : 'Prise en charge orthophonique préconisée à raison de 2 séances hebdomadaires avec guidance parentale.'))) !!}

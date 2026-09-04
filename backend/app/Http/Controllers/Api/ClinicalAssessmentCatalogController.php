@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClinicalAssessment;
 use App\Models\Patient;
 use App\Models\PatientBilan;
+use App\Services\ArabicPdfService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -216,12 +217,15 @@ class ClinicalAssessmentCatalogController extends Controller
             $now = Carbon::parse($bilan->created_at ?? now());
             $years = (int) $birth->diffInYears($now);
             $months = (int) ($birth->diffInMonths($now) % 12);
-            $ageFormatted = "{$years} ans et {$months} mois ({$years} سنة و {$months} أشهر)";
+            $isAr = ($bilan->language === 'ar');
+            $ageFormatted = $isAr
+                ? "{$years} سنة و {$months} أشهر"
+                : "{$years} ans et {$months} mois";
         }
 
         $tenant = $patient->tenant ?? ($specialist ? $specialist->tenant : null);
 
-        $pdf = Pdf::loadView('pdf.master_bilan_report', [
+        $rawHtml = view('pdf.master_bilan_report', [
             'bilan' => $bilan,
             'patient' => $patient,
             'specialist' => $specialist,
@@ -232,8 +236,11 @@ class ClinicalAssessmentCatalogController extends Controller
             'genogram' => $bilan->genogram_snapshot ?: ($patient->family_genogram ?: []),
             'sensoryMap' => $bilan->sensory_map_snapshot ?: ($patient->sensory_body_map ?: []),
             'assessments' => $bilan->assessments_snapshot ?: [],
-        ]);
+        ])->render();
 
+        $processedHtml = ArabicPdfService::prepareHtmlForDomPdf($rawHtml);
+
+        $pdf = Pdf::loadHTML($processedHtml);
         $pdf->setPaper('a4', 'portrait');
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,
