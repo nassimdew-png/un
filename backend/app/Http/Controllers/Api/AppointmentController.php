@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Models\TherapySession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class AppointmentController extends Controller
             $query->where('status', $status);
         }
 
-        $appointments = $query->orderBy('appointment_date', 'asc')->paginate((int) $request->query('per_page', 50));
+        $appointments = $query->orderBy('appointment_date', 'desc')->paginate((int) $request->query('per_page', 25));
 
         return response()->json($appointments);
     }
@@ -61,7 +62,17 @@ class AppointmentController extends Controller
         ]);
 
         $validated['specialist_id'] = $validated['specialist_id'] ?? ($user ? $user->id : null);
+        if (empty($validated['specialist_id'])) {
+            $defaultUser = \App\Models\User::first();
+            $validated['specialist_id'] = $defaultUser ? $defaultUser->id : null;
+        }
+
         $validated['tenant_id'] = $user ? $user->tenant_id : null;
+        if (empty($validated['tenant_id'])) {
+            $patient = \App\Models\Patient::find($validated['patient_id']);
+            $validated['tenant_id'] = $patient ? $patient->tenant_id : 1;
+        }
+
         $validated['status'] = $validated['status'] ?? 'scheduled';
         $validated['type'] = $validated['type'] ?? 'therapy_session';
 
@@ -89,12 +100,21 @@ class AppointmentController extends Controller
     {
         $user = Auth::user();
         $patientId = $request->input('patient_id');
+        $patient = \App\Models\Patient::find($patientId);
+
+        $specialistId = $request->input('specialist_id');
+        if (empty($specialistId)) {
+            $specialistId = $user ? $user->id : (\App\Models\User::first()?->id);
+        }
+
+        $tenantId = $user ? $user->tenant_id : ($patient?->tenant_id ?? 1);
 
         $appointment = Appointment::create([
-            'tenant_id' => $user ? $user->tenant_id : null,
+            'tenant_id' => $tenantId,
             'patient_id' => $patientId,
-            'specialist_id' => $request->input('specialist_id', $user ? $user->id : null),
+            'specialist_id' => $specialistId,
             'appointment_date' => now()->toDateString(),
+            'start_time' => now()->format('H:i'),
             'type' => 'therapy_session',
             'status' => 'in_progress',
             'notes' => $request->input('notes', 'جلسة علاجية فورية ومباشرة'),
@@ -124,17 +144,47 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Complete an appointment session.
+     * Complete an appointment session and optionally record a therapy session.
      */
-    public function completeSession(string $id): JsonResponse
+    public function completeSession(string $id, Request $request): JsonResponse
     {
-        $appointment = Appointment::findOrFail($id);
-        $appointment->update(['status' => 'completed']);
+        $user = Auth::user();
+        $appointment = Appointment::with(['patient', 'specialist'])->findOrFail($id);
+        
+        $notes = $request->input('notes', $appointment->notes);
+        $appointment->update([
+            'status' => 'completed',
+            'notes' => $notes,
+        ]);
+
+        $session = null;
+        if ($request->input('save_therapy_session', true)) {
+            $specialty = $request->input('specialty', 'orthophony');
+            if (!in_array($specialty, ['orthophony', 'psychology'])) {
+                $specialty = 'orthophony';
+            }
+
+            $duration = (int) $request->input('duration_minutes', 45);
+            if ($duration < 5) $duration = 45;
+
+            $session = TherapySession::create([
+                'tenant_id' => $appointment->tenant_id ?: ($user ? $user->tenant_id : 1),
+                'patient_id' => $appointment->patient_id,
+                'specialist_id' => $appointment->specialist_id ?: ($user ? $user->id : (\App\Models\User::first()?->id)),
+                'session_date' => $appointment->appointment_date ?: now()->toDateString(),
+                'duration_minutes' => $duration,
+                'specialty' => $specialty,
+                'progress_notes' => $request->input('progress_notes', $notes),
+                'exercises_targeted' => $request->input('exercises_targeted', []),
+                'attendance_status' => 'present',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إنهاء الجلسة وحفظ التقرير بنجاح.',
-            'appointment' => $appointment->load(['patient', 'specialist']),
+            'message' => 'تم إنهاء وتوثيق الجلسة بنجاح.',
+            'appointment' => $appointment->fresh(['patient', 'specialist']),
+            'therapy_session' => $session,
         ]);
     }
 

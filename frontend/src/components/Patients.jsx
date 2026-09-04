@@ -58,6 +58,7 @@ import PatientAiRecordsTab from './patients/PatientAiRecordsTab';
 import VoiceScribeRecorderModal from './sessions/VoiceScribeRecorderModal';
 import AnamnesisCopilotWidget from './patients/AnamnesisCopilotWidget';
 import TherapyAppFinder from './therapy/TherapyAppFinder';
+import PatientSessionsHistoryView from './patients/PatientSessionsHistoryView';
 import MasterBilanBuilderModal from './assessments/MasterBilanBuilderModal';
 import HomeworkPlanCard from './therapy-hub/HomeworkPlanCard';
 import PatientHomeworkBuilderModal from './therapy-hub/PatientHomeworkBuilderModal';
@@ -535,6 +536,19 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
               <button
                 type="button"
+                onClick={() => setPatientTab('sessions_history')}
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center space-x-1.5 space-x-reverse font-black ${
+                  patientTab === 'sessions_history'
+                    ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
+                    : 'text-teal-300 hover:text-white hover:bg-teal-950/40'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>🗓️ سجل ومقارنة الحصص ({patientSessions.length})</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setPatientTab('therapy')}
                 className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center space-x-1.5 space-x-reverse ${
                   patientTab === 'therapy'
@@ -855,6 +869,42 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                 </div>
               )}
 
+              {/* TAB: SESSIONS HISTORY & COMPARATOR */}
+              {patientTab === 'sessions_history' && (
+                <div className="animate-in fade-in">
+                  <PatientSessionsHistoryView
+                    patient={selectedPatient}
+                    sessions={patientSessions}
+                    onStartSession={async () => {
+                      if (startingDirectSession) return;
+                      setStartingDirectSession(true);
+                      try {
+                        const today = new Date().toISOString().split('T')[0];
+                        const res = await appointmentApi.create({
+                          patient_id: selectedPatient.id,
+                          specialist_id: user?.id || null,
+                          appointment_date: today,
+                          start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                          type: 'therapy_session',
+                          status: 'in_progress',
+                          notes: 'جلسة علاجية فورية ومباشرة من ملف المريض',
+                        });
+                        const appointmentId = res.id || res.data?.id || res.appointment?.id;
+                        if (appointmentId) {
+                          setActiveConsultationId(appointmentId);
+                        }
+                      } catch (err) {
+                        console.error('Error starting direct session:', err);
+                        alert(err.message || 'تعذر بدء الجلسة المباشرة');
+                      } finally {
+                        setStartingDirectSession(false);
+                      }
+                    }}
+                    onRefresh={() => loadPatientDetails(selectedPatient)}
+                  />
+                </div>
+              )}
+
               {/* TAB 3: Digital Speech, Language & Cognitive Therapy */}
               {patientTab === 'therapy' && (
                 <div className="animate-in fade-in">
@@ -1148,8 +1198,15 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
       {activeConsultationId && (
         <ActiveConsultationWorkspace
           appointmentId={activeConsultationId}
+          patient={selectedPatient}
           onClose={() => setActiveConsultationId(null)}
           onSuccess={() => {
+            setActiveConsultationId(null);
+            if (selectedPatient) loadPatientDetails(selectedPatient);
+            if (onRefresh) onRefresh();
+          }}
+          onCompleted={() => {
+            setActiveConsultationId(null);
             if (selectedPatient) loadPatientDetails(selectedPatient);
             if (onRefresh) onRefresh();
           }}

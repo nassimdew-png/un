@@ -17,7 +17,8 @@ class TherapySessionController extends Controller
     {
         $query = TherapySession::with(['patient', 'specialist']);
 
-        if ($patientId = $request->query('patient_id')) {
+        $patientId = $request->route('patientId') ?: $request->query('patient_id');
+        if ($patientId) {
             $query->where('patient_id', $patientId);
         }
 

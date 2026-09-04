@@ -502,6 +502,7 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
         Route::get('patients/{patientId}/assessments-progression', [ClinicalAssessmentController::class, 'getProgressionAnalytics'])->name('assessments.progression');
         Route::get('assessments/due-reassessments', [ClinicalAssessmentController::class, 'getDueReassessments'])->name('assessments.due_reassessments');
         Route::apiResource('assessments', ClinicalAssessmentController::class);
+        Route::get('patients/{patientId}/sessions', [TherapySessionController::class, 'index'])->name('patients.sessions.index');
         Route::apiResource('sessions', TherapySessionController::class);
 
         // Voice Archive & Audio Notes
