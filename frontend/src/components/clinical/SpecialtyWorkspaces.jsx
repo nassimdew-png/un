@@ -502,7 +502,17 @@ export function PsychologyWorkspaceSection({
           </div>
 
           <div>
-            <span className="text-[11px] text-slate-400 block mb-1">المقياس المطبق في الجلسة:</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-slate-400">المقياس المطبق في الجلسة:</span>
+              <a
+                href="/clinical-tests"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-bold"
+              >
+                المكتبة المعتمدة (+48 رائز) ↗
+              </a>
+            </div>
             <select
               value={psychTest.testName}
               onChange={(e) => setPsychTest({ ...psychTest, testName: e.target.value })}

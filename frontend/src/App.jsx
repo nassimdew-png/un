@@ -154,6 +154,7 @@ function ClinicApp() {
                   onOpenAddAssessment={() => setIsAssessmentModalOpen(true)}
                   onOpenAddSession={() => setIsSessionModalOpen(true)}
                   tenant={tenant}
+                  user={user}
                 />
               }
             />
