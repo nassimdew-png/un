@@ -391,6 +391,15 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
               <div className="flex items-center space-x-2 space-x-reverse">
                 <button
                   type="button"
+                  onClick={() => setShowMasterBilanModal(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-teal-500/20 flex items-center space-x-1.5 space-x-reverse transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>📄 الحصيلة السريرية الشاملة (Bilan PDF)</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setShowPortalModal(true)}
                   className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600 hover:to-teal-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
                 >

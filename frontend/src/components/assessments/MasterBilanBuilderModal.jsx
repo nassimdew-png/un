@@ -3,7 +3,8 @@ import {
   FileText, CheckSquare, Square, Download, Printer, Sparkles, 
   Layers, ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, 
   Brain, User, Calendar, BookOpen, AlertCircle, RefreshCw, X,
-  Globe, Stethoscope, Users, Zap, Check, Eye, Edit3, ChevronRight
+  Globe, Stethoscope, Users, Zap, Check, Eye, Edit3, ChevronRight,
+  GitBranch, Activity, Baby
 } from 'lucide-react';
 import { patientBilanApi, clinicalAiCopilotApi } from '../../api';
 
@@ -17,6 +18,13 @@ export default function MasterBilanBuilderModal({ isOpen, onClose, patient, onBi
 
   const [bilanData, setBilanData] = useState(null);
   const [selectedSessionIds, setSelectedSessionIds] = useState([]);
+  const [includedSections, setIncludedSections] = useState({
+    genogram: true,
+    sensory_map: true,
+    anamnesis: true,
+    assessments: true,
+    therapeutic_project: true,
+  });
   
   // AI Control Panel State
   const [language, setLanguage] = useState('fr'); // 'fr' or 'ar'
@@ -142,13 +150,17 @@ export default function MasterBilanBuilderModal({ isOpen, onClose, patient, onBi
     setSaving(true);
     try {
       const payload = {
-        included_session_ids: selectedSessionIds,
+        selected_session_ids: selectedSessionIds,
         bilan_type: bilanType,
         title: bilanTitle,
-        clinical_summary: `${clinicalSummary}\n\n${psychometricAnalysis}\n\n${strengthsWeaknesses}`,
+        clinical_summary: clinicalSummary,
+        psychometric_analysis: psychometricAnalysis,
+        strengths_weaknesses: strengthsWeaknesses,
         therapeutic_project: therapeuticProject,
         diagnosis_codes: diagnosticHypotheses,
+        included_sections: includedSections,
         language: language,
+        audience: audience,
       };
 
       const res = await patientBilanApi.generateBilan(patient.id, payload);
@@ -380,6 +392,90 @@ export default function MasterBilanBuilderModal({ isOpen, onClose, patient, onBi
                 </div>
               </div>
 
+              {/* Clinical Sub-modules Inclusion Cards & Toggles */}
+              <div className="p-5 rounded-3xl bg-slate-950 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-white flex items-center space-x-2 space-x-reverse">
+                    <Layers className="w-4 h-4 text-teal-400" />
+                    <span>الأقسام السريرية المدمجة آلياً في الحصيلة (Clinical Sub-modules)</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-mono">تضمين في وثيقة PDF الرسمية</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Genogram Card */}
+                  <div
+                    onClick={() => setIncludedSections(prev => ({ ...prev, genogram: !prev.genogram }))}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
+                      includedSections.genogram 
+                        ? 'bg-purple-950/30 border-purple-500/40 text-purple-200 shadow-md shadow-purple-500/10' 
+                        : 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold flex items-center space-x-1.5 space-x-reverse">
+                        <GitBranch className="w-3.5 h-3.5 text-purple-400" />
+                        <span>شجرة العائلة والقرابة</span>
+                      </span>
+                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
+                        includedSections.genogram ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-600'
+                      }`}>✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      {bilanData?.patient?.family_genogram?.consanguinity 
+                        ? '⚠️ قرابة والدية مسجلة' 
+                        : '3 أجيال وسجل الاضطرابات الوراثية'}
+                    </p>
+                  </div>
+
+                  {/* Sensory Body Map Card */}
+                  <div
+                    onClick={() => setIncludedSections(prev => ({ ...prev, sensory_map: !prev.sensory_map }))}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
+                      includedSections.sensory_map 
+                        ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200 shadow-md shadow-cyan-500/10' 
+                        : 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold flex items-center space-x-1.5 space-x-reverse">
+                        <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>خريطة الجسد والملف الحسي</span>
+                      </span>
+                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
+                        includedSections.sensory_map ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-600'
+                      }`}>✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      {(bilanData?.patient?.sensory_body_map?.activeTics?.length || 0)} حركات نمطية &bull; التكامل الحسي
+                    </p>
+                  </div>
+
+                  {/* Anamnesis Card */}
+                  <div
+                    onClick={() => setIncludedSections(prev => ({ ...prev, anamnesis: !prev.anamnesis }))}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
+                      includedSections.anamnesis 
+                        ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200 shadow-md shadow-emerald-500/10' 
+                        : 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold flex items-center space-x-1.5 space-x-reverse">
+                        <Baby className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>السوابق النمائية والمدرسية</span>
+                      </span>
+                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
+                        includedSections.anamnesis ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-600'
+                      }`}>✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      فترة الحمل والولادة ومعالم النمو الحركي واللغوي
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Tests Selection Grid */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -608,15 +704,26 @@ export default function MasterBilanBuilderModal({ isOpen, onClose, patient, onBi
 
               <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
                 {generatedPdfUrl && (
-                  <a
-                    href={generatedPdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-slate-950 font-black text-xs shadow-xl shadow-teal-500/25 flex items-center space-x-2 space-x-reverse transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>تحميل وثيقة الحصيلة الرسمية (PDF A4)</span>
-                  </a>
+                  <>
+                    <a
+                      href={generatedPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-slate-950 font-black text-xs shadow-xl shadow-teal-500/25 flex items-center space-x-2 space-x-reverse transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>تحميل وثيقة الحصيلة الرسمية (PDF A4)</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => window.open(generatedPdfUrl, '_blank')}
+                      className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold text-xs flex items-center space-x-2 space-x-reverse transition border border-teal-500/30"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>طباعة ومعاينة فورية (Print)</span>
+                    </button>
+                  </>
                 )}
 
                 <button
