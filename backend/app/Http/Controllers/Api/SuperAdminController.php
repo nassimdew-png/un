@@ -1098,22 +1098,81 @@ class SuperAdminController extends Controller
     /**
      * Lists all standardized clinical tests with their global configuration and norms.
      */
+    /**
+     * Lists the global catalog of clinical tests and assessment scales.
+     */
     public function getGlobalTestsCatalog(Request $request): JsonResponse
     {
+        // Auto-seed default catalog if fewer than 90 tests exist
+        if (GlobalTestConfiguration::count() < 90) {
+            $jsonPath = database_path('data/clinical_tests_catalog.json');
+            if (file_exists($jsonPath)) {
+                $testsData = json_decode(file_get_contents($jsonPath), true);
+                if (is_array($testsData)) {
+                    foreach ($testsData as $item) {
+                        $code = strtoupper(trim($item['code'] ?? ''));
+                        if (empty($code)) continue;
+                        GlobalTestConfiguration::updateOrCreate(
+                            ['test_code' => $code],
+                            [
+                                'name_ar' => $item['title_ar'] ?? $code,
+                                'name_fr' => $item['title_fr'] ?? $code,
+                                'category' => $item['category'] ?? 'orthophonie',
+                                'minimum_plan_required' => 'starter',
+                                'is_globally_enabled' => true,
+                                'description' => $item['description'] ?? null,
+                                'norms_payload' => [
+                                    'age_range' => $item['age_range'] ?? '',
+                                    'duration' => $item['duration'] ?? '',
+                                    'source' => $item['source'] ?? 'CREAPSY 🇩🇿',
+                                    'dimensions' => $item['dimensions'] ?? [],
+                                    'cutoff' => $item['cutoff'] ?? '',
+                                    'color' => $item['color'] ?? 'from-indigo-500 to-purple-600',
+                                    'icon' => $item['icon'] ?? 'Brain',
+                                ],
+                            ]
+                        );
+                    }
+                }
+            }
+        }
+
         $category = $request->query('category', '');
         $search = $request->query('search', '');
+        $status = $request->query('status', '');
 
-        $query = GlobalTestConfiguration::query()->orderBy('category')->orderBy('name_ar');
+        $query = GlobalTestConfiguration::query()->orderBy('category')->orderBy('test_code');
 
-        if (!empty($category)) {
-            $query->where('category', $category);
+        if (!empty($category) && $category !== 'all') {
+            if ($category === 'orthophonie') {
+                $query->where('category', 'orthophonie');
+            } elseif ($category === 'psychologie') {
+                $query->whereIn('category', ['psychologie', 'psychology']);
+            } elseif ($category === 'autisme') {
+                $query->whereIn('category', ['autisme', 'autism']);
+            } elseif ($category === 'intelligence') {
+                $query->whereIn('category', ['intelligence', 'wisc']);
+            } elseif ($category === 'tdah_apprentissage') {
+                $query->whereIn('category', ['tdah_apprentissage', 'adhd', 'learning']);
+            } elseif ($category === 'psychomotricite') {
+                $query->where('category', 'psychomotricite');
+            } else {
+                $query->where('category', $category);
+            }
+        }
+
+        if ($status === 'enabled') {
+            $query->where('is_globally_enabled', true);
+        } elseif ($status === 'disabled') {
+            $query->where('is_globally_enabled', false);
         }
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('test_code', 'like', "%{$search}%")
                   ->orWhere('name_ar', 'like', "%{$search}%")
-                  ->orWhere('name_fr', 'like', "%{$search}%");
+                  ->orWhere('name_fr', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -1122,9 +1181,13 @@ class SuperAdminController extends Controller
         $stats = [
             'total_tests' => GlobalTestConfiguration::count(),
             'enabled_tests' => GlobalTestConfiguration::where('is_globally_enabled', true)->count(),
+            'disabled_tests' => GlobalTestConfiguration::where('is_globally_enabled', false)->count(),
             'orthophonie_tests' => GlobalTestConfiguration::where('category', 'orthophonie')->count(),
-            'psychologie_tests' => GlobalTestConfiguration::whereIn('category', ['psychologie', 'neuropsy', 'psychometrie'])->count(),
-            'autisme_tests' => GlobalTestConfiguration::where('category', 'autisme')->count(),
+            'psychologie_tests' => GlobalTestConfiguration::whereIn('category', ['psychologie', 'psychology'])->count(),
+            'autisme_tests' => GlobalTestConfiguration::whereIn('category', ['autisme', 'autism'])->count(),
+            'intelligence_tests' => GlobalTestConfiguration::whereIn('category', ['intelligence', 'wisc'])->count(),
+            'tdah_tests' => GlobalTestConfiguration::whereIn('category', ['tdah_apprentissage', 'adhd', 'learning'])->count(),
+            'psychomotricite_tests' => GlobalTestConfiguration::where('category', 'psychomotricite')->count(),
         ];
 
         return response()->json([
@@ -1135,27 +1198,168 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Updates a clinical test's global availability, gating plan, and calibration norms.
+     * Creates a new clinical test configuration.
+     */
+    public function createTestConfig(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'test_code' => 'required|string|max:50|unique:global_test_configurations,test_code',
+            'name_ar' => 'required|string|max:255',
+            'name_fr' => 'nullable|string|max:255',
+            'category' => 'required|string|max:100',
+            'minimum_plan_required' => 'nullable|string',
+            'is_globally_enabled' => 'nullable|boolean',
+            'description' => 'nullable|string',
+            'norms_payload' => 'nullable|array',
+        ]);
+
+        $validated['test_code'] = strtoupper(trim($validated['test_code']));
+        $validated['is_globally_enabled'] = $validated['is_globally_enabled'] ?? true;
+        $validated['minimum_plan_required'] = $validated['minimum_plan_required'] ?? 'starter';
+
+        $test = GlobalTestConfiguration::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "تمت إضافة المقياس السريري [{$test->test_code} - {$test->name_ar}] بنجاح.",
+            'test' => $test,
+        ], 201);
+    }
+
+    /**
+     * Updates a clinical test's details, category, availability, and calibration norms.
      */
     public function updateTestConfig(string $testCode, Request $request): JsonResponse
     {
-        $test = GlobalTestConfiguration::where('test_code', $testCode)->firstOrFail();
+        $test = GlobalTestConfiguration::where('test_code', $testCode)
+            ->orWhere('id', $testCode)
+            ->firstOrFail();
 
         $validated = $request->validate([
+            'test_code' => 'sometimes|string|max:50',
+            'name_ar' => 'sometimes|string|max:255',
+            'name_fr' => 'nullable|string|max:255',
+            'category' => 'sometimes|string|max:100',
             'is_globally_enabled' => 'sometimes|boolean',
-            'minimum_plan_required' => 'sometimes|string|in:solo_starter,multi_pro,enterprise_dz,starter,pro,enterprise',
+            'minimum_plan_required' => 'sometimes|string',
             'norms_payload' => 'nullable|array',
             'description' => 'nullable|string',
-            'name_ar' => 'sometimes|string',
-            'name_fr' => 'sometimes|string',
         ]);
+
+        if (isset($validated['test_code'])) {
+            $validated['test_code'] = strtoupper(trim($validated['test_code']));
+            if ($validated['test_code'] !== $test->test_code) {
+                if (GlobalTestConfiguration::where('test_code', $validated['test_code'])->where('id', '!=', $test->id)->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'رمز المقياس موجود مسبقاً، يرجى اختيار رمز فريد.',
+                    ], 422);
+                }
+            }
+        }
 
         $test->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => "تم تحديث إعدادات ومعايير مقياس {$test->name_ar} بنجاح.",
+            'message' => "تم تحديث إعدادات وبيانات مقياس [{$test->name_ar}] بنجاح.",
             'test' => $test,
+        ]);
+    }
+
+    /**
+     * Deletes a clinical test from the global catalog.
+     */
+    public function deleteTestConfig(string $testCode): JsonResponse
+    {
+        $test = GlobalTestConfiguration::where('test_code', $testCode)
+            ->orWhere('id', $testCode)
+            ->firstOrFail();
+
+        $name = $test->name_ar;
+        $code = $test->test_code;
+        $test->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم حذف المقياس [{$code} - {$name}] من البنك المركزي بنجاح.",
+        ]);
+    }
+
+    /**
+     * Toggles a clinical test active/inactive status.
+     */
+    public function toggleTestStatus(string $testCode): JsonResponse
+    {
+        $test = GlobalTestConfiguration::where('test_code', $testCode)
+            ->orWhere('id', $testCode)
+            ->firstOrFail();
+
+        $test->is_globally_enabled = !$test->is_globally_enabled;
+        $test->save();
+
+        $stateText = $test->is_globally_enabled ? 'تفعيل' : 'تعطيل';
+        return response()->json([
+            'success' => true,
+            'message' => "تم {$stateText} المقياس السريري [{$test->name_ar}] بنجاح.",
+            'is_globally_enabled' => $test->is_globally_enabled,
+            'test' => $test,
+        ]);
+    }
+
+    /**
+     * Forces resynchronization of the default standardized catalog from JSON.
+     */
+    public function syncDefaultCatalog(): JsonResponse
+    {
+        $jsonPath = database_path('data/clinical_tests_catalog.json');
+        if (!file_exists($jsonPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ملف الروائز المعيارية غير موجود.',
+            ], 404);
+        }
+
+        $testsData = json_decode(file_get_contents($jsonPath), true);
+        if (!is_array($testsData)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'صيغة ملف الروائز غير صالحة.',
+            ], 400);
+        }
+
+        $synced = 0;
+        foreach ($testsData as $item) {
+            $code = strtoupper(trim($item['code'] ?? ''));
+            if (empty($code)) continue;
+
+            GlobalTestConfiguration::updateOrCreate(
+                ['test_code' => $code],
+                [
+                    'name_ar' => $item['title_ar'] ?? $code,
+                    'name_fr' => $item['title_fr'] ?? $code,
+                    'category' => $item['category'] ?? 'orthophonie',
+                    'minimum_plan_required' => 'starter',
+                    'is_globally_enabled' => true,
+                    'description' => $item['description'] ?? null,
+                    'norms_payload' => [
+                        'age_range' => $item['age_range'] ?? '',
+                        'duration' => $item['duration'] ?? '',
+                        'source' => $item['source'] ?? 'CREAPSY 🇩🇿',
+                        'dimensions' => $item['dimensions'] ?? [],
+                        'cutoff' => $item['cutoff'] ?? '',
+                        'color' => $item['color'] ?? 'from-indigo-500 to-purple-600',
+                        'icon' => $item['icon'] ?? 'Brain',
+                    ],
+                ]
+            );
+            $synced++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "تمت مزامنة وتحديث {$synced} رائزاً ومقياساً معيارياً بنجاح.",
+            'count' => $synced,
         ]);
     }
 

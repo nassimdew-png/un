@@ -119,7 +119,11 @@ Route::prefix('super-admin')->group(function () {
     Route::post('/coupons/{id}/toggle', [SuperAdminController::class, 'toggleCoupon']);
     Route::delete('/coupons/{id}', [SuperAdminController::class, 'deleteCoupon']);
     Route::get('/tests', [SuperAdminController::class, 'getGlobalTestsCatalog']);
+    Route::post('/tests', [SuperAdminController::class, 'createTestConfig']);
+    Route::post('/tests/sync-defaults', [SuperAdminController::class, 'syncDefaultCatalog']);
     Route::post('/tests/{testCode}', [SuperAdminController::class, 'updateTestConfig']);
+    Route::post('/tests/{testCode}/toggle', [SuperAdminController::class, 'toggleTestStatus']);
+    Route::delete('/tests/{testCode}', [SuperAdminController::class, 'deleteTestConfig']);
 
     // Custom Domains & DNS (Super Admin)
     Route::get('/domains', [DomainManagerController::class, 'index']);

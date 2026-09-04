@@ -995,9 +995,22 @@ export const superAdminApi = {
     const q = new URLSearchParams(params).toString();
     return apiRequest(`/super-admin/tests${q ? `?${q}` : ''}`);
   },
+  createTestConfig: (data) => apiRequest('/super-admin/tests', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
   updateTestConfig: (testCode, data) => apiRequest(`/super-admin/tests/${testCode}`, {
     method: 'POST',
     body: JSON.stringify(data),
+  }),
+  deleteTestConfig: (testCode) => apiRequest(`/super-admin/tests/${testCode}`, {
+    method: 'DELETE',
+  }),
+  toggleTestStatus: (testCode) => apiRequest(`/super-admin/tests/${testCode}/toggle`, {
+    method: 'POST',
+  }),
+  syncDefaultTestsCatalog: () => apiRequest('/super-admin/tests/sync-defaults', {
+    method: 'POST',
   }),
 
   // Marketing Promotional Coupons
