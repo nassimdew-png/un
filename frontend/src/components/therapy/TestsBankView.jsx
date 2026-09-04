@@ -110,9 +110,9 @@ export default function TestsBankView({ patients = [], tenant }) {
   const [modalRawScore, setModalRawScore] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Categories aligned across all 48 tests & 16 protocols
+  // Categories aligned across all 98 tests & 16 protocols
   const categories = [
-    { id: 'all', label: '🌟 كافة التخصصات والروائز (+64)' },
+    { id: 'all', label: '🌟 كافة التخصصات والروائز (+110)' },
     { id: 'orthophony', label: '🗣️ النطق والأرطوفونيا' },
     { id: 'fluency', label: '🎙️ طلاقة الكلام والتأتأة' },
     { id: 'autism', label: '🧩 طيف التوحد (Autism & TSA)' },
@@ -265,7 +265,7 @@ export default function TestsBankView({ patients = [], tenant }) {
                 <span>CLINICAL TESTS & PROTOCOLS BANK</span>
               </span>
               <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                48 رائز مقنن + 16 بروتوكول علاجي 🌟
+                +90 رائز مقنن (CREAPSY / الجامعات 🇩🇿) + 16 بروتوكول علاجي 🌟
               </span>
               <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                 المعيار الجزائري والعربي 🇩🇿
@@ -392,9 +392,16 @@ export default function TestsBankView({ patients = [], tenant }) {
                       <Icon className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-mono font-black bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                        {test.code}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {test.source && (
+                          <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            {test.source}
+                          </span>
+                        )}
+                        <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-mono font-black bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                          {test.code}
+                        </span>
+                      </div>
                       <span className="text-[10px] text-slate-400 font-medium">
                         {test.category_label}
                       </span>
