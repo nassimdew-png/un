@@ -16,7 +16,7 @@ class UpdatePatientRequest extends FormRequest
         return [
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'sometimes|required|string|max:255',
-            'birth_date' => 'sometimes|required|date',
+            'birth_date' => 'sometimes|required|date|before_or_equal:today|after:1900-01-01',
             'gender' => 'sometimes|required|in:male,female',
             'guardian_name' => 'nullable|string|max:255',
             'phone' => 'sometimes|required|string|max:255',

@@ -121,9 +121,11 @@ export default function SmartWaitingListDrawer({
     setFeedback(null);
     try {
       const res = await clinicApi.convertWaitingToAppointment(convertingEntry.id, {
+        appointment_date: appointmentDate,
         date: appointmentDate,
         start_time: startTime,
         end_time: endTime,
+        appointment_type: appointmentType,
         type: appointmentType,
       });
       if (res.success) {
@@ -131,6 +133,8 @@ export default function SmartWaitingListDrawer({
         setConvertingEntry(null);
         fetchWaitlist();
         if (onAppointmentConverted) onAppointmentConverted();
+      } else {
+        setFeedback({ type: 'error', text: res.message || 'فشل تسكين الموعد' });
       }
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'فشل تسكين الموعد' });
@@ -148,11 +152,15 @@ export default function SmartWaitingListDrawer({
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذا الطلب من قائمة الانتظار؟')) return;
+  const handleDelete = async (id, patientName = '') => {
+    const confirmMsg = patientName 
+      ? `هل أنت متأكد من رغبتك في حذف طلب "${patientName}" من قائمة الانتظار نهائياً؟`
+      : 'هل أنت متأكد من رغبتك في حذف هذا الطلب من قائمة الانتظار؟';
+    if (!window.confirm(confirmMsg)) return;
     try {
       await clinicApi.deleteWaitingEntry(id);
       fetchWaitlist();
+      setFeedback({ type: 'success', text: 'تم حذف الحالة من قائمة الانتظار بنجاح.' });
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'فشل حذف الطلب' });
     }
@@ -262,7 +270,7 @@ export default function SmartWaitingListDrawer({
                 statusFilter === 'waiting' ? 'bg-teal-600 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              قيد الانتظار ({stats.total_waiting || 0})
+              قيد الانتظار ({stats.total_waiting ?? stats.pending ?? 0})
             </button>
             <button
               onClick={() => setStatusFilter('contacted')}
@@ -270,7 +278,7 @@ export default function SmartWaitingListDrawer({
                 statusFilter === 'contacted' ? 'bg-teal-600 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              تم التواصل ({stats.contacted || 0})
+              تم التواصل ({stats.contacted ?? 0})
             </button>
             <button
               onClick={() => setStatusFilter('converted')}
@@ -278,7 +286,7 @@ export default function SmartWaitingListDrawer({
                 statusFilter === 'converted' ? 'bg-teal-600 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              تم التسكين ({stats.converted_total || 0})
+              تم التسكين ({stats.converted_total ?? stats.converted ?? 0})
             </button>
             <button
               onClick={() => setStatusFilter('')}
@@ -286,7 +294,7 @@ export default function SmartWaitingListDrawer({
                 statusFilter === '' ? 'bg-teal-600 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              الكل
+              الكل ({stats.total ?? waitingList.length ?? 0})
             </button>
           </div>
         </div>
@@ -334,7 +342,7 @@ export default function SmartWaitingListDrawer({
 
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleDelete(entry.id)}
+                        onClick={() => handleDelete(entry.id, entry.patient_name)}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
                         title="حذف من القائمة"
                       >

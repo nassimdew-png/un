@@ -32,7 +32,6 @@ use App\Http\Controllers\Api\ClinicSubscriptionController;
 use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\DigitalTherapyController;
 use App\Http\Controllers\Api\ExerciseController;
-use App\Http\Controllers\Api\GeoController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\KioskController;
 use App\Http\Controllers\Api\ParentPortalController;
@@ -42,6 +41,7 @@ use App\Http\Controllers\Api\PatientAudioController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\QueueController;
+use App\Http\Controllers\Api\ClinicalTestAssignmentController;
 use App\Http\Controllers\Api\RemoteAssessmentController;
 use App\Http\Controllers\Api\RemoteTherapyController;
 use App\Http\Controllers\Api\PublicAuthController;
@@ -58,15 +58,36 @@ use App\Http\Middleware\CheckSubscriptionActive;
 use App\Http\Controllers\Api\AiCopilotController;
 use App\Http\Controllers\Api\RehabilitationPlanController;
 use App\Http\Controllers\Api\SessionDocumentationController;
+use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\CustomDomainManagerController;
 use App\Http\Controllers\Api\SuperAdmin\DomainManagerController;
+use App\Http\Controllers\Api\SpeechArticulationController;
+use App\Http\Controllers\Api\SuperAdmin\ServerTelemetryController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionLifecycleController;
+use App\Http\Controllers\Api\SuperAdmin\SystemBroadcastController;
+use App\Http\Controllers\Api\SuperAdmin\AiRoutingStudioController;
+use App\Http\Controllers\Api\SuperAdmin\GeoClinicMapController;
+use App\Http\Controllers\Api\SuperAdmin\ClinicOnboardingFunnelController;
+use App\Http\Controllers\Api\SuperAdmin\PromoReferralEngineController;
+use App\Http\Controllers\Api\PatientRetentionRadarController;
+use App\Http\Controllers\Api\ClinicAiReceptionistController;
+use App\Http\Controllers\Api\ClinicalDdssController;
+use App\Http\Controllers\Api\VisionMedicalDocumentController;
+use App\Http\Controllers\Api\SuperAdmin\SovereignControlTowerController;
+use App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController;
+use App\Http\Controllers\Api\SuperAdmin\HelpCenterStudioController;
+use App\Http\Controllers\Api\SuperAdmin\StudentOfferController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
+
+// Meta WhatsApp Cloud API Official Webhooks (Verification GET & Event Receiver POST)
+Route::get('/whatsapp/webhook', [WhatsAppWebhookController::class, 'verifyWebhook'])->name('whatsapp.webhook.verify');
+Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'handleWebhook'])->name('whatsapp.webhook.handle');
 
 // Public Authentication, Registration & Kiosk Check-In with Rate Limiting
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login'])
-        ->middleware('throttle:login')
-        ->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('auth.login');
+    Route::post('/kiosk-pin-login', [AuthController::class, 'kioskPinLogin'])->name('auth.kiosk_pin_login');
     Route::post('/register', [PublicAuthController::class, 'registerClinic'])
         ->middleware('throttle:30,1')
         ->name('auth.register');
@@ -75,6 +96,11 @@ Route::prefix('auth')->group(function () {
 // Public Self-Registration & Onboarding (14-Day Free Trial)
 Route::get('/public/tenant-info', [PublicAuthController::class, 'getTenantInfo'])->name('public.tenant_info');
 Route::get('/clinic/public-info', [PublicAuthController::class, 'getTenantInfo'])->name('clinic.public_info');
+Route::get('/public/landing-page-config', [LandingPageStudioController::class, 'getPublicConfig'])->name('public.landing_page_config');
+Route::get('/public/help-center-config', [HelpCenterStudioController::class, 'getPublicConfig'])->name('public.help_center_config');
+Route::get('/help-center/content', [HelpCenterStudioController::class, 'getPublicConfig'])->name('help_center.content');
+Route::get('/public/student-offer', [AcademicController::class, 'getOfferConfig'])->name('public.student_offer');
+Route::post('/public/student-offer/apply', [AcademicController::class, 'apply'])->name('public.student_offer.apply');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 // User Profile & Onboarding Tour
@@ -96,9 +122,118 @@ Route::prefix('superadmin')->group(function () {
     Route::get('/invoices', [SuperAdminController::class, 'getSaasInvoices'])->name('superadmin.invoices');
     Route::post('/tenants/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('superadmin.tenants.impersonate');
     Route::post('/clinics/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('superadmin.clinics.impersonate');
+    Route::post('/impersonate/stop', [SuperAdminController::class, 'stopImpersonation'])->name('superadmin.impersonate.stop');
     Route::get('/domains', [DomainManagerController::class, 'index'])->name('superadmin.domains.index');
     Route::post('/domains/{id}/force-renew', [DomainManagerController::class, 'forceRenew'])->name('superadmin.domains.force_renew');
     Route::delete('/domains/{id}', [DomainManagerController::class, 'destroy'])->name('superadmin.domains.destroy');
+
+    // Teletherapy Aliases
+    Route::get('/teletherapy/overview', [SuperAdminController::class, 'getTeletherapyOverview']);
+    Route::get('/teletherapy/rooms', [SuperAdminController::class, 'getTeletherapyRooms']);
+    Route::post('/teletherapy/rooms/{roomCode}/terminate', [SuperAdminController::class, 'terminateTeletherapyRoom']);
+    Route::delete('/teletherapy/rooms/{roomCode}', [SuperAdminController::class, 'deleteTeletherapyRoom']);
+    Route::get('/teletherapy/settings', [SuperAdminController::class, 'getTeletherapySettings']);
+    Route::post('/teletherapy/settings', [SuperAdminController::class, 'updateTeletherapySettings']);
+
+    // Server Health & PM2 Live Telemetry Cockpit
+    Route::get('/telemetry/overview', [ServerTelemetryController::class, 'getOverview'])->name('superadmin.telemetry.overview');
+    Route::post('/telemetry/pm2/restart', [ServerTelemetryController::class, 'restartPm2Process'])->name('superadmin.telemetry.pm2_restart');
+    Route::post('/telemetry/cache/clear', [ServerTelemetryController::class, 'clearSystemCache'])->name('superadmin.telemetry.cache_clear');
+    Route::post('/telemetry/queue/action', [ServerTelemetryController::class, 'handleQueueAction'])->name('superadmin.telemetry.queue_action');
+    Route::get('/telemetry/logs', [ServerTelemetryController::class, 'getSystemLogs'])->name('superadmin.telemetry.logs');
+
+    // Global Audit Logs & Security Guard
+    Route::get('/audit-logs/overview', [AuditLogController::class, 'getSecurityOverview'])->name('superadmin.audit_logs.overview');
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('superadmin.audit_logs.index');
+    Route::get('/audit-logs/blocked-ips', [AuditLogController::class, 'getBlockedIps'])->name('superadmin.audit_logs.blocked_ips');
+    Route::post('/audit-logs/block-ip', [AuditLogController::class, 'blockIp'])->name('superadmin.audit_logs.block_ip');
+    Route::delete('/audit-logs/blocked-ips/{id}', [AuditLogController::class, 'unblockIp'])->name('superadmin.audit_logs.unblock_ip');
+    Route::get('/audit-logs/export', [AuditLogController::class, 'exportLogs'])->name('superadmin.audit_logs.export');
+
+    // 3. Subscription Lifecycle & BaridiMob Automation
+    Route::get('/lifecycle/overview', [SubscriptionLifecycleController::class, 'getLifecycleOverview'])->name('superadmin.lifecycle.overview');
+    Route::post('/lifecycle/clinics/{id}/chase', [SubscriptionLifecycleController::class, 'sendRenewalChaser'])->name('superadmin.lifecycle.chase');
+    Route::post('/lifecycle/clinics/{id}/grace-period', [SubscriptionLifecycleController::class, 'grantGracePeriod'])->name('superadmin.lifecycle.grace_period');
+    Route::post('/lifecycle/clinics/{id}/manual-renew', [SubscriptionLifecycleController::class, 'manualRenewClinic'])->name('superadmin.lifecycle.manual_renew');
+    Route::get('/lifecycle/proofs', [SubscriptionLifecycleController::class, 'getPaymentProofInbox'])->name('superadmin.lifecycle.proofs');
+    Route::post('/lifecycle/proofs/{id}/approve', [SubscriptionLifecycleController::class, 'approvePaymentProof'])->name('superadmin.lifecycle.proofs.approve');
+    Route::post('/lifecycle/proofs/{id}/reject', [SubscriptionLifecycleController::class, 'rejectPaymentProof'])->name('superadmin.lifecycle.proofs.reject');
+
+    // 4. Global Broadcast & Announcements Hub
+    Route::get('/broadcasts', [SystemBroadcastController::class, 'index'])->name('superadmin.broadcasts.index');
+    Route::post('/broadcasts', [SystemBroadcastController::class, 'store'])->name('superadmin.broadcasts.store');
+    Route::put('/broadcasts/{id}', [SystemBroadcastController::class, 'update'])->name('superadmin.broadcasts.update');
+    Route::post('/broadcasts/{id}/toggle-status', [SystemBroadcastController::class, 'toggleStatus'])->name('superadmin.broadcasts.toggle_status');
+    Route::delete('/broadcasts/{id}', [SystemBroadcastController::class, 'destroy'])->name('superadmin.broadcasts.destroy');
+
+    // 5. AI Routing, Failover Cascade & Cost Studio
+    Route::get('/ai-routing/overview', [AiRoutingStudioController::class, 'getStudioOverview'])->name('superadmin.ai_routing.overview');
+    Route::put('/ai-routing/providers/{id}', [AiRoutingStudioController::class, 'updateProvider'])->name('superadmin.ai_routing.update_provider');
+    Route::post('/ai-routing/providers/{id}/ping', [AiRoutingStudioController::class, 'pingProvider'])->name('superadmin.ai_routing.ping_provider');
+    Route::put('/ai-routing/routes/{id}', [AiRoutingStudioController::class, 'updateTaskRoute'])->name('superadmin.ai_routing.update_route');
+
+    // 6. Algeria Geo-Clinic Map
+    Route::get('/geo-map/overview', [GeoClinicMapController::class, 'getGeoOverview'])->name('superadmin.geo_map.overview');
+    Route::post('/geo-map/clinics/{id}/location', [GeoClinicMapController::class, 'updateClinicLocation'])->name('superadmin.geo_map.update_location');
+    Route::post('/geo-map/auto-geocode', [GeoClinicMapController::class, 'autoGeocodeClinics'])->name('superadmin.geo_map.auto_geocode');
+
+    // 7. Clinic Onboarding & Conversion Funnel
+    Route::get('/onboarding-funnel/overview', [ClinicOnboardingFunnelController::class, 'getFunnelOverview'])->name('superadmin.onboarding_funnel.overview');
+    Route::post('/onboarding-funnel/clinics/{id}/nudge', [ClinicOnboardingFunnelController::class, 'sendOnboardingNudge'])->name('superadmin.onboarding_funnel.nudge');
+    Route::post('/onboarding-funnel/clinics/{id}/toggle-tour', [ClinicOnboardingFunnelController::class, 'toggleOnboardingTour'])->name('superadmin.onboarding_funnel.toggle_tour');
+
+    // 8. Promo Coupons & Referral Engine
+    Route::get('/promos-referrals/overview', [PromoReferralEngineController::class, 'getOverview'])->name('superadmin.promos_referrals.overview');
+    Route::post('/promos-referrals/coupons', [PromoReferralEngineController::class, 'createCoupon'])->name('superadmin.promos_referrals.create_coupon');
+    Route::put('/promos-referrals/coupons/{id}', [PromoReferralEngineController::class, 'updateCoupon'])->name('superadmin.promos_referrals.update_coupon');
+    Route::post('/promos-referrals/coupons/{id}/toggle', [PromoReferralEngineController::class, 'toggleCoupon'])->name('superadmin.promos_referrals.toggle_coupon');
+    Route::delete('/promos-referrals/coupons/{id}', [PromoReferralEngineController::class, 'deleteCoupon'])->name('superadmin.promos_referrals.delete_coupon');
+    Route::post('/promos-referrals/partners', [PromoReferralEngineController::class, 'createReferralPartner'])->name('superadmin.promos_referrals.create_partner');
+    Route::put('/promos-referrals/partners/{id}', [PromoReferralEngineController::class, 'updateReferralPartner'])->name('superadmin.promos_referrals.update_partner');
+    Route::post('/promos-referrals/partners/{id}/toggle', [PromoReferralEngineController::class, 'toggleReferralPartner'])->name('superadmin.promos_referrals.toggle_partner');
+    Route::delete('/promos-referrals/partners/{id}', [PromoReferralEngineController::class, 'deleteReferralPartner'])->name('superadmin.promos_referrals.delete_partner');
+    Route::post('/promos-referrals/partners/{id}/payout', [PromoReferralEngineController::class, 'recordPartnerPayout'])->name('superadmin.promos_referrals.payout');
+    Route::get('/promos-referrals/share-whatsapp', [PromoReferralEngineController::class, 'generateWhatsAppShare'])->name('superadmin.promos_referrals.share_whatsapp');
+
+    // 9. Sovereign Command & Control Tower (Full Platform Sovereignty)
+    Route::get('/sovereign-tower/overview', [SovereignControlTowerController::class, 'getTowerOverview'])->name('superadmin.sovereign_tower.overview');
+    Route::post('/sovereign-tower/maintenance/toggle', [SovereignControlTowerController::class, 'toggleGlobalMaintenance'])->name('superadmin.sovereign_tower.maintenance_toggle');
+    Route::post('/sovereign-tower/registration/toggle', [SovereignControlTowerController::class, 'toggleClinicRegistration'])->name('superadmin.sovereign_tower.registration_toggle');
+    Route::post('/sovereign-tower/maintenance/rotate-token', [SovereignControlTowerController::class, 'rotateBypassToken'])->name('superadmin.sovereign_tower.rotate_token');
+    Route::post('/sovereign-tower/clinics/{id}/quarantine', [SovereignControlTowerController::class, 'quarantineClinic'])->name('superadmin.sovereign_tower.quarantine');
+    Route::post('/sovereign-tower/clinics/{id}/lift-quarantine', [SovereignControlTowerController::class, 'liftQuarantine'])->name('superadmin.sovereign_tower.lift_quarantine');
+    Route::get('/sovereign-tower/clinics/{id}/features', [SovereignControlTowerController::class, 'getClinicFeaturesAndQuotas'])->name('superadmin.sovereign_tower.features');
+    Route::post('/sovereign-tower/clinics/{id}/features', [SovereignControlTowerController::class, 'updateFeatureOverrides'])->name('superadmin.sovereign_tower.update_features');
+    Route::post('/sovereign-tower/clinics/{id}/bump-quota', [SovereignControlTowerController::class, 'instantQuotaBump'])->name('superadmin.sovereign_tower.bump_quota');
+    Route::get('/sovereign-tower/revenue-churn-radar', [SovereignControlTowerController::class, 'getRevenueAndChurnRadar'])->name('superadmin.sovereign_tower.revenue_churn_radar');
+    Route::get('/sovereign-tower/system-prompts', [SovereignControlTowerController::class, 'getSystemPromptsHub'])->name('superadmin.sovereign_tower.prompts_hub');
+    Route::post('/sovereign-tower/system-prompts/update', [SovereignControlTowerController::class, 'updateSystemPrompt'])->name('superadmin.sovereign_tower.update_prompt');
+    Route::post('/sovereign-tower/system-prompts/test', [SovereignControlTowerController::class, 'testSystemPrompt'])->name('superadmin.sovereign_tower.test_prompt');
+    Route::post('/sovereign-tower/clinics/{id}/clone-sandbox', [SovereignControlTowerController::class, 'cloneTenantSandbox'])->name('superadmin.sovereign_tower.clone_sandbox');
+    Route::post('/sovereign-tower/clinics/{id}/snapshots', [SovereignControlTowerController::class, 'createTenantSnapshot'])->name('superadmin.sovereign_tower.create_snapshot');
+    Route::get('/sovereign-tower/clinics/{id}/snapshots', [SovereignControlTowerController::class, 'listTenantSnapshots'])->name('superadmin.sovereign_tower.list_snapshots');
+    Route::get('/sovereign-tower/live-audit-pulse', [SovereignControlTowerController::class, 'getLiveAuditPulse'])->name('superadmin.sovereign_tower.audit_pulse');
+    Route::post('/sovereign-tower/broadcasts/dispatch', [SovereignControlTowerController::class, 'dispatchSovereignBroadcast'])->name('superadmin.sovereign_tower.dispatch_broadcast');
+
+    // 10. Landing Page CMS & Appearance Studio
+    Route::get('/landing-page-config', [LandingPageStudioController::class, 'getConfig'])->name('superadmin.landing_page_config.get');
+    Route::put('/landing-page-config', [LandingPageStudioController::class, 'updateConfig'])->name('superadmin.landing_page_config.update');
+    Route::post('/landing-page-config/reset', [LandingPageStudioController::class, 'resetConfig'])->name('superadmin.landing_page_config.reset');
+
+    // 11. Help Center & Clinical User Guide Studio CMS
+    Route::get('/help-center-config', [HelpCenterStudioController::class, 'getConfig'])->name('superadmin.help_center_config.get');
+    Route::put('/help-center-config', [HelpCenterStudioController::class, 'updateConfig'])->name('superadmin.help_center_config.update');
+    Route::post('/help-center-config/reset', [HelpCenterStudioController::class, 'resetConfig'])->name('superadmin.help_center_config.reset');
+
+    // 12. Student Offer & Academic Verification Studio
+    Route::get('/student-offers/config', [StudentOfferController::class, 'getConfig'])->name('superadmin.student_offers.config');
+    Route::put('/student-offers/config', [StudentOfferController::class, 'updateConfig'])->name('superadmin.student_offers.update');
+    Route::get('/student-offers/applications', [StudentOfferController::class, 'getApplications'])->name('superadmin.student_offers.applications');
+    Route::post('/student-offers/applications/{id}/approve', [StudentOfferController::class, 'approveApplication'])->name('superadmin.student_offers.approve');
+    Route::post('/student-offers/applications/{id}/reject', [StudentOfferController::class, 'rejectApplication'])->name('superadmin.student_offers.reject');
+    Route::post('/student-offers/applications/{id}/extend', [StudentOfferController::class, 'extendApplication'])->name('superadmin.student_offers.extend');
+    Route::delete('/student-offers/applications/{id}', [StudentOfferController::class, 'deleteApplication'])->name('superadmin.student_offers.delete');
+    Route::post('/student-offers/applications/{id}/impersonate', [StudentOfferController::class, 'impersonateStudent'])->name('superadmin.student_offers.impersonate');
 });
 
 Route::prefix('super-admin')->group(function () {
@@ -109,6 +244,12 @@ Route::prefix('super-admin')->group(function () {
     Route::post('/tenants', [SuperAdminController::class, 'createClinic']);
     Route::post('/clinics/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('super_admin.clinics.impersonate');
     Route::post('/tenants/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('super_admin.tenants.impersonate');
+    Route::post('/clinics/{id}/reset-password', [SuperAdminController::class, 'resetClinicPassword'])->name('super_admin.clinics.reset_password');
+    Route::post('/tenants/{id}/reset-password', [SuperAdminController::class, 'resetClinicPassword'])->name('super_admin.tenants.reset_password');
+    Route::post('/clinics/{id}/assign-plan', [SuperAdminController::class, 'assignPlan'])->name('super_admin.clinics.assign_plan');
+    Route::post('/tenants/{id}/assign-plan', [SuperAdminController::class, 'assignPlan'])->name('super_admin.tenants.assign_plan');
+    Route::post('/clinics/{id}/apply-custom-plan', [SuperAdminController::class, 'assignPlan']);
+    Route::post('/tenants/{id}/apply-custom-plan', [SuperAdminController::class, 'assignPlan']);
     Route::get('/plans', [SuperAdminController::class, 'getPlans']);
     Route::get('/payment-requests', [SuperAdminController::class, 'getPaymentRequests']);
     Route::post('/payment-requests/{id}/approve', [SuperAdminController::class, 'approvePaymentRequest']);
@@ -124,6 +265,14 @@ Route::prefix('super-admin')->group(function () {
     Route::post('/tests/{testCode}', [SuperAdminController::class, 'updateTestConfig']);
     Route::post('/tests/{testCode}/toggle', [SuperAdminController::class, 'toggleTestStatus']);
     Route::delete('/tests/{testCode}', [SuperAdminController::class, 'deleteTestConfig']);
+
+    // Global Clinical Exercises & Worksheets Bank (Super Admin CRUD)
+    Route::get('/exercises', [SuperAdminController::class, 'getGlobalExercises']);
+    Route::post('/exercises', [SuperAdminController::class, 'createExercise']);
+    Route::post('/exercises/{id}', [SuperAdminController::class, 'updateExercise']);
+    Route::put('/exercises/{id}', [SuperAdminController::class, 'updateExercise']);
+    Route::post('/exercises/{id}/toggle', [SuperAdminController::class, 'toggleExerciseStatus']);
+    Route::delete('/exercises/{id}', [SuperAdminController::class, 'deleteExercise']);
 
     // Custom Domains & DNS (Super Admin)
     Route::get('/domains', [DomainManagerController::class, 'index']);
@@ -150,7 +299,124 @@ Route::prefix('super-admin')->group(function () {
     Route::get('/backups/cloud-list', [SuperAdminController::class, 'getCloudBackupsList']);
     Route::post('/disaster-recovery/backups/create', [SuperAdminController::class, 'triggerPlatformBackupNow']);
     Route::delete('/disaster-recovery/backups/{filename}', [SuperAdminController::class, 'deletePlatformBackup']);
+
+    // Teletherapy & Remote Consultations Governance (Super Admin)
+    Route::get('/teletherapy/overview', [SuperAdminController::class, 'getTeletherapyOverview'])->name('superadmin.teletherapy.overview');
+    Route::get('/teletherapy/rooms', [SuperAdminController::class, 'getTeletherapyRooms'])->name('superadmin.teletherapy.rooms');
+    Route::post('/teletherapy/rooms/{roomCode}/terminate', [SuperAdminController::class, 'terminateTeletherapyRoom'])->name('superadmin.teletherapy.terminate');
+    Route::delete('/teletherapy/rooms/{roomCode}', [SuperAdminController::class, 'deleteTeletherapyRoom'])->name('superadmin.teletherapy.destroy');
+    Route::get('/teletherapy/settings', [SuperAdminController::class, 'getTeletherapySettings'])->name('superadmin.teletherapy.settings');
+    Route::post('/teletherapy/settings', [SuperAdminController::class, 'updateTeletherapySettings'])->name('superadmin.teletherapy.update_settings');
+
+    // Server Health & PM2 Live Telemetry Cockpit
+    Route::get('/telemetry/overview', [ServerTelemetryController::class, 'getOverview']);
+    Route::post('/telemetry/pm2/restart', [ServerTelemetryController::class, 'restartPm2Process']);
+    Route::post('/telemetry/cache/clear', [ServerTelemetryController::class, 'clearSystemCache']);
+    Route::post('/telemetry/queue/action', [ServerTelemetryController::class, 'handleQueueAction']);
+    Route::get('/telemetry/logs', [ServerTelemetryController::class, 'getSystemLogs']);
+
+    // Global Audit Logs & Security Guard
+    Route::get('/audit-logs/overview', [AuditLogController::class, 'getSecurityOverview']);
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/blocked-ips', [AuditLogController::class, 'getBlockedIps']);
+    Route::post('/audit-logs/block-ip', [AuditLogController::class, 'blockIp']);
+    Route::delete('/audit-logs/blocked-ips/{id}', [AuditLogController::class, 'unblockIp']);
+    Route::get('/audit-logs/export', [AuditLogController::class, 'exportLogs']);
+
+    // 3. Subscription Lifecycle & BaridiMob Automation
+    Route::get('/lifecycle/overview', [SubscriptionLifecycleController::class, 'getLifecycleOverview']);
+    Route::post('/lifecycle/clinics/{id}/chase', [SubscriptionLifecycleController::class, 'sendRenewalChaser']);
+    Route::post('/lifecycle/clinics/{id}/grace-period', [SubscriptionLifecycleController::class, 'grantGracePeriod']);
+    Route::post('/lifecycle/clinics/{id}/manual-renew', [SubscriptionLifecycleController::class, 'manualRenewClinic']);
+    Route::get('/lifecycle/proofs', [SubscriptionLifecycleController::class, 'getPaymentProofInbox']);
+    Route::post('/lifecycle/proofs/{id}/approve', [SubscriptionLifecycleController::class, 'approvePaymentProof']);
+    Route::post('/lifecycle/proofs/{id}/reject', [SubscriptionLifecycleController::class, 'rejectPaymentProof']);
+
+    // 4. Global Broadcast & Announcements Hub
+    Route::get('/broadcasts', [SystemBroadcastController::class, 'index']);
+    Route::post('/broadcasts', [SystemBroadcastController::class, 'store']);
+    Route::put('/broadcasts/{id}', [SystemBroadcastController::class, 'update']);
+    Route::post('/broadcasts/{id}/toggle-status', [SystemBroadcastController::class, 'toggleStatus']);
+    Route::delete('/broadcasts/{id}', [SystemBroadcastController::class, 'destroy']);
+
+    // 5. AI Routing, Failover Cascade & Cost Studio
+    Route::get('/ai-routing/overview', [AiRoutingStudioController::class, 'getStudioOverview']);
+    Route::put('/ai-routing/providers/{id}', [AiRoutingStudioController::class, 'updateProvider']);
+    Route::post('/ai-routing/providers/{id}/ping', [AiRoutingStudioController::class, 'pingProvider']);
+    Route::put('/ai-routing/routes/{id}', [AiRoutingStudioController::class, 'updateTaskRoute']);
+
+    // 6. Algeria Geo-Clinic Map
+    Route::get('/geo-map/overview', [GeoClinicMapController::class, 'getGeoOverview']);
+    Route::post('/geo-map/clinics/{id}/location', [GeoClinicMapController::class, 'updateClinicLocation']);
+    Route::post('/geo-map/auto-geocode', [GeoClinicMapController::class, 'autoGeocodeClinics']);
+
+    // 7. Clinic Onboarding & Conversion Funnel
+    Route::get('/onboarding-funnel/overview', [ClinicOnboardingFunnelController::class, 'getFunnelOverview']);
+    Route::post('/onboarding-funnel/clinics/{id}/nudge', [ClinicOnboardingFunnelController::class, 'sendOnboardingNudge']);
+    Route::post('/onboarding-funnel/clinics/{id}/toggle-tour', [ClinicOnboardingFunnelController::class, 'toggleOnboardingTour']);
+
+    // 8. Promo Coupons & Referral Engine
+    Route::get('/promos-referrals/overview', [PromoReferralEngineController::class, 'getOverview']);
+    Route::post('/promos-referrals/coupons', [PromoReferralEngineController::class, 'createCoupon']);
+    Route::put('/promos-referrals/coupons/{id}', [PromoReferralEngineController::class, 'updateCoupon']);
+    Route::post('/promos-referrals/coupons/{id}/toggle', [PromoReferralEngineController::class, 'toggleCoupon']);
+    Route::delete('/promos-referrals/coupons/{id}', [PromoReferralEngineController::class, 'deleteCoupon']);
+    Route::post('/promos-referrals/partners', [PromoReferralEngineController::class, 'createReferralPartner']);
+    Route::put('/promos-referrals/partners/{id}', [PromoReferralEngineController::class, 'updateReferralPartner']);
+    Route::post('/promos-referrals/partners/{id}/toggle', [PromoReferralEngineController::class, 'toggleReferralPartner']);
+    Route::delete('/promos-referrals/partners/{id}', [PromoReferralEngineController::class, 'deleteReferralPartner']);
+    Route::post('/promos-referrals/partners/{id}/payout', [PromoReferralEngineController::class, 'recordPartnerPayout']);
+    Route::get('/promos-referrals/share-whatsapp', [PromoReferralEngineController::class, 'generateWhatsAppShare']);
+
+    // Marketing Affiliates
+    Route::get('/affiliates', [SuperAdminController::class, 'getAffiliateStats']);
+    Route::post('/affiliates', [SuperAdminController::class, 'createAffiliate']);
+    Route::post('/affiliates/{id}/toggle', [SuperAdminController::class, 'toggleAffiliate']);
+    Route::delete('/affiliates/{id}', [SuperAdminController::class, 'deleteAffiliate']);
+
+    // Sovereign Command & Control Tower Aliases
+    Route::get('/sovereign-tower/overview', [SovereignControlTowerController::class, 'getTowerOverview']);
+    Route::post('/sovereign-tower/maintenance/toggle', [SovereignControlTowerController::class, 'toggleGlobalMaintenance']);
+    Route::post('/sovereign-tower/registration/toggle', [SovereignControlTowerController::class, 'toggleClinicRegistration']);
+    Route::post('/sovereign-tower/maintenance/rotate-token', [SovereignControlTowerController::class, 'rotateBypassToken']);
+    Route::post('/sovereign-tower/clinics/{id}/quarantine', [SovereignControlTowerController::class, 'quarantineClinic']);
+    Route::post('/sovereign-tower/clinics/{id}/lift-quarantine', [SovereignControlTowerController::class, 'liftQuarantine']);
+    Route::get('/sovereign-tower/clinics/{id}/features', [SovereignControlTowerController::class, 'getClinicFeaturesAndQuotas']);
+    Route::post('/sovereign-tower/clinics/{id}/features', [SovereignControlTowerController::class, 'updateFeatureOverrides']);
+    Route::post('/sovereign-tower/clinics/{id}/bump-quota', [SovereignControlTowerController::class, 'instantQuotaBump']);
+    Route::get('/sovereign-tower/revenue-churn-radar', [SovereignControlTowerController::class, 'getRevenueAndChurnRadar']);
+    Route::get('/sovereign-tower/system-prompts', [SovereignControlTowerController::class, 'getSystemPromptsHub']);
+    Route::post('/sovereign-tower/system-prompts/update', [SovereignControlTowerController::class, 'updateSystemPrompt']);
+    Route::post('/sovereign-tower/system-prompts/test', [SovereignControlTowerController::class, 'testSystemPrompt']);
+    Route::post('/sovereign-tower/clinics/{id}/clone-sandbox', [SovereignControlTowerController::class, 'cloneTenantSandbox']);
+    Route::post('/sovereign-tower/clinics/{id}/snapshots', [SovereignControlTowerController::class, 'createTenantSnapshot']);
+    Route::get('/sovereign-tower/clinics/{id}/snapshots', [SovereignControlTowerController::class, 'listTenantSnapshots']);
+    Route::get('/sovereign-tower/live-audit-pulse', [SovereignControlTowerController::class, 'getLiveAuditPulse']);
+    Route::post('/sovereign-tower/broadcasts/dispatch', [SovereignControlTowerController::class, 'dispatchSovereignBroadcast']);
+
+    // Landing Page CMS & Appearance Studio Aliases
+    Route::get('/landing-page-config', [LandingPageStudioController::class, 'getConfig']);
+    Route::put('/landing-page-config', [LandingPageStudioController::class, 'updateConfig']);
+    Route::post('/landing-page-config/reset', [LandingPageStudioController::class, 'resetConfig']);
+
+    // Help Center & Clinical User Guide Studio Aliases
+    Route::get('/help-center-config', [HelpCenterStudioController::class, 'getConfig']);
+    Route::put('/help-center-config', [HelpCenterStudioController::class, 'updateConfig']);
+    Route::post('/help-center-config/reset', [HelpCenterStudioController::class, 'resetConfig']);
+
+    // Student Offer Aliases
+    Route::get('/student-offers/config', [StudentOfferController::class, 'getConfig']);
+    Route::put('/student-offers/config', [StudentOfferController::class, 'updateConfig']);
+    Route::get('/student-offers/applications', [StudentOfferController::class, 'getApplications']);
+    Route::post('/student-offers/applications/{id}/approve', [StudentOfferController::class, 'approveApplication']);
+    Route::post('/student-offers/applications/{id}/reject', [StudentOfferController::class, 'rejectApplication']);
+    Route::post('/student-offers/applications/{id}/extend', [StudentOfferController::class, 'extendApplication']);
+    Route::delete('/student-offers/applications/{id}', [StudentOfferController::class, 'deleteApplication']);
+    Route::post('/student-offers/applications/{id}/impersonate', [StudentOfferController::class, 'impersonateStudent']);
 });
+
+// Clinic Broadcasts & Announcements Feed
+Route::get('/tenant/broadcasts/active', [SystemBroadcastController::class, 'getActiveBroadcastsForClinic']);
 
 // Super Admin AI Governance & Quota Metering
 Route::get('/super-admin/ai/overview', [SuperAdminAiController::class, 'getOverview'])->name('superadmin.ai.overview');
@@ -179,6 +445,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/clinic/ai/generate-bilan', [AiCopilotController::class, 'generateBilan'])->name('clinic.ai.generate_bilan');
     Route::get('/clinic/ai/quota-status', [AiCopilotController::class, 'getQuotaStatus'])->name('clinic.ai.quota_status');
     Route::get('/clinic/ai/logs', [AiCopilotController::class, 'getLogs'])->name('clinic.ai.logs');
+    Route::post('/clinic/ai/suggest-pei-goals', [AiCopilotController::class, 'suggestPeiGoals'])->name('clinic.ai.suggest_pei_goals');
+    Route::post('/clinic/ai/suggest-next-session', [AiCopilotController::class, 'suggestNextSession'])->name('clinic.ai.suggest_next_session');
+
+    // Tenant Knowledge Base & AI Receptionist Endpoints
+    Route::prefix('tenant/knowledge-base')->group(function () {
+        Route::get('/', [AiSupportAssistantController::class, 'tenantGetKnowledgeBase'])->name('tenant.kb.index');
+        Route::post('/crawl', [AiSupportAssistantController::class, 'tenantCrawl'])->name('tenant.kb.crawl');
+        Route::post('/text', [AiSupportAssistantController::class, 'tenantSaveDirectText'])->name('tenant.kb.text');
+        Route::post('/settings', [AiSupportAssistantController::class, 'tenantUpdateSettings'])->name('tenant.kb.settings');
+        Route::delete('/{id}', [AiSupportAssistantController::class, 'tenantDeleteArticle'])->name('tenant.kb.delete');
+    });
 });
 
 // Super Admin Off-site Cloud Backup API
@@ -192,7 +469,9 @@ Route::post('/superadmin/backups/test-cloud-connection', [SuperAdminController::
 Route::post('/super-admin/backups/trigger-cloud', [SuperAdminController::class, 'triggerCloudBackup'])->name('superadmin.backups.trigger_cloud');
 Route::get('/super-admin/backups/cloud-list', [SuperAdminController::class, 'getCloudBackupsList'])->name('superadmin.backups.cloud_list');
 Route::post('/superadmin/backups/trigger-cloud', [SuperAdminController::class, 'triggerCloudBackup'])->name('superadmin.backups.trigger_cloud_alt');
-Route::get('/superadmin/backups/cloud-list', [SuperAdminController::class, 'getCloudBackupsList'])->name('superadmin.backups.cloud_list_alt');
+// Global Exercises & Worksheets Catalog (Public & Clinic Available)
+Route::get('/exercises', [SuperAdminController::class, 'getGlobalExercises']);
+Route::get('/exercises/catalog', [SuperAdminController::class, 'getGlobalExercises']);
 
 // Public National Directory & Online Booking Engine (/annuaire)
 Route::get('/public/directory', [PublicDirectoryController::class, 'getDirectory'])->name('public.directory.list');
@@ -203,19 +482,22 @@ Route::post('/public/directory/{clinicId}/book', [PublicDirectoryController::cla
 Route::get('/academic/tiers', [AcademicController::class, 'getAcademicTiers'])->name('academic.tiers');
 Route::post('/academic/apply', [AcademicController::class, 'apply'])->name('academic.apply');
 
-// Clinic Protected Booking Requests Pipeline
-Route::get('/clinic/booking-requests', [PublicDirectoryController::class, 'listClinicBookingRequests'])->name('clinic.booking_requests.list');
-Route::put('/clinic/booking-requests/{id}/status', [PublicDirectoryController::class, 'updateBookingStatus'])->name('clinic.booking_requests.update_status');
-
 // Public Patient & Parent Interactive Portal (Magic Link & Secure Access)
 Route::get('/portal/access/{token}', [ParentPortalController::class, 'getPortalData'])->name('portal.access');
 Route::get('/portal/{token}', [ParentPortalController::class, 'getPortalData'])->name('portal.view');
 Route::post('/portal/{token}/appointment/{appointmentId}/confirm', [ParentPortalController::class, 'confirmAppointment'])->name('portal.appointment.confirm');
 Route::post('/portal/{token}/homework/{homeworkId}/complete', [ParentPortalController::class, 'completeHomework'])->name('portal.homework.complete');
+Route::post('/portal/{token}/journal', [ParentPortalController::class, 'saveJournalNote'])->name('portal.journal.save');
+Route::get('/portal/{token}/bilan/{bilanId}/pdf', [ParentPortalController::class, 'downloadBilanPdf'])->name('portal.bilan.pdf');
+Route::post('/portal/{token}/audio', [ParentPortalController::class, 'uploadAudio'])->name('portal.audio.upload');
+Route::get('/portal/{token}/audio', [ParentPortalController::class, 'getAudioSamples'])->name('portal.audio.list');
+Route::delete('/portal/{token}/audio/{id}', [ParentPortalController::class, 'deleteAudioSample'])->name('portal.audio.delete');
 
 // Public Parent Pre-Intake Self-Anamnesis Portal
-Route::get('/public/pre-intake/{token}', [PatientController::class, 'getPublicPreIntake'])->name('public.pre_intake.get');
-Route::post('/public/pre-intake/{token}', [PatientController::class, 'submitPublicPreIntake'])->name('public.pre_intake.submit');
+Route::get('/public/pre-intake/{token?}', [PatientController::class, 'getPublicPreIntake'])->name('public.pre_intake.get');
+Route::post('/public/pre-intake/{token?}', [PatientController::class, 'submitPublicPreIntake'])->name('public.pre_intake.submit');
+Route::post('/public/pre-intake/{token?}/audio', [ParentPortalController::class, 'uploadAudio'])->name('public.pre_intake.audio.upload');
+Route::get('/public/pre-intake/{token?}/audio', [ParentPortalController::class, 'getAudioSamples'])->name('public.pre_intake.audio.list');
 
 // Clinic Protected Patient Portal Link Generator
 Route::post('/patients/{id}/generate-portal-link', [ParentPortalController::class, 'generatePortalLink'])->name('clinic.patients.portal_link');
@@ -224,6 +506,9 @@ Route::post('/clinic/patients/{id}/generate-portal-link', [ParentPortalControlle
 Route::post('/public/register-clinic', [PublicAuthController::class, 'registerClinic'])
     ->middleware('throttle:30,1')
     ->name('public.register_clinic');
+
+Route::get('/public/registration-status', [PublicAuthController::class, 'getRegistrationStatus'])
+    ->name('public.registration_status');
 
 Route::post('/kiosk/check-in', [KioskController::class, 'checkIn'])
     ->middleware('throttle:kiosk')
@@ -257,7 +542,10 @@ Route::get('exports/financial-ledger/excel', [DataExportController::class, 'expo
 Route::get('exports/appointments/excel', [DataExportController::class, 'exportAppointmentsExcel'])->name('exports.appointments.excel');
 
 // Public Geo Data
-Route::get('geo/algeria-wilayas', [GeoController::class, 'getWilayas'])->name('geo.wilayas');
+Route::get('geo/algeria-wilayas', fn() => response()->json([
+    'success' => true,
+    'wilayas' => \App\Http\Controllers\Api\PublicDirectoryController::WILAYAS_58,
+]))->name('geo.wilayas');
 
 // Public Remote Assessment Portal (PIN Gate, Draft Save & Submission)
 Route::post('public/assessment/{token}/verify-pin', [RemoteAssessmentController::class, 'verifyPin'])->name('public.assessment.verify_pin');
@@ -265,8 +553,21 @@ Route::post('public/assessment/{token}/save-draft', [RemoteAssessmentController:
 Route::post('public/assessment/{token}/submit', [RemoteAssessmentController::class, 'submit'])->name('public.assessment.submit');
 Route::get('public/assessment/{token}/print-slip', [RemoteAssessmentController::class, 'printSlip'])->name('public.assessment.print_slip');
 
+// Public Interactive Clinical Test Portal (No Auth)
+Route::get('public/clinical-test/{token}', [ClinicalTestAssignmentController::class, 'getPublicTest'])->name('public.clinical_test.get');
+Route::post('public/clinical-test/{token}/submit', [ClinicalTestAssignmentController::class, 'submitPublicTest'])->name('public.clinical_test.submit');
+
 // Public Waiting Room TV Queue Display Feed
 Route::get('public/tv-queue/{tenantSlug?}', [QueueController::class, 'getTvQueue'])->name('public.tv_queue');
+Route::get('queue/tv/{tenantSlug?}', [QueueController::class, 'getTvQueue'])->name('queue.tv');
+
+// Waiting Room Interactive Kiosk Check-In & Info
+Route::get('kiosk/info', [KioskController::class, 'getClinicInfo'])->name('kiosk.info');
+Route::post('kiosk/verify-access', [KioskController::class, 'verifyAccess'])->name('kiosk.verify_access');
+Route::post('kiosk/check-in', [KioskController::class, 'checkIn'])->name('kiosk.check_in');
+Route::get('public/kiosk/info', [KioskController::class, 'getClinicInfo'])->name('public.kiosk.info');
+Route::post('public/kiosk/verify-access', [KioskController::class, 'verifyAccess'])->name('public.kiosk.verify_access');
+Route::post('public/kiosk/check-in', [KioskController::class, 'checkIn'])->name('public.kiosk.check_in');
 
 // Public Mobile-First Parent Portal
 Route::post('public/parent-portal/login', [ParentPortalController::class, 'login'])->name('public.parent_portal.login');
@@ -277,6 +578,9 @@ Route::post('public/parent-portal/homework/{id}/toggle-status', [ParentPortalCon
 Route::get('public/portal/{token}', [ParentPortalController::class, 'validatePortalAccess'])->name('public.portal.validate');
 Route::post('public/portal/{token}/submit', [ParentPortalController::class, 'submitParentForm'])->name('public.portal.submit');
 Route::get('public/portal/{token}/homework', [ParentPortalController::class, 'getPatientHomeworkForParent'])->name('public.portal.homework');
+Route::post('public/portal/{token}/audio', [ParentPortalController::class, 'uploadAudio'])->name('public.portal.audio.upload');
+Route::get('public/portal/{token}/audio', [ParentPortalController::class, 'getAudioSamples'])->name('public.portal.audio.list');
+Route::delete('public/portal/{token}/audio/{id}', [ParentPortalController::class, 'deleteAudioSample'])->name('public.portal.audio.delete');
 
 // Public Remote Digital Therapy Portal (PIN & Interactive Task Execution)
 Route::post('public/therapy/{token}/verify-pin', [RemoteTherapyController::class, 'verifyPin'])->name('public.therapy.verify_pin');
@@ -319,6 +623,7 @@ Route::middleware(['auth:sanctum', 'role:superadmin'])->prefix('superadmin')->gr
     Route::get('/plans', [SuperAdminController::class, 'getPlans'])->name('superadmin.plans.protected');
     Route::get('/tenants', [SuperAdminController::class, 'getClinics'])->name('superadmin.tenants.protected');
     Route::post('/tenants/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('superadmin.tenants.impersonate.protected');
+    Route::post('/clinics/{id}/impersonate', [SuperAdminController::class, 'impersonateClinic'])->name('superadmin.clinics.impersonate.protected');
     Route::put('/tenants/{id}/status', [SuperAdminController::class, 'updateClinicStatus'])->name('superadmin.tenants.status.protected');
     Route::post('/tenants/{id}/apply-custom-plan', [SuperAdminController::class, 'assignPlan'])->name('superadmin.tenants.apply_custom_plan');
     Route::get('/invoices', [SuperAdminController::class, 'getSaasInvoices'])->name('superadmin.invoices.protected');
@@ -330,14 +635,29 @@ Route::middleware(['auth:sanctum', 'role:superadmin'])->prefix('superadmin')->gr
 
 // Protected Multi-Tenant API (Protected by Active Tenant Check)
 Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
-    // Auth Session
+    Route::post('/impersonate/stop', [SuperAdminController::class, 'stopImpersonation'])->name('clinic.impersonate.stop');
+    // Auth Session & Personal Profile
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::post('/impersonate/stop', [SuperAdminController::class, 'stopImpersonation'])->name('impersonate.stop');
         Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
     });
 
+    // Practitioner Personal Profile & Password Management
+    Route::get('user/profile', [UserProfileController::class, 'getProfile'])->name('user.profile.get');
+    Route::match(['put', 'post'], 'user/profile', [UserProfileController::class, 'updateProfile'])->name('user.profile.update');
+    Route::match(['put', 'post'], 'user/password', [UserProfileController::class, 'updatePassword'])->name('user.password.update');
+
+    // Multi-Tab Clinic Operational Configuration & Data Export Suite
+    Route::get('clinic/config', [ClinicSettingsController::class, 'getConfig'])->name('clinic.config.get');
+    Route::post('clinic/config', [ClinicSettingsController::class, 'updateConfig'])->name('clinic.config.update');
+    Route::get('clinic/export-data', [ClinicSettingsController::class, 'exportData'])->name('clinic.export_data');
+
     // Staff Management & Audit Trail (Restricted to Clinic Admin & Superadmin)
     Route::middleware('role:clinic_admin,admin_owner,owner,admin,doctor,practitioner,specialist,superadmin')->group(function () {
+        Route::get('staff/permissions-catalog', [StaffController::class, 'getPermissionsCatalog'])->name('staff.permissions_catalog');
+        Route::post('staff/{id}/permissions', [StaffController::class, 'updatePermissions'])->name('staff.update_permissions');
+        Route::post('staff/{id}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle_status');
         Route::apiResource('staff', StaffController::class);
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
         Route::get('tenant/settings', [TenantSettingsController::class, 'getSettings'])->name('tenant.settings.get');
@@ -387,13 +707,62 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
     Route::delete('attachments/{id}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
 
     // Smart Appointments Scheduling & Active Consultation Workspace
+    Route::get('appointments/live-waiting', [AppointmentController::class, 'getLiveWaiting'])->name('appointments.live_waiting');
+    Route::get('appointments/check-conflicts', [AppointmentController::class, 'checkConflicts'])->name('appointments.check_conflicts');
     Route::get('appointments/{id}/whatsapp-reminder', [AppointmentController::class, 'whatsappReminder'])->name('appointments.whatsapp');
+    Route::post('appointments/{id}/send-whatsapp', [AppointmentController::class, 'sendWhatsAppReminder'])->name('appointments.send_whatsapp');
+    Route::post('whatsapp/send-message', [WhatsAppWebhookController::class, 'sendDirectMessage'])->name('whatsapp.send_direct');
     Route::post('appointments/quick-start', [AppointmentController::class, 'quickStartSession'])->name('appointments.quick_start');
     Route::post('appointments/{id}/start-session', [AppointmentController::class, 'startSession'])->name('appointments.start_session');
     Route::post('appointments/{id}/complete-session', [AppointmentController::class, 'completeSession'])->name('appointments.complete_session');
     Route::post('appointments/{appointmentId}/assessments', [ClinicalAssessmentController::class, 'runInSession'])->name('appointments.assessments.run');
     Route::post('appointments/{appointmentId}/call-queue', [QueueController::class, 'callNext'])->name('appointments.call_queue');
     Route::post('queue/call-patient', [QueueController::class, 'callNext'])->name('queue.call_patient');
+    Route::post('queue/call-next/{appointmentId?}', [QueueController::class, 'callNext'])->name('queue.call_next');
+    Route::post('queue/tv-settings', [QueueController::class, 'updateTvSettings'])->name('queue.tv_settings');
+
+    // Patient Retention & Clinical Recall Radar
+    Route::get('clinic/retention-radar', [PatientRetentionRadarController::class, 'getRetentionOverview'])->name('clinic.retention_radar.index');
+    Route::post('clinic/retention-radar/recall', [PatientRetentionRadarController::class, 'sendRecallWhatsApp'])->name('clinic.retention_radar.recall');
+    Route::post('clinic/retention-radar/settings', [PatientRetentionRadarController::class, 'updateSettings'])->name('clinic.retention_radar.settings');
+
+    // Clinic Protected Booking Requests Pipeline (From Public Directory)
+    Route::get('clinic/booking-requests', [PublicDirectoryController::class, 'listClinicBookingRequests'])->name('clinic.booking_requests.list');
+    Route::put('clinic/booking-requests/{id}/status', [PublicDirectoryController::class, 'updateBookingStatus'])->name('clinic.booking_requests.update_status');
+
+    // AI Clinic Receptionist & WhatsApp Triage Simulator
+    Route::get('clinic/receptionist/settings', [ClinicAiReceptionistController::class, 'getSettings'])->name('clinic.receptionist.settings');
+    Route::post('clinic/receptionist/settings', [ClinicAiReceptionistController::class, 'updateSettings'])->name('clinic.receptionist.update_settings');
+    Route::post('clinic/receptionist/simulate', [ClinicAiReceptionistController::class, 'simulateMessage'])->name('clinic.receptionist.simulate');
+
+    // Parent Daily Home-Care Log & Compliance Sync for Therapist
+    Route::get('patients/{id}/parent-notes', [ParentPortalController::class, 'getPatientJournalNotes'])->name('patients.parent_notes.index');
+    Route::post('patients/{id}/parent-notes/{noteId}/acknowledge', [ParentPortalController::class, 'acknowledgeNote'])->name('patients.parent_notes.acknowledge');
+    Route::get('patients/{id}/home-care/overview', [ParentPortalController::class, 'getPatientComplianceOverview'])->name('patients.home_care.overview');
+    Route::post('patients/{id}/home-care/assign', [ParentPortalController::class, 'assignHomeworkByPractitioner'])->name('patients.home_care.assign');
+    Route::post('patients/{id}/home-care/{homeworkId}/toggle', [ParentPortalController::class, 'toggleHomeworkStatusByPractitioner'])->name('patients.home_care.toggle');
+    Route::delete('patients/{id}/home-care/{homeworkId}', [ParentPortalController::class, 'deleteHomeworkByPractitioner'])->name('patients.home_care.delete');
+
+    // ==========================================
+    // Clinical AI & DDSS Specialty Depth Suite
+    // ==========================================
+    // 1. Diagnostic Decision Support System (DSM-5-TR & ICD-11)
+    Route::post('clinical-ai/ddss/evaluate', [ClinicalDdssController::class, 'evaluateDiagnosticHypotheses'])->name('clinical_ai.ddss.evaluate');
+    Route::post('clinical-ai/ddss/save', [ClinicalDdssController::class, 'saveDiagnosticRecord'])->name('clinical_ai.ddss.save');
+    Route::get('clinical-ai/ddss/patient/{patientId}', [ClinicalDdssController::class, 'getPatientDiagnosticHistory'])->name('clinical_ai.ddss.patient_history');
+
+    // 2. Smart Individualized Rehabilitation Plan (PEI) & Exercises Bank Linking
+    Route::get('rehab/exercises-catalog', [RehabilitationPlanController::class, 'getExercisesCatalog'])->name('rehab.exercises_catalog');
+    Route::post('rehab/smart-pei/generate/{patientId}', [RehabilitationPlanController::class, 'generateSmartPei'])->name('rehab.smart_pei.generate');
+    Route::get('rehab/patient-plans/{patientId}', [RehabilitationPlanController::class, 'getPatientPlans'])->name('rehab.patient_plans.index');
+    Route::post('rehab/patient-plans/{patientId}', [RehabilitationPlanController::class, 'savePepPlan'])->name('rehab.patient_plans.save');
+    Route::post('rehab/goal-status/{planId}', [RehabilitationPlanController::class, 'updateGoalStatus'])->name('rehab.goal_status.update');
+    Route::post('rehab/dispatch-portal', [RehabilitationPlanController::class, 'dispatchToPortal'])->name('rehab.dispatch_portal');
+
+    // 3. Vision AI Medical Document Ingestion & EHR Intake
+    Route::post('clinical-ai/vision/ingest', [VisionMedicalDocumentController::class, 'ingestDocument'])->name('clinical_ai.vision.ingest');
+    Route::post('clinical-ai/vision/inject/{patientId}', [VisionMedicalDocumentController::class, 'injectIntoPatientFile'])->name('clinical_ai.vision.inject');
+
     Route::apiResource('appointments', AppointmentController::class);
 
     // Smart Waitlist & Slot Recovery
@@ -404,7 +773,6 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
     Route::delete('waitlist/{id}', [WaitlistController::class, 'destroy'])->name('waitlist.destroy');
 
     // Clinical Exercises & Take-Home Sheets
-    Route::get('exercises', [ExerciseController::class, 'index'])->name('exercises.index');
     Route::get('patients/{patientId}/homeworks', [ExerciseController::class, 'listHomeworks'])->name('patients.homeworks.index');
     Route::post('patients/{patientId}/homeworks', [ExerciseController::class, 'storeHomework'])->name('patients.homeworks.store');
     Route::delete('patients/{patientId}/homeworks/{homeworkId}', [ExerciseController::class, 'deleteHomework'])->name('patients.homeworks.delete');
@@ -488,6 +856,21 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
     Route::get('patients/{patientId}/bilan-data', [ClinicalAssessmentCatalogController::class, 'getPatientBilanData'])->name('clinical_tests.bilan_data');
     Route::post('patients/{patientId}/bilans/generate', [ClinicalAssessmentCatalogController::class, 'generatePatientBilan'])->name('clinical_tests.bilans.generate');
     Route::get('patients/{patientId}/bilans', [ClinicalAssessmentCatalogController::class, 'listPatientBilans'])->name('clinical_tests.bilans.index');
+    Route::get('patient-bilans', [ClinicalAssessmentCatalogController::class, 'listAllBilans'])->name('clinical_tests.bilans.all');
+    Route::get('patient-bilans/{bilanId}', [ClinicalAssessmentCatalogController::class, 'showPatientBilan'])->name('clinical_tests.bilans.show');
+    Route::delete('patient-bilans/{bilanId}', [ClinicalAssessmentCatalogController::class, 'destroyPatientBilan'])->name('clinical_tests.bilans.destroy');
+
+    // Interactive Speech & Articulation Matrix (Orthophonie Suite)
+    Route::get('patients/{patientId}/speech-matrix', [SpeechArticulationController::class, 'getPatientAssessments'])->name('speech_matrix.patient_index');
+    Route::post('patients/{patientId}/speech-matrix', [SpeechArticulationController::class, 'store'])->name('speech_matrix.store');
+    Route::get('speech-matrix/{id}', [SpeechArticulationController::class, 'show'])->name('speech_matrix.show');
+    Route::delete('speech-matrix/{id}', [SpeechArticulationController::class, 'destroy'])->name('speech_matrix.destroy');
+
+    // Interactive Psychomotor & Sensory Body Map Suite
+    Route::get('patients/{patientId}/psychomotor-assessments', [PsychomotorAssessmentController::class, 'getPatientAssessments'])->name('psychomotor.patient_index');
+    Route::get('patients/{patientId}/psychomotor-assessments/latest', [PsychomotorAssessmentController::class, 'getLatest'])->name('psychomotor.patient_latest');
+    Route::post('patients/{patientId}/psychomotor-assessments', [PsychomotorAssessmentController::class, 'store'])->name('psychomotor.store');
+    Route::delete('psychomotor-assessments/{id}', [PsychomotorAssessmentController::class, 'destroy'])->name('psychomotor.destroy');
 
     // Digital Therapy Hub & Homework Workbook Engine
     Route::get('therapy-exercises', [TherapyHubController::class, 'getExercises'])->name('therapy_hub.exercises');
@@ -506,8 +889,31 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
         Route::get('patients/{patientId}/assessments-progression', [ClinicalAssessmentController::class, 'getProgressionAnalytics'])->name('assessments.progression');
         Route::get('assessments/due-reassessments', [ClinicalAssessmentController::class, 'getDueReassessments'])->name('assessments.due_reassessments');
         Route::apiResource('assessments', ClinicalAssessmentController::class);
+        
+        // Clinical Test Assignments & Remote Link Engine
+        Route::post('patients/{patientId}/test-assignments', [ClinicalTestAssignmentController::class, 'store'])->name('patients.test_assignments.store');
+        Route::get('patients/{patientId}/test-assignments', [ClinicalTestAssignmentController::class, 'getPatientAssignments'])->name('patients.test_assignments.index');
+        Route::delete('test-assignments/{id}', [ClinicalTestAssignmentController::class, 'destroy'])->name('test_assignments.destroy');
+        Route::post('test-assignments/{id}/send-whatsapp', [ClinicalTestAssignmentController::class, 'sendViaWhatsApp'])->name('test_assignments.send_whatsapp');
+
+        Route::post('sessions/seed-demo', [TherapySessionController::class, 'seedDemo'])->name('sessions.seed_demo');
         Route::get('patients/{patientId}/sessions', [TherapySessionController::class, 'index'])->name('patients.sessions.index');
+        Route::post('patients/{patientId}/sessions', [TherapySessionController::class, 'store'])->name('patients.sessions.store');
         Route::apiResource('sessions', TherapySessionController::class);
+
+        // Psychomotor & Sensory Body Map Clinical Assessments
+        Route::get('patients/{patientId}/psychomotor-assessments', [\App\Http\Controllers\Api\PsychomotorAssessmentController::class, 'index'])->name('psychomotor_assessments.index');
+        Route::get('patients/{patientId}/psychomotor-assessments/latest', [\App\Http\Controllers\Api\PsychomotorAssessmentController::class, 'latest'])->name('psychomotor_assessments.latest');
+        Route::post('patients/{patientId}/psychomotor-assessments', [\App\Http\Controllers\Api\PsychomotorAssessmentController::class, 'store'])->name('psychomotor_assessments.store');
+        Route::delete('psychomotor-assessments/{id}', [\App\Http\Controllers\Api\PsychomotorAssessmentController::class, 'destroy'])->name('psychomotor_assessments.destroy');
+
+        // Tele-Therapy & Interactive Clinical Canvas Signaling & Cockpit
+        Route::get('teletherapy/rooms', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'index'])->name('teletherapy.index');
+        Route::post('teletherapy/rooms', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'store'])->name('teletherapy.store');
+        Route::get('teletherapy/rooms/{roomCode}', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'show'])->name('teletherapy.show');
+        Route::post('teletherapy/save-session', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'saveSession'])->name('teletherapy.save_session');
+        Route::post('teletherapy/rooms/{roomCode}/signal', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'signal'])->name('teletherapy.signal');
+        Route::get('teletherapy/rooms/{roomCode}/signal', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'getSignals'])->name('teletherapy.get_signals');
 
         // Voice Archive & Audio Notes
         Route::get('patients/{patientId}/voice-samples', [PatientAudioController::class, 'index'])->name('voice_samples.index');
@@ -529,6 +935,15 @@ Route::middleware(['auth:sanctum', 'tenant.active'])->group(function () {
         Route::get('patient-packages', [ClinicServiceController::class, 'listPatientPackages'])->name('patient_packages.index');
         Route::post('patient-packages/{id}/use-session', [ClinicServiceController::class, 'usePackageSession'])->name('patient_packages.use_session');
 
+        Route::get('invoices/analytics', [InvoiceController::class, 'getAnalytics'])->name('invoices.analytics');
+        Route::get('invoices/daily-treasury', [InvoiceController::class, 'getDailyTreasury'])->name('invoices.daily_treasury');
+        Route::get('billing/daily-treasury', [InvoiceController::class, 'getDailyTreasury'])->name('billing.daily_treasury');
+        Route::get('treasury/daily', [InvoiceController::class, 'getDailyTreasury'])->name('treasury.daily');
+        Route::get('invoices/unbilled-appointments', [InvoiceController::class, 'getUnbilledAppointments'])->name('invoices.unbilled');
+        Route::post('invoices/{id}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.record');
+        Route::post('invoices/{id}/reconcile-ccp', [InvoiceController::class, 'reconcileCcpSlip'])->name('invoices.reconcile_ccp');
+        Route::get('invoices/{id}/whatsapp-reminder', [InvoiceController::class, 'getWhatsAppReminder'])->name('invoices.whatsapp_reminder');
+        Route::post('invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsAppReminder'])->name('invoices.send_whatsapp');
         Route::apiResource('invoices', InvoiceController::class);
     });
 
@@ -696,6 +1111,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/test-email', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testEmail'])->name('superadmin.communication.test_email');
         Route::post('/test-sms', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testSms'])->name('superadmin.communication.test_sms');
         Route::post('/test-whatsapp', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testWhatsapp'])->name('superadmin.communication.test_whatsapp');
+        Route::get('/whatsapp-logs', [WhatsAppWebhookController::class, 'getWebhookLogs'])->name('superadmin.communication.whatsapp_logs');
+        Route::post('/simulate-whatsapp-webhook', [WhatsAppWebhookController::class, 'simulateIncomingWebhook'])->name('superadmin.communication.simulate_whatsapp');
+        
+        // Meta WhatsApp Templates & Categorization Management
+        Route::get('/templates', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'getTemplates'])->name('superadmin.communication.templates.index');
+        Route::post('/templates/create', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'createTemplate'])->name('superadmin.communication.templates.create');
+        Route::post('/templates/sync-defaults', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'syncDefaultTemplates'])->name('superadmin.communication.templates.sync');
+        Route::delete('/templates/{name}', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'deleteTemplate'])->name('superadmin.communication.templates.destroy');
+        Route::post('/templates/test-send', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testSendTemplate'])->name('superadmin.communication.templates.test_send');
     });
 
     Route::prefix('super-admin/communication-settings')->group(function () {
@@ -704,6 +1128,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/test-email', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testEmail']);
         Route::post('/test-sms', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testSms']);
         Route::post('/test-whatsapp', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testWhatsapp']);
+        Route::get('/whatsapp-logs', [WhatsAppWebhookController::class, 'getWebhookLogs']);
+        Route::post('/simulate-whatsapp-webhook', [WhatsAppWebhookController::class, 'simulateIncomingWebhook']);
+
+        // Meta WhatsApp Templates & Categorization Management (Alias)
+        Route::get('/templates', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'getTemplates']);
+        Route::post('/templates/create', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'createTemplate']);
+        Route::post('/templates/sync-defaults', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'syncDefaultTemplates']);
+        Route::delete('/templates/{name}', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'deleteTemplate']);
+        Route::post('/templates/test-send', [\App\Http\Controllers\Api\SuperAdmin\CommunicationGatewayController::class, 'testSendTemplate']);
     });
 
     // Dynamic Subscription Plans & Pricing Manager
@@ -722,10 +1155,57 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}/toggle-status', [SubscriptionPlanManagerController::class, 'toggleStatus']);
         Route::delete('/{id}', [SubscriptionPlanManagerController::class, 'destroy']);
     });
+
+    // Landing Page CMS & Appearance Studio
+    Route::prefix('superadmin/landing-page-config')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'getConfig'])->name('superadmin.landing.get');
+        Route::put('/', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'updateConfig'])->name('superadmin.landing.update');
+        Route::post('/reset', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'resetConfig'])->name('superadmin.landing.reset');
+    });
+
+    Route::prefix('super-admin/landing-page-config')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'getConfig']);
+        Route::put('/', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'updateConfig']);
+        Route::post('/reset', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'resetConfig']);
+    });
+
+    // Global Knowledge Base Crawler & Management (SuperAdmin)
+    Route::get('/support/articles', [AiSupportAssistantController::class, 'getArticles'])->name('superadmin.support.articles');
+    Route::post('/support/crawl-url', [AiSupportAssistantController::class, 'crawlUrl'])->name('superadmin.support.crawl_url');
+    Route::delete('/support/articles/{id}', [AiSupportAssistantController::class, 'deleteArticle'])->name('superadmin.support.delete_article');
+
+    Route::prefix('superadmin/knowledge-base')->group(function () {
+        Route::get('/articles', [AiSupportAssistantController::class, 'getArticles']);
+        Route::post('/crawl-url', [AiSupportAssistantController::class, 'crawlUrl']);
+        Route::delete('/articles/{id}', [AiSupportAssistantController::class, 'deleteArticle']);
+    });
+
+    Route::prefix('super-admin/knowledge-base')->group(function () {
+        Route::get('/articles', [AiSupportAssistantController::class, 'getArticles']);
+        Route::post('/crawl-url', [AiSupportAssistantController::class, 'crawlUrl']);
+        Route::delete('/articles/{id}', [AiSupportAssistantController::class, 'deleteArticle']);
+    });
 });
 
 // Public Discovery Endpoint for Frontend UI Feature Flags & Subscription Plans
 Route::get('/public/feature-flags', [FeatureFlagController::class, 'getPublicFlags'])->name('public.feature_flags');
 Route::get('/public/subscription-plans', [SubscriptionPlanManagerController::class, 'publicPlans'])->name('public.subscription_plans');
+Route::get('/public/landing-page-config', [\App\Http\Controllers\Api\SuperAdmin\LandingPageStudioController::class, 'getPublicConfig'])->name('public.landing_page_config');
 Route::get('/clinic/my-quota', [ClinicQuotaManagerController::class, 'getMyQuota'])->middleware(['auth:sanctum'])->name('clinic.my_quota');
+
+// Public Tele-Therapy Room Access (Zero-Install Guest Entry)
+Route::get('/public/teletherapy/{roomCode}', [\App\Http\Controllers\Api\TeletherapySignalingController::class, 'publicRoom'])->name('public.teletherapy.show');
+
+// Public Document Verification Route (QR Code verification for Bilan, Letters, Attestations)
+Route::get('/public/verify/doc/{token}', [\App\Http\Controllers\Api\DocumentVerificationController::class, 'verifyDocument'])->name('public.verify.doc');
+
+// Public & Synchronized EMDR Patient Screen Signaling Endpoints
+Route::get('/public/emdr/{sessionCode}/sync', [\App\Http\Controllers\Api\EmdrSignalingController::class, 'getState'])->name('public.emdr.get_state');
+Route::post('/public/emdr/{sessionCode}/sync', [\App\Http\Controllers\Api\EmdrSignalingController::class, 'syncState'])->name('public.emdr.sync_state');
+
+// AI Support Assistant & Embeddable Receptionist Chat Endpoints
+Route::post('/public/support/chat', [AiSupportAssistantController::class, 'publicChat'])->name('public.support.chat');
+Route::post('/support/ask', [AiSupportAssistantController::class, 'ask'])->name('support.ask');
+Route::get('/embed/support-widget.js', [AiSupportAssistantController::class, 'serveEmbedScript'])->name('support.embed_script');
+
 

@@ -1,0 +1,61 @@
+=== clinic-saas.yml ===
+http:
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        permanent: true
+        scheme: https
+  routers:
+    clinic-api-aayad-gdyd:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`aayad-gdyd.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-multidisciplinary-117-78oz:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-multidisciplinary-117-78oz.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-orthophony-1-kcei:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-orthophony-1-kcei.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-orthophony-1-yg3j:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-orthophony-1-yg3j.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-orthophony-175-n5ga:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-orthophony-175-n5ga.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-psychology-233-pbgo:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-psychology-233-pbgo.psypro.tech`) && PathPrefix(`/api`)
+      service: clinic-api-service
+      tls:
+        certResolver: letsencrypt
+    clinic-api-adrar-psychology-59-kynv:
+      entryPoints:
+      - websecure
+      priority: 100
+      rule: Host(`adrar-psychology-59-kynv.psypro.tech`) && PathPrefix(`/api`)

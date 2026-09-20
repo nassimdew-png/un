@@ -1,0 +1,2 @@
+[2026-09-14 00:12:10] production.ERROR: Class "App\Http\Controllers\Api\Auth" not found {"userId":279,"exception":"[object] (Error(code: 0): Class \"App\\Http\\Controllers\\Api\\Auth\" not found at /var/www/clinic-saas/backend/app/Http/Controllers/Api/SuperAdminController.php:842)
+

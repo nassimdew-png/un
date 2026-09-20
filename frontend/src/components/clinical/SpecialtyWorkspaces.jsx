@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Languages,
   Brain,
@@ -16,7 +16,9 @@ import {
   Eye,
   CheckCircle2,
   FileText,
+  Smartphone,
 } from 'lucide-react';
+import SendTestAssignmentModal from '../therapy/SendTestAssignmentModal';
 
 // ==========================================
 // 1. ORTHOPHONY WORKSPACE COMPONENT
@@ -311,6 +313,36 @@ export function OrthophonyWorkspaceSection({
           </div>
         </div>
       </div>
+
+      {/* Block D: PECS & Image Matching Direct Launcher */}
+      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-purple-500/30 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🎴</span>
+          <div>
+            <div className="text-xs font-bold text-purple-300">نظام PECS للتواصل البديل والمعزز ومطابقة الصور</div>
+            <div className="text-[10px] text-slate-400">شريط الجملة التواصلي، بطاقات التسمية، وأنشطة المطابقة المعرفية</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="pecs-cards-activity-btn"
+            onClick={onInsertIntoSoap}
+            className="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-xs font-bold transition shadow-sm"
+          >
+            🎴 بطاقات PECS
+          </button>
+          <button
+            type="button"
+            data-testid="matching-activity-btn"
+            onClick={onInsertIntoSoap}
+            className="px-3 py-1.5 rounded-xl bg-teal-600/30 hover:bg-teal-600 text-teal-200 hover:text-white border border-teal-500/40 text-xs font-bold transition shadow-sm"
+          >
+            🧩 مطابقة الصور (Matching)
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -328,7 +360,22 @@ export function PsychologyWorkspaceSection({
   psychTechnique,
   setPsychTechnique,
   onInsertIntoSoap,
+  patient = null,
+  appointmentId = null,
 }) {
+  const [showSendTestModal, setShowSendTestModal] = useState(false);
+
+  const getSelectedTestObject = () => {
+    const name = psychTest?.testName || '';
+    if (name.includes('Conners')) return { code: 'CONNERS-3', title_ar: 'مقياس كونرز لفرط الحركة وتشتت الانتباه (Conners-3)' };
+    if (name.includes('CARS')) return { code: 'CARS-2', title_ar: 'مقياس تقدير التوحد الطفولي (CARS-2)' };
+    if (name.includes('GAD')) return { code: 'GAD-7', title_ar: 'مقياس اضطراب القلق العام (GAD-7)' };
+    if (name.includes('Beck')) return { code: 'BDI-II', title_ar: 'مقياس بيك للاكتئاب (BDI-II)' };
+    if (name.includes('WISC')) return { code: 'WISC-V', title_ar: 'مقياس وكسلر لذكاء الأطفال (WISC-V)' };
+    if (name.includes('Vineland')) return { code: 'VINELAND-II', title_ar: 'مقياس السلوك التكيفي (Vineland-II)' };
+    return { code: 'PSYCH-EVAL', title_ar: name || 'استبيان تقييم نفسي' };
+  };
+
   const commonDefenseMechanisms = [
     { id: 'rationalization', label: 'التبرير (Rationalisation)' },
     { id: 'projection', label: 'الإسقاط (Projection)' },
@@ -554,6 +601,16 @@ export function PsychologyWorkspaceSection({
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setShowSendTestModal(true)}
+            className="w-full mt-1.5 py-2 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
+            title="توليد رابط أو رمز QR للمريض في الجلسة أو فتحه في وضع التابلت"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-purple-400" />
+            <span>📲 إرسال الرائز للمريض / مسح QR / وضع التابلت</span>
+          </button>
+
           <div className="pt-1">
             <span className="text-[11px] text-slate-400 block mb-1.5">آليات الدفاع الملاحظة (Mécanismes):</span>
             <div className="flex flex-wrap gap-1">
@@ -619,6 +676,17 @@ export function PsychologyWorkspaceSection({
           </div>
         </div>
       </div>
+
+      {/* Send Remote / QR / Tablet Assignment Modal */}
+      {showSendTestModal && (
+        <SendTestAssignmentModal
+          test={getSelectedTestObject()}
+          patients={patient ? [patient] : []}
+          initialPatientId={patient?.id}
+          appointmentId={appointmentId}
+          onClose={() => setShowSendTestModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -626,7 +694,7 @@ export function PsychologyWorkspaceSection({
 // ==========================================
 // 3. PSYCHOMOTRICITY WORKSPACE COMPONENT
 // ==========================================
-export function PsychomotricityWorkspaceSection({ motorState, setMotorState, onInsertIntoSoap }) {
+export function PsychomotricityWorkspaceSection({ motorState, setMotorState, onInsertIntoSoap, onOpenBodyMap }) {
   return (
     <div className="p-4 rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/30 border border-emerald-500/30 shadow-xl space-y-4 animate-in fade-in duration-150">
       {/* Header */}
@@ -648,14 +716,27 @@ export function PsychomotricityWorkspaceSection({ motorState, setMotorState, onI
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onInsertIntoSoap}
-          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1.5 space-x-reverse shadow-md shadow-emerald-600/20 transition-all"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>📥 إدراج الفحص في الملاحظات السريرية (Objective)</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenBodyMap && (
+            <button
+              type="button"
+              onClick={onOpenBodyMap}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center space-x-1.5 space-x-reverse shadow-md shadow-emerald-600/30 transition-all"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>🏃‍♂️ خريطة الجسد التفاعلية</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onInsertIntoSoap}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1.5 space-x-reverse shadow-md transition-all border border-slate-700"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>📥 إدراج في SOAP</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">

@@ -1,0 +1,40 @@
+لدمج **بنك الروائز الـ 18، المصححات الرقمية، والبروتوكولات السريرية المعيارية (CBT, ERP, SUDS, الأرطوفونيا، والتأهيل الحركي)** داخل قمرة التطبيب عن بعد ([`TeletherapyRoomView.jsx`](file:///e:/3/frontend/src/components/teletherapy/TeletherapyRoomView.jsx))، نعتمد معمارية طبية متقدمة من **4 ركائز سريرية متكاملة** تحترم معايير المنصة وتوجيهات [`AGENTS.md`](file:///e:/3/AGENTS.md):
+
+---
+
+### 1️⃣ الركيزة الأولى: دمج محرك الروائز والمقاييس الـ 18 المباشر (Live Tele-Psychometrics)
+
+يمكن للمعالج أثناء مكالمة الفيديو فتح أي رائز معياري بضغطة زر دون مغادرة الغرفة، عبر استدعاء [`InteractiveTestPassationModal.jsx`](file:///e:/3/frontend/src/components/therapy/InteractiveTestPassationModal.jsx):
+
+* **زر الروائز في شريط الأدوات العلوي**: إضافة زر `📊 الروائز والمقاييس (Psychometrics)` بجانب الميقاتية.
+* **خيارات التمرير**:
+  1. **تمرير مباشر بواسطة المعالج (Clinician-Administered)**: يسأل المعالج ويسجل استجابات المريض في نافذة جانبية منبثقة بينما الكاميرا والمحادثة مستمرة.
+  2. **تمرير المصححات السريرية المتقدمة**: تشغيل المصححات الرقمية التي بنيناها (`MMPI-2`, `WISC-V`, `Stroop`, `Figure de Rey`, `ZAREKI-R`, `Rorschach`).
+* **الحقن التلقائي في ملاحظات SOAP**: عند حفظ الرائز، يتم تلخيص الدرجات المعيارية (T-Scores / Percentiles) وتنبيهات الأمان السريري (`Red Alert`) وحقنها فوراً في خانة **Assessment (A)** للتوثيق المنهجي.
+
+---
+
+### 2️⃣ الركيزة الثانية: بروتوكو
+<truncated 2158 bytes>
+تنفيذي معتمد وإسقاطه كخلفية تفاعلية على السبورة ليقوم المريض بحله مباشرة بالقلم أو الأختام التحفيزية الطبية.
+
+---
+
+### 4️⃣ الركيزة الرابعة: التوثيق السريري والحصيلة المتزامنة (SOAP & Master Bilan Integration)
+
+* ربط كل القياسات المنجزة داخل جلسة التطبيب عن بعد (الروائز + قياسات SUDS + لقطات السبورة السريرية) بجدول الجلسات وحساب وقت الجلسة الفعلي عبر الميقاتية الحية.
+* إتاحة تصدير الحصيلة الفورية بضغطة زر إلى الحصيلة السريرية الشاملة ([`MasterBilanBuilderModal.jsx`](file:///e:/3/frontend/src/components/assessments/MasterBilanBuilderModal.jsx)).
+
+---
+
+### 📋 خريطة الملفات للتنفيذ السريع:
+
+| الملف | الإضافة المطلوبة |
+| :--- | :--- |
+| [`frontend/src/components/teletherapy/TeletherapyRoomView.jsx`](file:///e:/3/frontend/src/components/teletherapy/TeletherapyRoomView.jsx) | إضافة زر `الروائز السريرية` و `بروتوكولات CBT` واستدعاء `InteractiveTestPassationModal`. |
+| [`frontend/src/components/teletherapy/ClinicalProtocolsModal.jsx`](file:///e:/3/frontend/src/components/teletherapy/) *(جديد)* | نافذة منبثقة تتضمن: مقياس SUDS، جدول إعادة الهيكلة DTR، ومصفوفة ERP. |
+| [`frontend/src/components/teletherapy/ClinicalCanvasData.js`](file:///e:/3/frontend/src/components/teletherapy/ClinicalCanvasData.js) | إدراج بطاقات الفحص الفونولوجي والمصفوفات التنفيذية السريرية في مجموعات الـ Decks. |
+
+---
+
+**هل ترغب في أن أبدأ بتنفيذ وربط زر بنك الروائز الـ 18 والمقاييس السريرية وبروتوكول SUDS مباشرة داخل قمرة التطبيب عن بعد الآن؟**

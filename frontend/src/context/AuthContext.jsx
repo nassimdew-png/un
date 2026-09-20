@@ -46,9 +46,16 @@ export function AuthProvider({ children }) {
         if (data && data.user) {
           setUser(data.user);
           setTenant(data.tenant);
-          if (data.tenant?.name) {
+          const isRealImpersonation = localStorage.getItem('is_impersonating') === 'true' && 
+            Boolean(localStorage.getItem('backup_superadmin_token') || sessionStorage.getItem('superadmin_backup_token'));
+
+          if (isRealImpersonation && data.tenant?.name) {
             localStorage.setItem('impersonating_clinic_name', data.tenant.name);
+          } else if (!isRealImpersonation) {
+            localStorage.removeItem('is_impersonating');
+            localStorage.removeItem('impersonating_clinic_name');
           }
+
           if (data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
           }
@@ -78,6 +85,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData, tenantData, token) => {
+    // Normal login clears any leftover impersonation state
+    localStorage.removeItem('is_impersonating');
+    localStorage.removeItem('impersonating_clinic_name');
+    localStorage.removeItem('backup_superadmin_token');
+    localStorage.removeItem('superadmin_backup_token');
+    sessionStorage.removeItem('superadmin_backup_token');
+    sessionStorage.removeItem('superadmin_impersonating_tenant');
+
     if (token) {
       localStorage.setItem('token', token);
       localStorage.setItem('clinic_token', token);

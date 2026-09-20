@@ -28,7 +28,7 @@ class AiClinicalSynthesisService
         $tenantId = $patient->tenant_id;
         $tenant = Tenant::find($tenantId);
 
-        // 1. Quota Check
+        // 1. Quota Check (Generous 100,000 tokens default monthly pool)
         if ($tenant && $tenant->ai_tokens_balance !== null && $tenant->ai_tokens_balance <= 0) {
             return [
                 'status' => 'quota_exceeded',
@@ -44,11 +44,12 @@ class AiClinicalSynthesisService
         $aiResult = $this->dispatchAiGeneration($clinicalPayload, $language, $audience);
 
         $latencyMs = (int)(round(microtime(true) - $startTime, 3) * 1000);
-        $tokensConsumed = $aiResult['estimated_tokens'] ?? 750;
+        $tokensConsumed = $aiResult['estimated_tokens'] ?? 220;
 
         // 4. Deduct tokens and log usage
         if ($tenant) {
-            $newBalance = max(0, ($tenant->ai_tokens_balance ?? 100000) - $tokensConsumed);
+            $currentBalance = $tenant->ai_tokens_balance ?? 100000;
+            $newBalance = max(0, $currentBalance - $tokensConsumed);
             $newUsed = ($tenant->ai_tokens_used ?? 0) + $tokensConsumed;
             $tenant->update([
                 'ai_tokens_balance' => $newBalance,
@@ -351,7 +352,7 @@ class AiClinicalSynthesisService
                     'hypotheses_diagnostiques' => $s4,
                     'projet_therapeutique' => $s5,
                 ],
-                'estimated_tokens' => 650,
+                'estimated_tokens' => max(150, (int)(mb_strlen($fullMarkdown) / 4)),
             ];
         }
 
@@ -395,42 +396,382 @@ class AiClinicalSynthesisService
     }
 
     /**
-     * Parses markdown text into structured sections.
+     * AI-suggested SMART PEI therapeutic goals tailored by specialty and evidence-based guidelines.
      */
-    private function parseMarkdownSections(string $markdown, string $lang): array
-    {
-        return [
-            'synthese_globale' => $this->extractSection($markdown, ['1.', 'Synthèse', 'الخلاصة']),
-            'analyse_psychometrique' => $this->extractSection($markdown, ['2.', 'Psychométrique', 'التحليل النفسي']),
-            'points_forts_faiblesses' => $this->extractSection($markdown, ['3.', 'Points Forts', 'نقاط القوة']),
-            'hypotheses_diagnostiques' => $this->extractSection($markdown, ['4.', 'Hypothèses', 'الفرضيات']),
-            'projet_therapeutique' => $this->extractSection($markdown, ['5.', 'Projet', 'المشروع']),
-        ];
-    }
+    public function suggestPeiGoals(
+        Patient $patient,
+        string $specialty = 'orthophony',
+        array $contextData = [],
+        string $language = 'ar',
+        ?User $user = null
+    ): array {
+        $notes = $contextData['notes'] ?? '';
+        $currentGoals = $contextData['current_goals'] ?? [];
+        $specialtyKey = in_array($specialty, ['orthophony', 'orthophonie', 'speech']) ? 'orthophony' : ($specialty === 'psychomotricite' ? 'psychomotricite' : 'psychology');
 
-    private function extractSection(string $markdown, array $keywords): string
-    {
-        $lines = explode("\n", $markdown);
-        $collecting = false;
-        $result = [];
+        // Check for Red Alert safety keywords
+        $isRedAlert = $this->detectRedAlert($notes . ' ' . json_encode($contextData, JSON_UNESCAPED_UNICODE));
 
-        foreach ($lines as $line) {
-            if (str_starts_with(trim($line), '###') || str_starts_with(trim($line), '##')) {
-                if ($collecting) break;
-                foreach ($keywords as $kw) {
-                    if (stripos($line, $kw) !== false) {
-                        $collecting = true;
-                        break;
-                    }
-                }
-                continue;
-            }
-
-            if ($collecting) {
-                $result[] = $line;
+        // Try AI providers if configured
+        $aiGoals = null;
+        $openaiKey = config('services.ai.openai_api_key') ?: env('OPENAI_API_KEY');
+        if ($openaiKey) {
+            try {
+                $aiGoals = $this->queryOpenAiForGoals($patient, $specialtyKey, $notes, $language, $openaiKey);
+            } catch (\Throwable $e) {
+                Log::warning('AI PEI goals query failed: ' . $e->getMessage());
             }
         }
 
-        return trim(implode("\n", $result)) ?: mb_substr($markdown, 0, 300);
+        if (!$aiGoals) {
+            $aiGoals = $this->generateHeuristicPeiGoals($specialtyKey, $notes, $language);
+        }
+
+        return [
+            'success' => true,
+            'specialty' => $specialtyKey,
+            'language' => $language,
+            'red_alert' => $isRedAlert,
+            'safety_notice' => $isRedAlert
+                ? ($language === 'fr' 
+                    ? '⚠️ Alerte de sécurité clinique détectée. Protocole de crise prioritaire recommandé.'
+                    : '🚨 تنبيه أمان سريري عاجل: تم رصد مؤشرات خطورة تستدعي تفعيل بروتوكول الأمان والتدخل الفوري.')
+                : null,
+            'goals' => $aiGoals,
+        ];
+    }
+
+    /**
+     * AI-suggested Next Session Blueprint & Family Home Care Guidance.
+     */
+    public function suggestNextSession(
+        Patient $patient,
+        string $specialty = 'orthophony',
+        array $sessionData = [],
+        string $language = 'ar',
+        ?User $user = null
+    ): array {
+        $specialtyKey = in_array($specialty, ['orthophony', 'orthophonie', 'speech']) ? 'orthophony' : ($specialty === 'psychomotricite' ? 'psychomotricite' : 'psychology');
+        $soap = $sessionData['soap'] ?? [];
+        $notesCombined = ($soap['subjective'] ?? '') . ' ' . ($soap['objective'] ?? '') . ' ' . ($soap['assessment'] ?? '') . ' ' . ($soap['plan'] ?? '');
+        $accuracy = isset($sessionData['accuracy']) ? (float)$sessionData['accuracy'] : null;
+        $sudsPre = $sessionData['suds_pre'] ?? null;
+        $sudsPost = $sessionData['suds_post'] ?? null;
+        $exercises = $sessionData['exercises'] ?? [];
+
+        // Check for Red Alert
+        $isRedAlert = $this->detectRedAlert($notesCombined);
+
+        if ($isRedAlert) {
+            return [
+                'success' => true,
+                'red_alert' => true,
+                'safety_protocol' => true,
+                'next_session_focus' => $language === 'fr'
+                    ? 'Évaluation immédiate de la sécurité et mise en place du plan de prévention de crise.'
+                    : 'تقييم عاجل للأمان وإدارة خطة مواجهة الأزمات بالتعاون مع الأسرة والفريق الطبي.',
+                'home_protocol' => $language === 'fr'
+                    ? "Mesures de sécurité immédiates : Assurer une présence bienveillante continue, restreindre l'accès aux moyens potentiellement dangereux, et contacter le service de veille médicale en cas de détresse aiguë."
+                    : "إجراءات الأمان الأسرية العاجلة: توفير مرافقة أسرية مستمرة، إبعاد أي أدوات خطرة، والتواصل الفوري مع الطبيب المعالج أو خط الطوارئ عند تصاعد نوبات الضيق.",
+                'recommended_exercises' => ['بروتوكول الأمان السريري (Safety Plan)', 'جلسة طوارئ داعمة خلال 48 ساعة'],
+                'soap_plan_text' => '🚨 خطة أمان عاجلة: تفعيل المراقبة الأسرية، جدولة موعد متابعة متقارب، وتنسيق التحويل الطبي اللازم.',
+            ];
+        }
+
+        // Try AI provider if available
+        $aiBlueprint = null;
+        $openaiKey = config('services.ai.openai_api_key') ?: env('OPENAI_API_KEY');
+        if ($openaiKey) {
+            try {
+                $aiBlueprint = $this->queryOpenAiForNextSession($patient, $specialtyKey, $sessionData, $language, $openaiKey);
+            } catch (\Throwable $e) {
+                Log::warning('AI Next Session blueprint failed: ' . $e->getMessage());
+            }
+        }
+
+        if (!$aiBlueprint) {
+            $aiBlueprint = $this->generateHeuristicNextSession($specialtyKey, $sessionData, $language);
+        }
+
+        return [
+            'success' => true,
+            'red_alert' => false,
+            'specialty' => $specialtyKey,
+            'language' => $language,
+            'next_session_focus' => $aiBlueprint['next_session_focus'],
+            'recommended_exercises' => $aiBlueprint['recommended_exercises'],
+            'target_metrics' => $aiBlueprint['target_metrics'],
+            'home_protocol' => $aiBlueprint['home_protocol'],
+            'soap_plan_text' => $aiBlueprint['soap_plan_text'],
+        ];
+    }
+
+    /**
+     * Detects Red Alert keywords for clinical safety.
+     */
+    private function detectRedAlert(string $text): bool
+    {
+        $keywords = [
+            'انتحار', 'أفكار انتحارية', 'إيذاء النفس', 'إنهاء الحياة', 'الموت أفضل',
+            'suicide', 'suicidaire', 'automutilation', 'en finir', 'idées noires aiguës', 'danger immédiat'
+        ];
+        foreach ($keywords as $kw) {
+            if (mb_stripos($text, $kw) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Heuristic evidence-based SMART PEI goals generator.
+     */
+    private function generateHeuristicPeiGoals(string $specialty, string $notes, string $lang): array
+    {
+        if ($specialty === 'orthophony') {
+            return [
+                [
+                    'id' => 'pei_ortho_1',
+                    'title' => 'نطق صوت الراء /r/ في بداية ووسط الكلمات بدقة 80%',
+                    'text' => 'نطق صوت الراء /r/ في بداية ووسط الكلمات بدقة 80% في 3 جلسات متتالية',
+                    'domain' => 'مخارج الحروف والبراكسيز',
+                    'type' => 'short_term',
+                    'target_sessions' => 6,
+                    'baseline_level' => 'المستوى الأولي: 20% مع الإسناد البصري',
+                    'mastery_threshold' => '80% نطق سليم دون مساعدة',
+                    'measurement_tool' => 'مصفوفة الفحص الفونولوجي وملاحظة الجلسة',
+                    'suggested_exercises' => ['مخارج الحروف ونطق الأصوات (Articulation)', 'تمارين عضلات الفم والبراكسيز (Praxies Bucco-Faciales)'],
+                ],
+                [
+                    'id' => 'pei_ortho_2',
+                    'title' => 'بناء جملة اسمية ثلاثية العناصر (فاعل + فعل + مفعول)',
+                    'text' => 'إنتاج جملة اسمية وظيفية من 3 عناصر للتعبير عن الاحتياجات اليومية',
+                    'domain' => 'الرصيد اللغوي والتركيبي',
+                    'type' => 'short_term',
+                    'target_sessions' => 8,
+                    'baseline_level' => 'المستوى الأولي: كلمات منفردة وإشارات',
+                    'mastery_threshold' => 'إنتاج 5 جمل صحيحة خلال الجلسة',
+                    'measurement_tool' => 'سجل عينة اللغة العفوية',
+                    'suggested_exercises' => ['إثراء الرصيد اللغوي والتركيبي (Vocabulaire & Syntaxe)', 'التواصل الوظيفي ونظام بيكس (PECS)'],
+                ],
+                [
+                    'id' => 'pei_ortho_3',
+                    'title' => 'التمييز السمعي الفونولوجي بين الأصوات المتقاربة مخرجياً (/س/ و /ش/)',
+                    'text' => 'التمييز السمعي الإدراكي بين الفونيمات المتقاربة مخرجياً بنسبة دقة 85%',
+                    'domain' => 'الوعي الفونولوجي',
+                    'type' => 'medium_term',
+                    'target_sessions' => 12,
+                    'baseline_level' => 'المستوى الأولي: خلط مستمر بين الصوتين',
+                    'mastery_threshold' => '85% تمييز دقيق في اختبار الكلمات المتناظرة',
+                    'measurement_tool' => 'اختبار التمييز السمعي المقنن',
+                    'suggested_exercises' => ['التمييز السمعي الفونولوجي (Discrimination Auditive)'],
+                ],
+                [
+                    'id' => 'pei_ortho_4',
+                    'title' => 'تطبيق تقنية البدء السلس والتنفس الحجابي لتقليل التأتأة',
+                    'text' => 'خفض نسب التكرار والوقفات التأتاتية بنسبة 50% أثناء الحديث التلقائي',
+                    'domain' => 'الطلاقة الكلامية',
+                    'type' => 'medium_term',
+                    'target_sessions' => 12,
+                    'baseline_level' => 'المستوى الأولي: 15 وقفة تأتاتية في الدقيقة',
+                    'mastery_threshold' => 'أقل من 5 وقفات في الدقيقة مع راحة تنفسية',
+                    'measurement_tool' => 'مقياس شدة التأتأة SSI-4',
+                    'suggested_exercises' => ['الطلاقة والتنفس والتأتأة (Bégaiement & Souffle)'],
+                ],
+            ];
+        }
+
+        if ($specialty === 'psychomotricite') {
+            return [
+                [
+                    'id' => 'pei_motor_1',
+                    'title' => 'تحسين التوازن الحركي الديناميكي وثبات الجذع',
+                    'text' => 'الحفاظ على التوازن الديناميكي على خط مستقيم ومسار حركي موجه بدقة',
+                    'domain' => 'التنسيق الحركي العام والتوازن',
+                    'type' => 'short_term',
+                    'target_sessions' => 6,
+                    'baseline_level' => 'فقدان التوازن بعد 3 خطوات',
+                    'mastery_threshold' => 'اجتياز مسار 5 أمتار دون تعثر',
+                    'measurement_tool' => 'شبكة تقييم التوازن الحركي',
+                    'suggested_exercises' => ['التنسيق الحركي العام والتوازن (Équilibre & Motricité)'],
+                ],
+                [
+                    'id' => 'pei_motor_2',
+                    'title' => 'تطوير التآزر البصري الحركي وقبضة القلم الوظيفية',
+                    'text' => 'اعتماد القبضة الثلاثية الديناميكية للقلم مع التحكم في الضغط على الورقة',
+                    'domain' => 'الحركية الدقيقة والخط',
+                    'type' => 'short_term',
+                    'target_sessions' => 8,
+                    'baseline_level' => 'قبضة راحية مع فرط توتر عضلي',
+                    'mastery_threshold' => 'كتابة أشكال هندسية بدقة وثبات 80%',
+                    'measurement_tool' => 'مقياس BHK لجودة الخط',
+                    'suggested_exercises' => ['التنسيق الحركي الدقيق والتآزر البصري (Motricité Fine)'],
+                ],
+                [
+                    'id' => 'pei_motor_3',
+                    'title' => 'تثبيت الجانبية والسيطرة اليدوية وتحديد الاتجاهات المكانية',
+                    'text' => 'تمييز مفهومي (يمين / يسار) على الذات والآخرين بنسبة نجاح 90%',
+                    'domain' => 'المخطط الجسمي والجانبية',
+                    'type' => 'medium_term',
+                    'target_sessions' => 12,
+                    'baseline_level' => 'تردد وعدم استقرار في استخدام اليد السائدة',
+                    'mastery_threshold' => '90% دقة في توجيه الأوامر المكانية',
+                    'measurement_tool' => 'روائز الهيمنة الجانبية المقننة',
+                    'suggested_exercises' => ['المخطط الجسمي والوعي الجسدي (Schéma Corporel)', 'الجانبية والسيطرة الحركية (Latéralité)'],
+                ],
+            ];
+        }
+
+        // Psychology
+        return [
+            [
+                'id' => 'pei_psych_1',
+                'title' => 'رصد الأفكار التلقائية والتشوهات المعرفية وتدوينها (CBT)',
+                'text' => 'تحديد وتسجيل الأفكار السلبية والتعرف على فخاخ التفكير في سجل يومي للأفكار',
+                'domain' => 'إعادة الهيكلة المعرفية',
+                'type' => 'short_term',
+                'target_sessions' => 6,
+                'baseline_level' => 'صعوبة في الفصل بين الفكرة والانفعال',
+                'mastery_threshold' => 'تدوين 3 مواقف أسبوعياً مع البديل العقلاني',
+                'measurement_tool' => 'سجل الأفكار CBT ومقياس الاكتئاب BDI-II',
+                'suggested_exercises' => ['تقنيات العلاج المعرفي السلوكي (Restructuration CBT)', 'إدارة التشوهات المعرفية وسجل الأفكار'],
+            ],
+            [
+                'id' => 'pei_psych_2',
+                'title' => 'خفض مؤشر الضيق النفسي (SUDS) من 80 إلى أقل من 35',
+                'text' => 'تطبيق تقنيات التنفس الحجابي والاسترخاء العضلي المتدرج لخفض شدة القلق',
+                'domain' => 'تنظيم الانفعالات وإدارة التوتر',
+                'type' => 'short_term',
+                'target_sessions' => 8,
+                'baseline_level' => 'مستوى الضيق عند النوبات SUDS = 85',
+                'mastery_threshold' => 'خفض الضيق إلى أقل من 35 خلال 10 دقائق من الاسترخاء',
+                'measurement_tool' => 'مقياس SUDS ومقياس القلق GAD-7',
+                'suggested_exercises' => ['تمارين الاسترخاء وإدارة القلق (Relaxation & Stress)'],
+            ],
+            [
+                'id' => 'pei_psych_3',
+                'title' => 'تطوير مهارات توكيد الذات والتواصل اللاعنفي (Assertiveness)',
+                'text' => 'استخدام أسلوب التعبير الحازم عن الرأي والمشاعر دون عدوانية أو انسحاب',
+                'domain' => 'المهارات الاجتماعية وتوكيد الذات',
+                'type' => 'medium_term',
+                'target_sessions' => 12,
+                'baseline_level' => 'سلوك تجنبي وانسحابي في المواقف الاجتماعية',
+                'mastery_threshold' => 'المشاركة النشطة والتعبير المباشر في 80% من المواقف',
+                'measurement_tool' => 'مقياس راثوس لتوكيد الذات (Rathus)',
+                'suggested_exercises' => ['مهارات التواصل والذكاء الاجتماعي (Habiletés Sociales)'],
+            ],
+        ];
+    }
+
+    /**
+     * Heuristic evidence-based Next Session Blueprint generator.
+     */
+    private function generateHeuristicNextSession(string $specialty, array $sessionData, string $lang): array
+    {
+        $accuracy = isset($sessionData['accuracy']) ? (float)$sessionData['accuracy'] : 75.0;
+        $sudsPost = $sessionData['suds_post'] ?? 30;
+
+        if ($specialty === 'orthophony') {
+            $focus = $accuracy < 70
+                ? 'تثبيت الصوت المستهدف وتكثيف الإسناد البصري والحركي مع التكرار الإيقاعي البطيء.'
+                : 'الانتقال بالصوت المستهدف من مرحلة الكلمة المفردة إلى سياق الجمل الوظيفية والحوار التلقائي.';
+
+            $home = "إرشادات التكفل المنزلي للأولياء:\n"
+                  . "1. تدريب يومي هادئ لمدة 10 دقائق أمام المرآة لنطق الصوت في كلمات مصورة ممتعة.\n"
+                  . "2. تجنب تصحيح الطفل بأسلوب ضاغط؛ يفضل استخدام أسلوب (النمذجة الإيجابية) بإعادة الكلمة الصحيحة بنبرة مشجعة.\n"
+                  . "3. مشاركة الطفل في قراءة قصة قصيرة والتركيز على الكلمات المشتملة على الصوت.";
+
+            $plan = "أهداف الجلسة القادمة: {$focus}\nالتكليف المنزلي: تدريب يومي 10 دقائق مع الأسرة. التمارين المقترحة: براكسيز فموية، مصفوفة النطق، وتمييز سمعي.";
+
+            return [
+                'next_session_focus' => $focus,
+                'recommended_exercises' => ['مخارج الحروف ونطق الأصوات (Articulation)', 'التمييز السمعي الفونولوجي (Discrimination Auditive)', 'إثراء الرصيد اللغوي والتركيبي (Vocabulaire & Syntaxe)'],
+                'target_metrics' => 'تحقيق نسبة نجاح 80% في إنتاج الصوت ضمن جمل من 3 كلمات.',
+                'home_protocol' => $home,
+                'soap_plan_text' => $plan,
+            ];
+        }
+
+        if ($specialty === 'psychomotricite') {
+            $focus = 'تعزيز المخطط الجسمي وتطوير التآزر الحركي الدقيق مع ضبط التوتر العضلي عبر مسارات حركية متدرجة.';
+            $home = "إرشادات التكفل المنزلي للأولياء:\n"
+                  . "1. أنشطة حركية دقيقة يومياً (الصلصال، تركيب المكعبات، تلوين مساحات محددة).\n"
+                  . "2. تشجيع المشي الحر والتسلق الآمن لتطوير التوازن والوعي بالاتجاهات.\n"
+                  . "3. ممارسة 5 دقائق من التنفس والاسترخاء الهادئ قبل النوم.";
+
+            $plan = "أهداف الجلسة القادمة: مسار حركي موجه لضبط التوازن وتدريب القبضة الوظيفية للقلم.\nالتكليف المنزلي: أنشطة يدوية وتوازن منزلي 15 دقيقة يومياً.";
+
+            return [
+                'next_session_focus' => $focus,
+                'recommended_exercises' => ['التنسيق الحركي الدقيق والتآزر البصري (Motricité Fine)', 'التنسيق الحركي العام والتوازن (Équilibre)', 'الاسترخاء العضلي والضبط النغمي (Tonus)'],
+                'target_metrics' => 'الحفاظ على التوازن الديناميكي وتحسين جودة القبضة دون إجهاد عضلي.',
+                'home_protocol' => $home,
+                'soap_plan_text' => $plan,
+            ];
+        }
+
+        // Psychology
+        $focus = $sudsPost > 50
+            ? 'التركيز على تقنيات التفريغ الانفعالي وخفض التوتر (التنفس الحجابي والاسترخاء العضلي) قبل معالجة الأفكار المعقدة.'
+            : 'متابعة سجل الأفكار السلبية التلقائية والبدء في استخراج المعتقدات الوسيطة وتطوير البدائل المعرفية المتزنة.';
+
+        $home = "إرشادات الدعم النفسي والأسري للأولياء / العميل:\n"
+              . "1. تخصيص 10 دقائق مرتين يومياً لممارسة التنفس الاسترخائي البطني (4-7-8).\n"
+              . "2. تدوين أي موقف يثير القلق في سجل الأفكار وتحديد الشعور المرافق دون إصدار أحكام ذاتية.\n"
+              . "3. الحفاظ على روتين نوم واستيقاظ منتظم مع ممارسة المشي الخفيف.";
+
+        $plan = "أهداف الجلسة القادمة: استكمال مناقشة سجل الأفكار وتطبيق تمارين إعادة الهيكلة المعرفية.\nالواجب المنزلي: ممارسة الاسترخاء وتدوين المواقف المثيرة للقلق بمعدل يومي.";
+
+        return [
+            'next_session_focus' => $focus,
+            'recommended_exercises' => ['تقنيات العلاج المعرفي السلوكي (Restructuration CBT)', 'تمارين الاسترخاء وإدارة القلق (Relaxation & Stress)', 'إدارة التشوهات المعرفية وسجل الأفكار (Thought Journal)'],
+            'target_metrics' => 'خفض مؤشر الضيق SUDS إلى أقل من 30 مع تسجيل 3 مواقف في سجل الأفكار.',
+            'home_protocol' => $home,
+            'soap_plan_text' => $plan,
+        ];
+    }
+
+    /**
+     * Optional LLM query for PEI goals.
+     */
+    private function queryOpenAiForGoals(Patient $patient, string $specialty, string $notes, string $lang, string $apiKey): ?array
+    {
+        $prompt = "En tant qu'expert en {$specialty}, génère 4 objectifs thérapeutiques SMART (court et moyen terme) pour ce patient:\nNotes cliniques: {$notes}\nFormat JSON: un tableau d'objets avec id, title, text, domain, type (short_term/medium_term), target_sessions, baseline_level, mastery_threshold, measurement_tool, suggested_exercises.";
+        $response = Http::withHeaders(['Authorization' => "Bearer {$apiKey}"])->timeout(20)->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'system', 'content' => "Tu es un expert médical clinique en rééducation et psychothérapie. Réponds en {$lang}."],
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+        if ($response->successful()) {
+            $data = $response->json('choices.0.message.content');
+            $decoded = json_decode($data, true);
+            return $decoded['goals'] ?? $decoded['objectifs'] ?? array_values($decoded)[0] ?? null;
+        }
+        return null;
+    }
+
+    /**
+     * Optional LLM query for next session.
+     */
+    private function queryOpenAiForNextSession(Patient $patient, string $specialty, array $sessionData, string $lang, string $apiKey): ?array
+    {
+        $prompt = "Génère le blueprint de la prochaine séance et le protocole de guidance parentale à domicile pour ce patient en {$specialty}.\nDonnées séance: " . json_encode($sessionData, JSON_UNESCAPED_UNICODE) . "\nFormat JSON avec: next_session_focus, recommended_exercises, target_metrics, home_protocol, soap_plan_text.";
+        $response = Http::withHeaders(['Authorization' => "Bearer {$apiKey}"])->timeout(20)->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'system', 'content' => "Tu es un superviseur clinique chevronné. Réponds en {$lang}."],
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+        if ($response->successful()) {
+            $data = $response->json('choices.0.message.content');
+            return json_decode($data, true);
+        }
+        return null;
     }
 }
+

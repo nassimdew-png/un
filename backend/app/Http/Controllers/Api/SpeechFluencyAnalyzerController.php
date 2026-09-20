@@ -101,24 +101,35 @@ class SpeechFluencyAnalyzerController extends Controller
 
         $systemInstruction = <<<SYS
 أنت أخصائي أرطوفونيا وعلم الصوتيات العيادي المتخصص في تشخيص التأتأة وعثرات طلاقة الكلام (Speech-Language Pathologist & Phonetician).
-المهمة: تحليل المقطع الصوتي للمريض وحساب القياسات الكمية والنوعية لطلاقة الكلام بدقة متناهية:
-1. التفريغ الصوتي الحرفي الكامل (Transcript).
-2. حساب الحجم اللفظي (الكلمات والمقاطع الصوتية التقريبية).
-3. تحديد وتصنيف كل عثرة كلامية بدقة:
-   - تكرار (Repetition): تكرار صوت، مقطع، أو كلمة كاملة.
-   - إطالة (Prolongation): مد الأصوات الصامتة أو الصائتة لأكثر من 0.5 ثانية.
-   - حبسة (Block): توقف صامت أو انسداد هوائي قبل انطلاق الصوت (>0.5 ثانية).
-   - حشوات وتداخلات (Interjections).
-4. حساب نسبة المقاطع المتأتأة: %SS = (المقاطع المتأتأة / إجمالي المقاطع) * 100.
-5. تحديد درجة الشدة (Severity Level):
-   - "mild": %SS أقل من 4%
-   - "moderate": %SS من 4% إلى 9%
-   - "severe": %SS من 9% إلى 15%
-   - "very_severe": %SS أكبر من 15%
-6. وضع خطة علاجية أرطوفونية عملية وتقنيات مستهدفة (مثل Easy Onset، تمديد الكلام، التنفس الحجابي) وإرشادات للأسرة.
+المهمة: تحليل المقطع الصوتي للمريض وحساب القياسات الكمية والنوعية لطلاقة الكلام بدقة متناهية.
 
-أرجع النتيجة بصيغة JSON حصراً بهذا الهيكل:
+🚨 قاعدة النزاهة والأمان السريري الصارمة (CRITICAL SPEECH INTEGRITY GUARDRAIL):
+1. تحقق أولاً وبدقة متناهية مما إذا كان المقطع الصوتي يحتوي بالفعل على كلام بشري مسموع ومنطوق للمفحوص.
+2. إذا كان الصوت عبارة عن صمت، أو نغمة جيبية أحادية (مثل نغمة 440Hz)، أو موسيقى بدون كلام، أو ضوضاء فقط، أو لا يحتوي على أي كلام بشري مسموع، فيجب عليك إرجاع JSON التالي تماماً دون اختلاق أي عثرات أو نسبة تأتأة وهمية:
 {
+  "has_speech": false,
+  "transcript": "",
+  "duration_seconds": 0,
+  "total_words": 0,
+  "total_syllables": 0,
+  "stuttered_syllables_percentage": 0,
+  "repetition_count": 0,
+  "prolongation_count": 0,
+  "block_count": 0,
+  "avg_block_duration_sec": 0,
+  "speech_rate_wpm": 0,
+  "severity_level": "none",
+  "disfluency_events": [],
+  "phonetic_analysis_summary": "لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع. لا يمكن إجراء فحص لطلاقة الكلام لعدم وجود إشارات نطقية مسموعة.",
+  "targeted_therapy_techniques": [],
+  "home_guidelines_for_parents": [],
+  "error": "لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع. يرجى التأكد من الميكروفون ونقاء الصوت ثم إعادة التسجيل."
+}
+3. ممنوع منعاً باتاً اختلاق أحداث عثرات، حبسات، أو حساب نسبة %SS وهمية إذا لم يكن هناك كلام بشري منطوق وحقيقي في الصوت.
+
+إذا كان هناك كلام بشري حقيقي، قم بقياس وتحليل طلاقة الكلام بدقة وأرجع النتيجة بصيغة JSON التالية:
+{
+  "has_speech": true,
   "transcript": "النص الكامل للمقطع مع الكلمات...",
   "duration_seconds": 15.0,
   "total_words": 32,
@@ -174,6 +185,7 @@ SYS;
         $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
         $assessmentData = null;
         $errorMsg = '';
+        $noSpeechDetected = false;
 
         foreach ($models as $model) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
@@ -190,7 +202,7 @@ SYS;
                                 ]
                             ],
                             [
-                                'text' => "قم بفحص وتحليل طلاقة النطق والعثرات وحساب نسبة التأتأة والشدة بصيغة JSON."
+                                'text' => "افحص المقطع الصوتي وتحقق أولاً من وجود كلام بشري، ثم قم بتحليل طلاقة النطق والعثرات وحساب نسبة التأتأة بصيغة JSON."
                             ]
                         ]
                     ]
@@ -213,7 +225,15 @@ SYS;
                     $json = $response->json();
                     $rawText = $json['candidates'][0]['content']['parts'][0]['text'] ?? '';
                     $decoded = json_decode(trim($rawText), true);
-                    if ($decoded && isset($decoded['stuttered_syllables_percentage'])) {
+
+                    // Check for strict no-speech detection
+                    if ($decoded && isset($decoded['has_speech']) && $decoded['has_speech'] === false) {
+                        $noSpeechDetected = true;
+                        $errorMsg = $decoded['error'] ?? 'لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع.';
+                        break;
+                    }
+
+                    if ($decoded && isset($decoded['stuttered_syllables_percentage']) && !empty($decoded['transcript']) && trim($decoded['transcript']) !== '') {
                         $assessmentData = $decoded;
                         break;
                     }
@@ -225,13 +245,22 @@ SYS;
             }
         }
 
-        if (!$assessmentData) {
+        if ($noSpeechDetected) {
+            return response()->json([
+                'success' => false,
+                'has_speech' => false,
+                'message' => $errorMsg ?: 'لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع. لا يمكن إجراء فحص لطلاقة النطق دون صوت مسموع.',
+            ], 422);
+        }
+
+        if (!$assessmentData || empty($assessmentData['transcript'])) {
             Log::error("Fluency Analysis Failed: " . $errorMsg);
             return response()->json([
                 'success' => false,
-                'message' => 'تعذر تحليل طلاقة النطق. يرجى التأكد من نقاء الصوت وإعادة المحاولة.',
+                'has_speech' => false,
+                'message' => 'تعذر تحليل طلاقة النطق لعدم وضوح الإشارات الصوتية أو غياب الكلام المسموع. يرجى التأكد من الميكروفون وإعادة المحاولة.',
                 'error_detail' => $errorMsg,
-            ], 500);
+            ], 422);
         }
 
         // Save assessment to database

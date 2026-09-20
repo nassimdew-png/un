@@ -228,8 +228,8 @@ export default function VoiceScribeRecorderModal({
               🎙️
             </div>
             <div>
-              <h3 className="text-base font-black text-white flex items-center space-x-2 space-x-reverse">
-                <span>المساعد الصوتي وتدوين الملاحظات السريرية (Voice SOAP Scribe)</span>
+              <h3 data-testid="ambient-scribe-modal" className="text-base font-black text-white flex items-center space-x-2 space-x-reverse">
+                <span>تفريغ صوتي ذكي للملاحظات السريرية (Voice SOAP Scribe)</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   Clinical AI Scribe
                 </span>

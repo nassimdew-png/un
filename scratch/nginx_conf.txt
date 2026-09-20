@@ -1,0 +1,6 @@
+=== Nginx sites enabled ===
+--- File: /etc/nginx/sites-enabled/* ---
+
+--- STDERR ---
+ls: cannot access '/etc/nginx/sites-enabled/': No such file or directory
+cat: '/etc/nginx/sites-enabled/*': No such file or directory

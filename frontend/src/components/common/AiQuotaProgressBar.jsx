@@ -21,6 +21,13 @@ export default function AiQuotaProgressBar({ onOpenUpgradeModal }) {
 
   useEffect(() => {
     fetchQuota();
+    const handleQuotaUpdated = () => {
+      fetchQuota();
+    };
+    window.addEventListener('clinic:ai-quota-updated', handleQuotaUpdated);
+    return () => {
+      window.removeEventListener('clinic:ai-quota-updated', handleQuotaUpdated);
+    };
   }, []);
 
   if (loading || !quotaData) return null;

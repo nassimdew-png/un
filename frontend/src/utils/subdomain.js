@@ -2,12 +2,22 @@
  * Extracts tenant subdomain or custom domain from current window location hostname.
  * Returns null if accessing from root platform domain, localhost, or IP address.
  */
+export function getBaseDomain() {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  if (hostname.includes('psysnap.com')) return 'psysnap.com';
+  if (hostname.includes('psypro.tech')) return 'psypro.tech';
+  return 'psysnap.com';
+}
+
 export function getTenantSubdomain() {
   const hostname = window.location.hostname;
   
   if (
     hostname === 'localhost' ||
     hostname === '127.0.0.1' ||
+    hostname === 'psysnap.com' ||
+    hostname === 'www.psysnap.com' ||
+    hostname === 'admin.psysnap.com' ||
     hostname === 'psypro.tech' ||
     hostname === 'www.psypro.tech' ||
     hostname === 'admin.psypro.tech' ||
@@ -17,6 +27,14 @@ export function getTenantSubdomain() {
     const params = new URLSearchParams(window.location.search);
     const querySub = params.get('tenant') || params.get('subdomain');
     return querySub || null;
+  }
+
+  if (hostname.endsWith('.psysnap.com')) {
+    const sub = hostname.replace('.psysnap.com', '').trim();
+    if (sub && sub !== 'www' && sub !== 'admin' && sub !== 'api') {
+      return sub;
+    }
+    return null;
   }
 
   if (hostname.endsWith('.psypro.tech')) {

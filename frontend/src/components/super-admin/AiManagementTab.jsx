@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   HelpCircle,
-
   Sparkles,
   Brain,
   Key,
@@ -20,8 +19,11 @@ import {
   Clock,
   ChevronRight,
   TrendingUp,
-  Search
-
+  Search,
+  Globe,
+  BookOpen,
+  ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { superAdminAiApi, supportApi } from '../../api';
 

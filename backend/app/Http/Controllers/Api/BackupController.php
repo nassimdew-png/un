@@ -106,4 +106,30 @@ class BackupController extends Controller
             'Content-Type' => 'application/gzip',
         ]);
     }
+
+    public function index(): JsonResponse
+    {
+        return $this->listBackups();
+    }
+
+    public function createBackupNow(): JsonResponse
+    {
+        return $this->createBackup();
+    }
+
+    public function deleteBackup(string $filename): JsonResponse
+    {
+        if (!preg_match('/^[a-zA-Z0-9_\-\.]+\.(sql|sql\.gz)$/', $filename)) {
+            return response()->json(['message' => 'Nom de fichier invalide.'], 400);
+        }
+
+        $filepath = storage_path('app/backups/' . $filename);
+        if (File::exists($filepath)) {
+            File::delete($filepath);
+            return response()->json(['success' => true, 'message' => 'Sauvegarde supprimée avec succès.']);
+        }
+
+        return response()->json(['message' => 'Fichier introuvable.'], 404);
+    }
 }
+

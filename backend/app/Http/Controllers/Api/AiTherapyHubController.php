@@ -133,11 +133,21 @@ PROMPT;
             'format_json' => true,
         ]);
 
+        $pepData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            if (str_starts_with($raw, '```json')) $raw = substr($raw, 7);
+            if (str_ends_with($raw, '```')) $raw = substr($raw, 0, -3);
+            $pepData = json_decode(trim($raw), true);
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'pep' => $pepData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -147,9 +157,9 @@ PROMPT;
     {
         $validated = $request->validate([
             'patient_id' => 'nullable|integer|exists:patients,id',
-            'content_type' => 'required|string|in:social_story,articulation_cards,home_worksheet,visual_schedule,darja_pragmatics',
+            'content_type' => 'required|string',
             'target_goal' => 'required|string',
-            'target_age' => 'nullable|integer',
+            'target_age' => 'nullable',
             'child_name' => 'nullable|string',
             'environment_setting' => 'nullable|string',
         ]);
@@ -158,9 +168,9 @@ PROMPT;
         $tenant = $user->tenant_id ? Tenant::find($user->tenant_id) : null;
         $patient = !empty($validated['patient_id']) ? Patient::find($validated['patient_id']) : null;
 
-        $childName = $validated['child_name'] ?: ($patient ? $patient->first_name : 'أنيس');
-        $age = $validated['target_age'] ?: ($patient ? $patient->age : 6);
-        $setting = $validated['environment_setting'] ?: 'المدرسة والبيت وحانوت الحومة';
+        $childName = !empty($validated['child_name']) ? $validated['child_name'] : ($patient ? $patient->first_name : 'أنيس');
+        $age = !empty($validated['target_age']) ? (int)$validated['target_age'] : ($patient ? $patient->age : 6);
+        $setting = !empty($validated['environment_setting']) ? $validated['environment_setting'] : 'المدرسة والبيت وحانوت الحومة';
 
         $systemPrompt = "أنت أخصائي أرطوفوني ونفسي جزائري خبير في صياغة المحتوى العلاجي والتأهيلي التفاعلي المتكيف تماماً مع الثقافة والبيئة اليومية الجزائرية (أسماء، أماكن، كلمات يومية، عادات، عائلة).";
 
@@ -190,10 +200,11 @@ PROMPT;
         ]);
 
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -238,11 +249,21 @@ PROMPT;
             'format_json' => true,
         ]);
 
+        $soapData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            if (str_starts_with($raw, '```json')) $raw = substr($raw, 7);
+            if (str_ends_with($raw, '```')) $raw = substr($raw, 0, -3);
+            $soapData = json_decode(trim($raw), true);
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'soap' => $soapData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -254,7 +275,7 @@ PROMPT;
             'patient_id' => 'nullable|integer|exists:patients,id',
             'behavior_target' => 'required|string',
             'child_name' => 'nullable|string',
-            'child_age' => 'nullable|integer',
+            'child_age' => 'nullable',
             'cultural_setting' => 'nullable|string',
         ]);
 
@@ -262,9 +283,9 @@ PROMPT;
         $tenant = $user->tenant_id ? Tenant::find($user->tenant_id) : null;
         $patient = !empty($validated['patient_id']) ? Patient::find($validated['patient_id']) : null;
 
-        $name = $validated['child_name'] ?: ($patient ? $patient->first_name : 'أمين');
-        $age = $validated['child_age'] ?: ($patient ? $patient->age : 6);
-        $setting = $validated['cultural_setting'] ?: 'المدرسة والبيت الجزائري';
+        $name = !empty($validated['child_name']) ? $validated['child_name'] : ($patient ? $patient->first_name : 'أمين');
+        $age = !empty($validated['child_age']) ? (int)$validated['child_age'] : ($patient ? $patient->age : 6);
+        $setting = !empty($validated['cultural_setting']) ? $validated['cultural_setting'] : 'المدرسة والبيت الجزائري';
 
         $systemPrompt = "أنت خبير في علم النفس العصبي وتعديل السلوك التواصلي، متخصص في بناء القصص الاجتماعية المصورة (Carol Gray Social Stories) المتكيفة مع الثقافة واللهجة الجزائرية المحببة للطفل.";
 
@@ -320,11 +341,23 @@ PROMPT;
             'format_json' => true,
         ]);
 
+        $storyData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            $cleanJson = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', $raw);
+            $decoded = json_decode(trim($cleanJson), true);
+            if (is_array($decoded)) {
+                $storyData = $decoded;
+            }
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'story' => $storyData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -336,7 +369,7 @@ PROMPT;
             'patient_id' => 'nullable|integer|exists:patients,id',
             'therapy_goal' => 'required|string',
             'duration_minutes' => 'required|integer|in:3,5,10,15',
-            'target_age' => 'nullable|integer',
+            'target_age' => 'nullable',
             'technique' => 'nullable|string',
         ]);
 
@@ -344,7 +377,7 @@ PROMPT;
         $tenant = $user->tenant_id ? Tenant::find($user->tenant_id) : null;
         $patient = !empty($validated['patient_id']) ? Patient::find($validated['patient_id']) : null;
 
-        $age = $validated['target_age'] ?: ($patient ? $patient->age : 10);
+        $age = !empty($validated['target_age']) ? (int)$validated['target_age'] : ($patient ? $patient->age : 10);
         $technique = $validated['technique'] ?: 'cardiac_coherence';
 
         $systemPrompt = "أنت معالج نفسي سريري وأخصائي أرطوفونيا خبير في تقنيات الاسترخاء الطبي، التنفس الواعي (Coherence Cardiaque)، والاسترخاء العضلي التدريجي (Jacobson/Schultz).";
@@ -393,11 +426,21 @@ PROMPT;
             'format_json' => true,
         ]);
 
+        $sessionData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            if (str_starts_with($raw, '```json')) $raw = substr($raw, 7);
+            if (str_ends_with($raw, '```')) $raw = substr($raw, 0, -3);
+            $sessionData = json_decode(trim($raw), true);
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'session' => $sessionData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -408,7 +451,7 @@ PROMPT;
         $validated = $request->validate([
             'patient_id' => 'nullable|integer|exists:patients,id',
             'test_type' => 'required|string',
-            'child_age' => 'nullable|integer',
+            'child_age' => 'nullable',
             'drawing_image' => 'nullable|string',
             'clinical_notes' => 'nullable|string',
         ]);
@@ -417,7 +460,7 @@ PROMPT;
         $tenant = $user->tenant_id ? Tenant::find($user->tenant_id) : null;
         $patient = !empty($validated['patient_id']) ? Patient::find($validated['patient_id']) : null;
 
-        $age = $validated['child_age'] ?: ($patient ? $patient->age : 7);
+        $age = !empty($validated['child_age']) ? (int)$validated['child_age'] : ($patient ? $patient->age : 7);
         $notes = $validated['clinical_notes'] ?? 'لا توجد ملاحظات سلوكية مسبقة.';
 
         $systemPrompt = "Vous êtes un psychologue clinicien expert en épreuves projectives graphiques chez l'enfant et l'adolescent (Test du Bonhomme de Goodenough-Harris, Dessin de la Famille de Corman, Test de l'Arbre de Koch). Vous proposez des hypothèses cliniques prudentes, rigoureuses et non déterministes.";
@@ -458,11 +501,21 @@ PROMPT;
             ]);
         }
 
+        $analysisData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            if (str_starts_with($raw, '```json')) $raw = substr($raw, 7);
+            if (str_ends_with($raw, '```')) $raw = substr($raw, 0, -3);
+            $analysisData = json_decode(trim($raw), true);
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'analysis' => $analysisData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**
@@ -536,8 +589,16 @@ PROMPT;
             'format_json' => true,
         ]);
 
+        $wiscData = null;
+        if (!empty($result['content'])) {
+            $raw = trim($result['content']);
+            if (str_starts_with($raw, '```json')) $raw = substr($raw, 7);
+            if (str_ends_with($raw, '```')) $raw = substr($raw, 0, -3);
+            $wiscData = json_decode(trim($raw), true);
+        }
+
         return response()->json([
-            'success' => true,
+            'success' => $result['success'] ?? true,
             'metrics' => [
                 'vci' => $vci,
                 'vsi' => $vsi,
@@ -550,8 +611,10 @@ PROMPT;
                 'cpi' => $cpi,
             ],
             'data' => $result,
+            'content' => $result['content'] ?? '',
+            'interpretation' => $wiscData,
             'patient' => $patient,
-        ]);
+        ], !empty($result['success']) ? 200 : 422);
     }
 
     /**

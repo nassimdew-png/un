@@ -54,7 +54,7 @@ class PlatformFeatureFlag extends Model
     public static function seedDefaults(): void
     {
         foreach (self::getDefaultFeatures() as $item) {
-            self::updateOrCreate(
+            self::firstOrCreate(
                 ['feature_key' => $item['feature_key']],
                 [
                     'feature_name' => $item['feature_name'],
@@ -62,9 +62,7 @@ class PlatformFeatureFlag extends Model
                     'maintenance_message' => 'هذه الميزة قيد الصيانة والتطوير مؤقتاً.',
                 ]
             );
-            Cache::forget("platform_feature_{$item['feature_key']}");
         }
-        Cache::forget('platform_all_feature_flags');
     }
 
     /**

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   Upload,
@@ -20,6 +20,13 @@ export default function DrawingAnalyzerStudio({ selectedPatient, onSaveToPatient
   const [loading, setLoading] = useState(false);
   const [analysisOutput, setAnalysisOutput] = useState(null);
   const [error, setError] = useState(null);
+
+  // Synchronize state when target patient changes
+  useEffect(() => {
+    if (selectedPatient && selectedPatient.age) {
+      setChildAge(selectedPatient.age);
+    }
+  }, [selectedPatient]);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];

@@ -1,0 +1,69 @@
+=== Docker Containers ===
+CONTAINER ID   IMAGE                     COMMAND                  CREATED       STATUS                 PORTS                                                                                                                   NAMES
+1572e44562a0   dokploy/dokploy:v0.30.2   "docker-entrypoint.s…"   10 days ago   Up 10 days (healthy)   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp                                                                             dokploy.1.a4og8upqjnd4zxmvcfz79bego
+39329ca6ce49   postgres:16               "docker-entrypoint.s…"   12 days ago   Up 12 days             5432/tcp                                                                                                                dokploy-postgres.1.c2wqp7fm3dmbdb273j9b16snv
+70010b213b03   redis:alpine              "docker-entrypoint.s…"   3 weeks ago   Up 12 days             127.0.0.1:6379->6379/tcp                                                                                                clinic_redis
+567223a175a8   mysql:8.0                 "docker-entrypoint.s…"   3 weeks ago   Up 2 days              127.0.0.1:3306->3306/tcp, 33060/tcp                                                                                     clinic_mysql
+4df4615d5a72   traefik:v3.6.7            "/entrypoint.sh trae…"   3 weeks ago   Up 11 days             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 0.0.0.0:443->443/udp, [::]:443->443/udp   dokploy-traefik
+=== PM2 ecosystem or script for frontend ===
+ Describing process with id 1 - name clinic-frontend 
+┌────────────────────┬──────────────────────────────────────────────────────┐
+│ status             │ online                                               │
+│ name               │ clinic-frontend                                      │
+│ namespace          │ default                                              │
+│ version            │ 1.0.0                                                │
+│ restarts           │ 45                                                   │
+│ max memory restart │ 524288000                                            │
+│ uptime             │ 2m                                                   │
+│ script path        │ /var/www/clinic-saas/frontend/node_modules/.bin/vite │
+│ script args        │ preview --host 0.0.0.0 --port 3001                   │
+│ error log path     │ /root/.pm2/logs/clinic-frontend-error.log            │
+│ out log path       │ /root/.pm2/logs/clinic-frontend-out.log              │
+│ pid path           │ /root/.pm2/pids/clinic-frontend-1.pid                │
+│ interpreter        │ /usr/bin/node                                        │
+│ interpreter args   │ N/A                                                  │
+│ script id          │ 1                                                    │
+│ exec cwd           │ /var/www/clinic-saas/frontend                        │
+│ exec mode          │ fork_mode                                            │
+│ node.js version    │ 20.20.2                                              │
+│ node env           │ production                                           │
+│ watch & reload     │ ✘                                                    │
+│ unstable restarts  │ 0                                                    │
+│ created at         │ 2026-09-14T00:13:38.646Z                             │
+└────────────────────┴──────────────────────────────────────────────────────┘
+ Actions available 
+┌────────────────────────┐
+│ km:heapdump            │
+│ km:cpu:profiling:start │
+│ km:cpu:profiling:stop  │
+│ km:heap:sampling:start │
+│ km:heap:sampling:stop  │
+└────────────────────────┘
+ Trigger via: pm2 trigger clinic-frontend <action_name>
+
+ Code metrics value 
+┌────────────────────────┬──────────────────────┐
+│ Heap Size              │ 22.80 MiB            │
+│ Heap Usage             │ 95.68 %              │
+│ Used Heap Size         │ 21.81 MiB            │
+│ Active requests        │ 0                    │
+│ Active handles         │ 6                    │
+│ Event Loop Latency     │ 0.62 ms              │
+│ Event Loop Latency p95 │ 1.93 ms              │
+│ HTTP Mean Latency      │ 4 ms                 │
+│ HTTP P95 Latency       │ 37.19999999999976 ms │
+│ HTTP                   │ 0.49 req/min         │
+└────────────────────────┴──────────────────────┘
+ Divergent env variables from local env 
+┌────────────────┬─────────────────────────────────────────┐
+│ PWD            │ /var/www/clinic-saas/frontend           │
+│ SSH_CONNECTION │ 105.235.131.228 57844 145.223.116.54 22 │
+│ SHLVL          │ 2                                       │
+│ XDG_SESSION_ID │ 135                                     │
+│ SSH_CLIENT     │ 105.235.131.228 57844 22                │
+└────────────────┴─────────────────────────────────────────┘
+
+ Add your own code metrics: http://bit.ly/code-metrics
+ Use `pm2 logs clinic-frontend [--lines 1000]` to display logs
+ Use `pm2 env 1` to display environment variables
+ Use `pm2 monit` to monitor CPU and Memory usage clinic-frontend

@@ -15,8 +15,14 @@ import {
   Activity,
   Tv,
   GraduationCap,
-  MessageSquare
+  MessageSquare,
+  Check
 } from 'lucide-react';
+import {
+  normalizeWhatsAppPhone,
+  formatWhatsAppDisplayPhone,
+  buildWhatsAppLinks
+} from '../../utils/phoneHelper';
 
 export default function PreIntakeReviewModal({
   isOpen,
@@ -28,6 +34,7 @@ export default function PreIntakeReviewModal({
   const [loading, setLoading] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
   const [preIntakeLink, setPreIntakeLink] = useState('');
   const [error, setError] = useState('');
 
@@ -52,26 +59,58 @@ export default function PreIntakeReviewModal({
     }
   };
 
-  const copyToClipboard = () => {
-    if (!preIntakeLink) return;
-    navigator.clipboard.writeText(preIntakeLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const activeLink =
+    preIntakeLink ||
+    (patient?.pre_intake_token
+      ? `${window.location.origin}/pre-intake/${patient.pre_intake_token}`
+      : `${window.location.origin}/pre-intake`);
+
+  const cleanPhone = normalizeWhatsAppPhone(patient?.phone);
+  const formattedPhone = formatWhatsAppDisplayPhone(patient?.phone);
+  const clinicName = tenant?.name || tenant?.header_title_ar || 'العيادة التخصصية';
+  const childName = patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'الطفل';
+
+  const preparedMsg = `السلام عليكم ولي أمر الطفل (*${childName}*) المحترم، نرحب بكم في *${clinicName}* 🏥\n\nيرجى التفضل بملء استمارة السوابق النمائية والتطورية المسبقة عبر هذا الرابط الآمن قبل موعد الجلسة:\n🔗 ${activeLink}\n\nشكراً لتعاونكم معنا!`;
+
+  const { waMeUrl, apiWaUrl } = buildWhatsAppLinks(cleanPhone, preparedMsg);
+
+  const copyToClipboard = async () => {
+    if (!activeLink) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(activeLink);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = activeLink;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (e) {
+      console.warn('Copy link failed:', e);
+    }
   };
 
-  const sendViaWhatsApp = () => {
-    if (!patient.phone) {
-      alert('لا يوجد رقم هاتف مسجل لهذا المريض.');
-      return;
+  const copyMessageToClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(preparedMsg);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = preparedMsg;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedMsg(true);
+      setTimeout(() => setCopiedMsg(false), 2500);
+    } catch (e) {
+      console.warn('Copy message failed:', e);
     }
-    let phoneNum = patient.phone.replace(/[^0-9]/g, '');
-    if (phoneNum.startsWith('0')) phoneNum = '213' + phoneNum.substring(1);
-
-    const link = preIntakeLink || `${window.location.origin}/pre-intake/${patient.pre_intake_token || ''}`;
-    const text = encodeURIComponent(
-      `السلام عليكم ولي أمر الطفل ${patient.first_name}، نرحب بكم في ${tenant?.name || 'العيادة'}.\nيرجى التفضل بملء استمارة السوابق النمائية المسبقة عبر هذا الرابط الآمن قبل الموعد:\n${link}`
-    );
-    window.open(`https://wa.me/${phoneNum}?text=${text}`, '_blank');
   };
 
   const handleApprove = async () => {
@@ -145,10 +184,14 @@ export default function PreIntakeReviewModal({
           )}
 
           {/* Quick Link Generator Card */}
-          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+          <div
+            className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3"
+            data-testid="whatsapp-preintake-preview"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-300">
-                رابط الاستمارة المخصص للولي (عبر الهاتف / واتساب):
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <MessageSquare className="w-4 h-4 text-emerald-400" />
+                <span>رابط واستمارة الاستقبال المسبق للولي (Pre-Intake Link):</span>
               </span>
               <button
                 type="button"
@@ -160,32 +203,58 @@ export default function PreIntakeReviewModal({
               </button>
             </div>
 
-            {(preIntakeLink || patient.pre_intake_token) && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={preIntakeLink || `${window.location.origin}/pre-intake/${patient.pre_intake_token}`}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-teal-300 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={copyToClipboard}
-                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center space-x-1 space-x-reverse"
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={activeLink}
+                className="flex-1 min-w-[200px] bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-teal-300 font-mono select-all"
+              />
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                data-testid="copy-preintake-link-btn"
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'تم النسخ' : 'نسخ الرابط'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={copyMessageToClipboard}
+                data-testid="copy-preintake-message-btn"
+                className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1"
+              >
+                {copiedMsg ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedMsg ? 'تم نسخ الرسالة' : 'نسخ نص الرسالة'}</span>
+              </button>
+              {cleanPhone && (
+                <a
+                  href={waMeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="open-whatsapp-link"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copied ? 'تم النسخ' : 'نسخ'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={sendViaWhatsApp}
-                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-1 space-x-reverse"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>واتساب</span>
-                </button>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>واتساب ({formattedPhone})</span>
+                </a>
+              )}
+            </div>
+
+            {/* Render full prepared text in textarea for automated test verification */}
+            <div className="pt-1">
+              <div className="text-[11px] font-bold text-slate-400 mb-1">
+                معاينة نص الرسالة التلقائي:
               </div>
-            )}
+              <textarea
+                readOnly
+                value={preparedMsg}
+                rows={3}
+                data-testid="whatsapp-preintake-message"
+                className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800/80 text-slate-300 text-xs font-sans resize-none"
+              />
+            </div>
           </div>
 
           {/* Display Submitted Data or Empty State */}

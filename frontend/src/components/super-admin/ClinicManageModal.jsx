@@ -23,23 +23,120 @@ import {
   Users,
   SlidersHorizontal,
   Zap,
-  Check
+  Check,
+  Lock,
+  Unlock,
+  CopyPlus,
+  Download,
+  KeyRound,
+  Eye,
+  EyeOff,
+  CreditCard
 } from 'lucide-react';
-import { superAdminApi } from '../../api';
+import { superAdminApi, sovereignTowerApi } from '../../api';
 
 export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose, onRefresh }) {
   const { t } = useTranslation();
   const [loadingAction, setLoadingAction] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  // Password Reset State
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+
+  // Canonical Algerian Subscription Plans Catalog with aliases
+  const CANONICAL_PLANS = [
+    { id: 1, slug: 'solo_starter', aliases: ['solo', 'pro', 'solo_starter', '1', 'cabinet solo'], name_ar: 'باقة الأخصائي الفردي (Cabinet Solo)', price_monthly: 4500, price_yearly: 45000 },
+    { id: 2, slug: 'multi_pro', aliases: ['multi_pro', 'multipro', 'multi', '2', 'centre multi-pro'], name_ar: 'باقة المركز المتكامل (Centre Multi-Pro)', price_monthly: 9500, price_yearly: 95000 },
+    { id: 3, slug: 'enterprise_dz', aliases: ['enterprise', 'enterprise_dz', 'reseau', '3', 'enterprise dz'], name_ar: 'باقة المؤسسات والشبكات (Enterprise DZ)', price_monthly: 18000, price_yearly: 180000 },
+    { id: 4, slug: 'starter', aliases: ['starter', 'debutant', '4'], name_ar: 'باقة الانطلاقة (Débutant / Starter)', price_monthly: 2500, price_yearly: 25000 },
+    { id: 5, slug: 'duo', aliases: ['duo', 'duo_partage', '5'], name_ar: 'باقة العيادة المشتركة (Duo Partagé)', price_monthly: 7500, price_yearly: 72000 },
+  ];
+
+  const resolvePlan = (planIdOrSlug, planList = CANONICAL_PLANS) => {
+    if (!planIdOrSlug) return CANONICAL_PLANS[0];
+    const str = String(planIdOrSlug).toLowerCase().trim();
+    const found = CANONICAL_PLANS.find(p => String(p.id) === str || p.slug === str || p.aliases.includes(str));
+    if (found && Array.isArray(planList) && planList.length > 0) {
+      const backendMatch = planList.find(bp => String(bp.id) === String(found.id) || bp.slug === found.slug || found.aliases.includes(String(bp.slug || '').toLowerCase()));
+      if (backendMatch) {
+        return {
+          ...found,
+          id: found.id,
+          price_yearly: Number(backendMatch.price_yearly) > 0 ? Number(backendMatch.price_yearly) : found.price_yearly,
+          price_monthly: Number(backendMatch.price_monthly) > 0 ? Number(backendMatch.price_monthly) : found.price_monthly,
+          name_ar: backendMatch.name_ar || found.name_ar,
+        };
+      }
+    }
+    return found || CANONICAL_PLANS[0];
+  };
+
   // Custom Plan Assignment Form State
   const [showCustomPlanForm, setShowCustomPlanForm] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState(clinic?.subscription?.plan_id || (plans[0]?.id || ''));
-  const [billingCycle, setBillingCycle] = useState(clinic?.subscription?.billing_cycle || 'yearly');
-  const [startsAt, setStartsAt] = useState(clinic?.subscription?.starts_at || new Date().toISOString().split('T')[0]);
-  const [endsAt, setEndsAt] = useState(clinic?.subscription?.ends_at || '');
-  const [paymentRef, setPaymentRef] = useState(clinic?.subscription?.payment_reference || '');
-  const [notes, setNotes] = useState(clinic?.subscription?.notes || '');
+  const [availablePlans, setAvailablePlans] = useState(CANONICAL_PLANS);
+  const [selectedPlanId, setSelectedPlanId] = useState(1);
+  const [billingCycle, setBillingCycle] = useState('yearly');
+  const [planAmount, setPlanAmount] = useState(45000);
+  const [paymentMethod, setPaymentMethod] = useState('baridimob');
+  const [startsAt, setStartsAt] = useState(new Date().toISOString().split('T')[0]);
+  const [endsAt, setEndsAt] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Synchronize available plans with backend if available
+  React.useEffect(() => {
+    if (plans && plans.length > 0) {
+      const merged = CANONICAL_PLANS.map(cp => {
+        const bp = plans.find(p => String(p.id) === String(cp.id) || p.slug === cp.slug || cp.aliases.includes(String(p.slug || '').toLowerCase()));
+        return bp ? { ...cp, price_yearly: Number(bp.price_yearly) > 0 ? Number(bp.price_yearly) : cp.price_yearly, price_monthly: Number(bp.price_monthly) > 0 ? Number(bp.price_monthly) : cp.price_monthly, name_ar: bp.name_ar || cp.name_ar } : cp;
+      });
+      setAvailablePlans(merged);
+    } else if (isOpen) {
+      superAdminApi.getPlans().then(res => {
+        if (res?.plans?.length) {
+          const merged = CANONICAL_PLANS.map(cp => {
+            const bp = res.plans.find(p => String(p.id) === String(cp.id) || p.slug === cp.slug || cp.aliases.includes(String(p.slug || '').toLowerCase()));
+            return bp ? { ...cp, price_yearly: Number(bp.price_yearly) > 0 ? Number(bp.price_yearly) : cp.price_yearly, price_monthly: Number(bp.price_monthly) > 0 ? Number(bp.price_monthly) : cp.price_monthly, name_ar: bp.name_ar || cp.name_ar } : cp;
+          });
+          setAvailablePlans(merged);
+        }
+      }).catch(() => {});
+    }
+  }, [plans, isOpen]);
+
+  // Synchronize clinic subscription details on open or clinic change
+  React.useEffect(() => {
+    if (clinic) {
+      const plan = resolvePlan(clinic.subscription?.plan_id || clinic.plan_id || clinic.subscription?.subscription_plan_id, availablePlans);
+      const cycle = clinic.subscription?.billing_cycle || clinic.billing_cycle || 'yearly';
+      setSelectedPlanId(plan.id);
+      setBillingCycle(cycle);
+      const price = cycle === 'monthly' ? plan.price_monthly : (cycle === 'lifetime' ? plan.price_yearly * 3 : (cycle === 'trial' ? 0 : plan.price_yearly));
+      setPlanAmount(price || 45000);
+      setPaymentMethod('baridimob');
+      setStartsAt(clinic.subscription?.starts_at ? new Date(clinic.subscription.starts_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setEndsAt(clinic.subscription?.ends_at ? new Date(clinic.subscription.ends_at).toISOString().split('T')[0] : '');
+      setNotes('');
+    }
+  }, [clinic, isOpen, showCustomPlanForm]);
+
+  const handleSelectPlan = (planId, cycle = billingCycle) => {
+    const matched = resolvePlan(planId, availablePlans);
+    setSelectedPlanId(matched.id);
+    let amount = matched.price_yearly;
+    if (cycle === 'monthly') amount = matched.price_monthly;
+    else if (cycle === 'lifetime') amount = matched.price_yearly * 3;
+    else if (cycle === 'trial') amount = 0;
+    setPlanAmount(amount);
+  };
+
+  const handleCycleChange = (newCycle) => {
+    setBillingCycle(newCycle);
+    handleSelectPlan(selectedPlanId, newCycle);
+  };
 
   // AI Quota State
   const [showAiQuotaForm, setShowAiQuotaForm] = useState(false);
@@ -137,17 +234,129 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
       const res = await superAdminApi.assignPlan(clinic.id, {
         plan_id: selectedPlanId,
         billing_cycle: billingCycle,
+        amount_dzd: parseFloat(planAmount) || 0,
+        payment_method: paymentMethod,
         starts_at: startsAt,
         ends_at: endsAt,
         payment_reference: paymentRef,
         notes: notes,
       });
-      setFeedback({ type: 'success', text: res.message || 'تم ربط الباقة بنجاح.' });
+      setFeedback({ type: 'success', text: res.message || 'تم تجديد وترقية الباقة بنجاح.' });
       setShowCustomPlanForm(false);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Error assigning plan:', err);
       setFeedback({ type: 'error', text: err.message || 'حدث خطأ أثناء ربط الباقة.' });
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleGenerateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let generated = '';
+    for (let i = 0; i < 10; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(generated);
+    setShowPasswordText(true);
+    setPasswordError(null);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('كلمة المرور يجب أن لا تقل عن 6 أحرف أو أرقام.');
+      return;
+    }
+    setPasswordError(null);
+    setLoadingAction(true);
+    setFeedback(null);
+    try {
+      const res = await superAdminApi.resetClinicPassword(clinic.id, newPassword);
+      setFeedback({
+        type: 'success',
+        text: res.message || `تم تحديث كلمة سر العيادة بنجاح! كلمة السر الجديدة: ${newPassword}`,
+      });
+      setShowPasswordForm(false);
+      setNewPassword('');
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error('Password reset failed:', err);
+      setPasswordError(err.response?.data?.message || err.message || 'فشل تغيير كلمة المرور.');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleToggleQuarantine = async () => {
+    const isQuar = clinic.is_quarantined;
+    if (isQuar) {
+      if (!window.confirm(`هل تريد رفع الحجر السيادي عن عيادة "${clinic.name}"؟`)) return;
+      setLoadingAction(true);
+      try {
+        const res = await sovereignTowerApi.liftQuarantine(clinic.id);
+        setFeedback({ type: 'success', text: res.message });
+        if (onRefresh) onRefresh();
+      } catch (err) {
+        setFeedback({ type: 'error', text: err.message || 'فشل رفع الحجر.' });
+      } finally {
+        setLoadingAction(false);
+      }
+    } else {
+      const reason = window.prompt('يرجى كتابة سبب الحجر والعزل السيادي لهذه العيادة:');
+      if (!reason) return;
+      setLoadingAction(true);
+      try {
+        const res = await sovereignTowerApi.quarantineClinic(clinic.id, { reason });
+        setFeedback({ type: 'success', text: res.message });
+        if (onRefresh) onRefresh();
+      } catch (err) {
+        setFeedback({ type: 'error', text: err.message || 'فشل تطبيق الحجر.' });
+      } finally {
+        setLoadingAction(false);
+      }
+    }
+  };
+
+  const handleQuickBumpQuota = async () => {
+    if (!window.confirm(`هل تريد شحن 100,000 توكن AI فوري لعيادة "${clinic.name}"؟`)) return;
+    setLoadingAction(true);
+    try {
+      const res = await sovereignTowerApi.instantQuotaBump(clinic.id, {
+        ai_tokens_add: 100000,
+        reason: 'شحن سريع من نافذة التحكم بالعيادة',
+      });
+      setFeedback({ type: 'success', text: res.message });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.message || 'فشل شحن الكوتا.' });
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleQuickCloneSandbox = async () => {
+    if (!window.confirm(`هل تريد استنساخ هذه العيادة في بيئة Sandbox تدريبية معزولة؟`)) return;
+    setLoadingAction(true);
+    try {
+      const res = await sovereignTowerApi.cloneTenantSandbox(clinic.id);
+      setFeedback({ type: 'success', text: `${res.message} (النطاق: ${res.sandbox?.subdomain}.psypro.tech)` });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.message || 'فشل استنساخ Sandbox.' });
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleQuickSnapshot = async () => {
+    setLoadingAction(true);
+    try {
+      const res = await sovereignTowerApi.createTenantSnapshot(clinic.id);
+      setFeedback({ type: 'success', text: res.message });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.message || 'فشل توليد Snapshot.' });
     } finally {
       setLoadingAction(false);
     }
@@ -200,7 +409,26 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
     }
   };
 
-  const sub = clinic.subscription;
+  const rawStatus = clinic.subscription?.status || clinic.status || 'active';
+  const planNameMap = {
+    pro: 'باقة المركز المتكامل (Pro)',
+    starter: 'باقة الانطلاقة (Starter)',
+    duo: 'باقة العيادة المشتركة (Duo)',
+    enterprise: 'باقة المؤسسات والشبكات (Enterprise)',
+  };
+
+  const endsAtRaw = clinic.subscription?.ends_at || clinic.subscription_ends_at;
+  const daysRemaining = endsAtRaw
+    ? Math.max(0, Math.ceil((new Date(endsAtRaw) - new Date()) / (1000 * 60 * 60 * 24)))
+    : clinic.subscription?.days_remaining;
+
+  const sub = clinic.subscription || {
+    status: rawStatus,
+    status_label_ar: rawStatus === 'active' ? 'نشط' : (rawStatus === 'trial' || rawStatus === 'trialing' ? 'فترة تجريبية' : (rawStatus === 'suspended' ? 'مجمد' : 'غير محدد')),
+    plan_name_ar: clinic.subscription?.plan_name_ar || clinic.plan_name || planNameMap[clinic.plan_id] || (clinic.plan_id ? `باقة ${clinic.plan_id.toUpperCase()}` : 'باقة مخصصة'),
+    ends_at: endsAtRaw ? new Date(endsAtRaw).toLocaleDateString('ar-DZ') : 'مفتوح',
+    days_remaining: daysRemaining,
+  };
   const metrics = clinic.metrics || {};
 
   return (
@@ -258,15 +486,54 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
               <User className="w-3.5 h-3.5 text-brand-400" />
               الطبيب / الأخصائي المسؤول
             </h4>
-            <div className="text-sm font-bold text-white">{clinic.owner?.name || 'غير محدد'}</div>
-            <div className="space-y-1 text-xs text-slate-300">
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-slate-500" />
-                <span className="font-mono">{clinic.owner?.email || '--'}</span>
+            <div className="text-sm font-bold text-white">{clinic.owner?.name || clinic.owner_name || 'غير محدد'}</div>
+            <div className="space-y-1.5 text-xs text-slate-300 pt-1">
+              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <div className="flex items-center gap-2 truncate">
+                  <Mail className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="font-mono text-xs text-white select-all">
+                    {clinic.owner?.email || clinic.owner_email || clinic.email || `admin@${clinic.subdomain}.psypro.tech`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const emailToCopy = clinic.owner?.email || clinic.owner_email || clinic.email || `admin@${clinic.subdomain}.psypro.tech`;
+                      navigator.clipboard.writeText(emailToCopy);
+                      setFeedback({ type: 'success', text: `تم نسخ البريد الإلكتروني بنجاح: ${emailToCopy} 📋` });
+                    }}
+                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white transition"
+                    title="نسخ الإيميل"
+                  >
+                    <CopyPlus className="w-3.5 h-3.5" />
+                  </button>
+                  <a
+                    href={`mailto:${clinic.owner?.email || clinic.owner_email || clinic.email || `admin@${clinic.subdomain}.psypro.tech`}`}
+                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 hover:text-white transition"
+                    title="مراسلة عبر الإيميل"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-slate-500" />
-                <span className="font-mono">{clinic.owner?.phone || '--'}</span>
+
+              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <div className="flex items-center gap-2 truncate">
+                  <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="font-mono text-xs text-white">
+                    {clinic.owner?.phone || clinic.phone || '--'}
+                  </span>
+                </div>
+                {(clinic.owner?.phone || clinic.phone) && (
+                  <a
+                    href={`tel:${clinic.owner?.phone || clinic.phone}`}
+                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white transition shrink-0"
+                    title="اتصال هاتفي"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -447,11 +714,13 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
               onClick={() => {
                 setShowCustomPlanForm(!showCustomPlanForm);
                 setShowOverridesForm(false);
+                setShowPasswordForm(false);
               }}
-              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5"
+              className="py-2.5 px-3 rounded-xl bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
+              title="تجديد أو ترقية اشتراك العيادة عبر BaridiMob أو CCP"
             >
-              <Layers className="w-3.5 h-3.5 text-teal-400" />
-              ربط باقة مخصصة
+              <CreditCard className="w-3.5 h-3.5 text-teal-400" />
+              <span>تجديد الاشتراك الآن (BaridiMob / CCP)</span>
             </button>
 
             <button
@@ -459,14 +728,105 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
               onClick={() => {
                 setShowOverridesForm(!showOverridesForm);
                 setShowCustomPlanForm(false);
+                setShowPasswordForm(false);
               }}
               className="py-2.5 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-bold transition flex items-center justify-center gap-1.5"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               تخصيص استثناءات (Overrides)
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordForm(!showPasswordForm);
+                setShowCustomPlanForm(false);
+                setShowOverridesForm(false);
+              }}
+              className="py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold transition flex items-center justify-center gap-1.5"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-rose-400" />
+              تغيير كلمة سر العيادة 🔑
+            </button>
           </div>
         </div>
+
+        {/* Password Reset Accordion */}
+        {showPasswordForm && (
+          <form onSubmit={handleResetPassword} className="bg-slate-950 border border-rose-500/40 rounded-2xl p-4 space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-rose-400" />
+                تعيين كلمة سر جديدة لمسؤول عيادة ({clinic.name})
+              </h4>
+              <button
+                type="button"
+                onClick={handleGenerateRandomPassword}
+                className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>توليد كلمة سر عشوائية قوية 🎲</span>
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              سيتم تغيير كلمة المرور فوراً لحساب مسؤول العيادة (<span className="text-white font-mono">{clinic.owner?.email || `admin@${clinic.subdomain}.psypro.tech`}</span>). سيتمكن الطبيب من الدخول بها مباشرة إلى حسابه.
+            </p>
+
+            <div className="relative">
+              <label className="text-[11px] text-slate-400 block mb-1">كلمة المرور الجديدة (6 أحرف على الأقل):</label>
+              <div className="relative">
+                <input
+                  type={showPasswordText ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordError(null);
+                  }}
+                  placeholder="أدخل كلمة المرور الجديدة..."
+                  className={`w-full bg-slate-900 border ${
+                    passwordError ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-700'
+                  } rounded-xl px-3 py-2 text-xs text-white font-mono tracking-wider focus:outline-none focus:border-rose-500 pl-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordText(!showPasswordText)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="text-[11px] text-rose-400 font-bold mt-1 animate-fade-in flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span>{passwordError}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm(false);
+                  setNewPassword('');
+                  setPasswordError(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+              >
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                disabled={loadingAction || !newPassword}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black transition disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-rose-600/20"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{loadingAction ? 'جاري التعيين...' : 'تثبيت كلمة السر الآن'}</span>
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Tenant Custom Overrides Accordion */}
         {showOverridesForm && (
@@ -555,42 +915,93 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
         {/* Custom Plan Assignment Modal Form */}
         {showCustomPlanForm && (
           <form onSubmit={handleAssignCustomPlan} className="bg-slate-950 border border-teal-500/40 rounded-2xl p-4 space-y-4 animate-fade-in">
-            <h4 className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
-              <FileBadge className="w-4 h-4 text-teal-400" />
-              تخصيص وربط باقة اشتراك جديدة:
-            </h4>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+                <FileBadge className="w-4 h-4 text-teal-400" />
+                تجديد / ترقية اشتراك العيادة وتحديد الباقة (BaridiMob / CCP):
+              </h4>
+              <span className="text-[10px] text-slate-400 font-mono">توليد الفاتورة وتحديث الصلاحيات فوراً</span>
+            </div>
+
+            {/* Live Price Highlight Card */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-950/80 via-slate-900 to-indigo-950/80 border border-teal-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300 font-black">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold">الباقة المحددة للتجديد / الترقية:</div>
+                  <div className="text-xs font-black text-white">{resolvePlan(selectedPlanId, availablePlans).name_ar}</div>
+                  <div className="text-[10px] text-teal-400 font-mono">
+                    الدورة: {billingCycle === 'yearly' ? 'اشتراك سنوي (12 شهر)' : billingCycle === 'monthly' ? 'اشتراك شهري (1 شهر)' : billingCycle === 'lifetime' ? 'مدى الحياة (Lifetime VIP)' : 'فترة تجريبية'} • وسيلة الدفع: {paymentMethod === 'baridimob' ? 'بريدي موب BaridiMob' : paymentMethod === 'ccp' ? 'حوالة بريدية CCP' : paymentMethod === 'bank_transfer' ? 'تحويل بنكي' : paymentMethod === 'cash' ? 'نقداً' : 'منحة شراكة'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-left font-mono">
+                <div className="text-[10px] text-slate-400 font-bold">المبلغ المحسوب للدفع:</div>
+                <div className="text-xl font-black text-emerald-400">
+                  {Number(planAmount || 0).toLocaleString()} <span className="text-xs text-emerald-300 font-sans">د.ج</span>
+                </div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">اختر الباقة:</label>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">نوع الاشتراك / الباقة:</label>
                 <select
                   value={selectedPlanId}
-                  onChange={(e) => setSelectedPlanId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                  onChange={(e) => handleSelectPlan(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500 font-bold"
                 >
-                  {plans.map((p) => (
+                  {availablePlans.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.yearly_price_dzd} DZD/سنة)
+                      {p.name_ar || p.name_fr || p.name} — ({Number(p.price_yearly || 0).toLocaleString()} د.ج/سنة)
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">دورة الفوترة:</label>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">دورة الفوترة:</label>
                 <select
                   value={billingCycle}
-                  onChange={(e) => setBillingCycle(e.target.value)}
+                  onChange={(e) => handleCycleChange(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
                 >
-                  <option value="monthly">شهري</option>
-                  <option value="yearly">سنوي</option>
-                  <option value="lifetime">مدى الحياة</option>
+                  <option value="yearly">سنوي (Yearly - سنة كاملة)</option>
+                  <option value="monthly">شهري (Monthly)</option>
+                  <option value="lifetime">مدى الحياة (Lifetime VIP)</option>
+                  <option value="trial">تجريبي (Trial)</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">تاريخ البدء:</label>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">المبلغ المحصل (د.ج):</label>
+                <input
+                  type="number"
+                  value={planAmount}
+                  onChange={(e) => setPlanAmount(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">طريقة الدفع:</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                >
+                  <option value="baridimob">بريدي موب (BaridiMob)</option>
+                  <option value="ccp">حوالة بريدية (CCP)</option>
+                  <option value="bank_transfer">تحويل بنكي رسمي</option>
+                  <option value="cash">دفع نقدي مباشر (Espèces)</option>
+                  <option value="free_grant">منحة مجانية / شراكة</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">تاريخ البدء:</label>
                 <input
                   type="date"
                   value={startsAt}
@@ -600,7 +1011,7 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">تاريخ الانتهاء:</label>
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">تاريخ الانتهاء:</label>
                 <input
                   type="date"
                   value={endsAt}
@@ -608,9 +1019,20 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
                 />
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[11px] text-slate-400 block mb-1 font-bold">رقم العملية أو المرجع / ملاحظات الفاتورة:</label>
+                <input
+                  type="text"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                  placeholder="مثال: حوالة بريدية رقم 45872 أو وصل بريدي موب..."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                />
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowCustomPlanForm(false)}
@@ -621,13 +1043,74 @@ export default function ClinicManageModal({ clinic, plans = [], isOpen, onClose,
               <button
                 type="submit"
                 disabled={loadingAction}
-                className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black transition disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-teal-600/20"
               >
-                {loadingAction ? 'جاري الربط...' : 'تثبيت الباقة'}
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>{loadingAction ? 'جاري التثبيت...' : 'تأكيد التجديد / الترقية وتوليد الفاتورة'}</span>
               </button>
             </div>
           </form>
         )}
+
+        {/* Sovereign Tower Rapid Actions */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-950 to-indigo-950/40 border border-amber-500/30 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-black text-amber-300">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              التحكم والسيطرة السيادية (Sovereign Controls):
+            </span>
+            {clinic.is_quarantined && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                🚨 العيادة تحت الحجر
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <button
+              type="button"
+              onClick={handleToggleQuarantine}
+              disabled={loadingAction}
+              className={`py-2 px-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1 border ${
+                clinic.is_quarantined
+                  ? 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/30'
+                  : 'bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border-rose-500/30'
+              }`}
+            >
+              {clinic.is_quarantined ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              <span>{clinic.is_quarantined ? 'رفع الحجر' : 'عزل وحجر 🚨'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleQuickBumpQuota}
+              disabled={loadingAction}
+              className="py-2 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/30 font-bold transition flex items-center justify-center gap-1"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>شحن +100k توكن</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleQuickCloneSandbox}
+              disabled={loadingAction}
+              className="py-2 px-2.5 rounded-xl bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30 font-bold transition flex items-center justify-center gap-1"
+            >
+              <CopyPlus className="w-3.5 h-3.5" />
+              <span>استنساخ Sandbox</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleQuickSnapshot}
+              disabled={loadingAction}
+              className="py-2 px-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 font-bold transition flex items-center justify-center gap-1"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تصدير Snapshot</span>
+            </button>
+          </div>
+        </div>
 
         {/* Footer Support Impersonation Action */}
         <div className="pt-4 border-t border-slate-800 flex items-center justify-between">

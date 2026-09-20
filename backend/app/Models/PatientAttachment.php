@@ -23,6 +23,13 @@ class PatientAttachment extends Model
         'file_size_kb',
         'category',
         'notes',
+        'vision_extracted_data',
+        'is_clinical_report',
+    ];
+
+    protected $casts = [
+        'vision_extracted_data' => 'array',
+        'is_clinical_report' => 'boolean',
     ];
 
     protected $appends = ['url'];

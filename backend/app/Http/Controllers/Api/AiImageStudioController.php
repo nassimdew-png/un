@@ -79,9 +79,12 @@ class AiImageStudioController extends Controller
         $fullPath = $assetsDir . '/' . $fileName;
 
         File::put($fullPath, $imageBytes);
-        chmod($fullPath, 0664);
+        if (File::exists($fullPath)) {
+            @chmod($fullPath, 0664);
+        }
 
-        $publicUrl = url('/storage/generated_assets/' . $fileName);
+        $rawUrl = url('/storage/generated_assets/' . $fileName);
+        $publicUrl = str_starts_with($rawUrl, 'http://') ? 'https://' . substr($rawUrl, 7) : $rawUrl;
 
         // 5. Attach to Patient AI Records if patient selected
         $savedRecordId = null;
@@ -162,12 +165,12 @@ class AiImageStudioController extends Controller
     private function buildEnhancedPrompt(string $prompt, string $style): string
     {
         return match($style) {
-            'cartoon_pecs' => "PECS picture communication symbols flashcard style, clear bold dark outlines, isolated single central action or object on clean pure white background, flat 2D vector cartoon, pediatric speech therapy icon, high contrast, vibrant colors, expressive friendly character, minimalist, no background clutter, professional educational illustration: {$prompt}",
-            'coloring_book' => "Children coloring book page line art, thick bold clean black outlines, pure white background, crisp vector line work, no colors, no shading, no grayscale, no gradients, easy and fun for kids to color with crayons: {$prompt}",
-            'social_story' => "Pediatric social story children book illustration, soft warm pastel watercolor painting, gentle expressive characters, clear social emotional context, friendly and calming atmosphere, cute storybook art: {$prompt}",
-            'social_post' => "Modern clean medical clinic social media poster graphic, high quality aesthetic, pediatric healthcare background, soft elegant lighting, minimalist layout, professional: {$prompt}",
-            'realistic_clinical' => "Clean bright studio lighting photography style, pediatric medical therapy, sharp focus, high definition, calming and welcoming: {$prompt}",
-            default => "Pediatric speech therapy illustration, clear colorful cartoon style, clean white background: {$prompt}",
+            'cartoon_pecs' => "Clear pediatric AAC PECS flashcard icon, clean crisp thick black vector outline, isolated single centered subject on solid pure white background, flat modern 2D cartoon style, bright high-contrast colors, friendly child-accessible expressive symbol, zero watermark, no logos, no text inside image, clinical speech therapy communication card: {$prompt}",
+            'coloring_book' => "Children coloring book page line art, thick bold clean black outlines, solid pure white background, crisp vector line work, no colors, no shading, no grayscale, no gradients, easy and fun for kids to color with crayons, no text, no watermark: {$prompt}",
+            'social_story' => "Pediatric social story children book illustration, soft warm pastel watercolor painting, gentle expressive characters, clear social emotional context, friendly and calming atmosphere, cute storybook art, high resolution, no watermark: {$prompt}",
+            'social_post' => "Modern clean medical clinic healthcare graphic, high quality aesthetic, pediatric healthcare background, soft elegant lighting, minimalist layout, professional typography design, no external logo: {$prompt}",
+            'realistic_clinical' => "Clean bright studio lighting photography style, pediatric medical therapy, sharp focus, high definition, calming and welcoming, no blur, no watermark: {$prompt}",
+            default => "Pediatric speech therapy illustration, clear colorful cartoon style, clean white background, no watermark: {$prompt}",
         };
     }
 }

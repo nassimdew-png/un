@@ -123,4 +123,22 @@ class AttachmentController extends Controller
             'message' => 'Fichier supprimé avec succès.',
         ]);
     }
+
+    /**
+     * Stream attachment file inline.
+     */
+    public function stream(string $id)
+    {
+        $attachment = PatientAttachment::findOrFail($id);
+
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            return response()->json(['message' => 'Fichier introuvable sur le disque.'], 404);
+        }
+
+        $filePath = Storage::disk('public')->path($attachment->file_path);
+        return response()->file($filePath, [
+            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+        ]);
+    }
 }
+

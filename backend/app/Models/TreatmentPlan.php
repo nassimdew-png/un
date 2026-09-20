@@ -21,6 +21,9 @@ class TreatmentPlan extends Model
         'short_term_goals',
         'medium_term_goals',
         'long_term_vision',
+        'linked_exercise_ids',
+        'smart_goals_matrix',
+        'diagnostic_record_id',
         'status',
         'review_date',
     ];
@@ -28,6 +31,8 @@ class TreatmentPlan extends Model
     protected $casts = [
         'short_term_goals' => 'array',
         'medium_term_goals' => 'array',
+        'linked_exercise_ids' => 'array',
+        'smart_goals_matrix' => 'array',
         'review_date' => 'date',
     ];
 
@@ -44,5 +49,10 @@ class TreatmentPlan extends Model
     public function bilan(): BelongsTo
     {
         return $this->belongsTo(PatientBilan::class, 'bilan_id', 'id');
+    }
+
+    public function diagnosticRecord(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalDiagnosticRecord::class, 'diagnostic_record_id', 'id');
     }
 }

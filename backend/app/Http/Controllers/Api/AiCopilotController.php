@@ -113,4 +113,75 @@ class AiCopilotController extends Controller
             'logs' => $logs,
         ]);
     }
+
+    /**
+     * AI suggest SMART PEI therapeutic goals.
+     */
+    public function suggestPeiGoals(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'specialty' => 'nullable|string',
+            'notes' => 'nullable|string|max:5000',
+            'current_goals' => 'nullable|array',
+            'language' => 'nullable|string|in:ar,fr',
+        ]);
+
+        $patient = Patient::when($user->tenant_id, function ($q) use ($user) {
+            $q->where(function ($sub) use ($user) {
+                $sub->where('tenant_id', $user->tenant_id)->orWhereNull('tenant_id');
+            });
+        })->findOrFail($validated['patient_id']);
+        $specialty = $validated['specialty'] ?? 'orthophony';
+        $language = $validated['language'] ?? 'ar';
+        $contextData = [
+            'notes' => $validated['notes'] ?? '',
+            'current_goals' => $validated['current_goals'] ?? [],
+        ];
+
+        $result = $this->synthesisService->suggestPeiGoals($patient, $specialty, $contextData, $language, $user);
+
+        return response()->json($result);
+    }
+
+    /**
+     * AI suggest Next Session Blueprint & Family Home Care protocol.
+     */
+    public function suggestNextSession(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'specialty' => 'nullable|string',
+            'soap' => 'nullable|array',
+            'suds_pre' => 'nullable|numeric',
+            'suds_post' => 'nullable|numeric',
+            'accuracy' => 'nullable|numeric',
+            'exercises' => 'nullable|array',
+            'session_duration' => 'nullable|numeric',
+            'language' => 'nullable|string|in:ar,fr',
+        ]);
+
+        $patient = Patient::when($user->tenant_id, function ($q) use ($user) {
+            $q->where(function ($sub) use ($user) {
+                $sub->where('tenant_id', $user->tenant_id)->orWhereNull('tenant_id');
+            });
+        })->findOrFail($validated['patient_id']);
+        $specialty = $validated['specialty'] ?? 'orthophony';
+        $language = $validated['language'] ?? 'ar';
+
+        $result = $this->synthesisService->suggestNextSession($patient, $specialty, $validated, $language, $user);
+
+        return response()->json($result);
+    }
 }
+

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -23,14 +25,8 @@ class AuthController extends Controller
             'subdomain' => 'nullable|string',
         ]);
 
-        $subdomain = $request->input('subdomain') 
-            ?: $request->header('X-Tenant-Subdomain')
-            ?: $this->extractSubdomain($request);
 
-        $currentSubdomainClean = $subdomain ? strtolower(trim($subdomain)) : null;
-        $isRootOrLocal = empty($currentSubdomainClean) 
-            || in_array($currentSubdomainClean, ['psypro', 'psypro.tech', 'www', 'localhost', '127.0.0.1', 'admin', 'app']);
-
+        // 1. Authenticate user credentials
         $user = User::withoutGlobalScopes()->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -45,33 +41,47 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Strict Tenant Subdomain & Custom Domain Isolation Check
-        if (!$isRootOrLocal && $currentSubdomainClean) {
-            $targetClinic = Tenant::where('subdomain', $currentSubdomainClean)
-                ->orWhere('custom_domain', $currentSubdomainClean)
-                ->orWhere('custom_domain', $request->getHost())
-                ->orWhere('custom_domain', $request->header('X-Custom-Domain'))
-                ->first();
+        // 2. Identify the host context of the incoming request
+        $host = strtolower($request->getHost());
+        $hostSubdomain = $this->extractSubdomain($request);
+        $isHostRootOrPortal = in_array($host, [
+            'psypro.tech',
+            'www.psypro.tech',
+            'localhost',
+            '127.0.0.1',
+            'admin.psypro.tech',
+            'app.psypro.tech',
+            'api.psypro.tech',
+        ]) || preg_match('/^\d+\.\d+\.\d+\.\d+$/', $host);
 
+        // 3. Check if accessing via a dedicated clinic subdomain or custom domain
+        $targetClinic = null;
+        if (!$isHostRootOrPortal) {
+            if ($hostSubdomain) {
+                $targetClinic = Tenant::where('subdomain', $hostSubdomain)->first();
+            }
             if (!$targetClinic) {
-                $customRecord = \App\Models\ClinicCustomDomain::where('domain', $currentSubdomainClean)
-                    ->orWhere('domain', $request->getHost())
-                    ->orWhere('domain', $request->header('X-Custom-Domain'))
-                    ->first();
+                $targetClinic = Tenant::where('custom_domain', $host)->first();
+            }
+            if (!$targetClinic) {
+                $customRecord = \App\Models\ClinicCustomDomain::where('domain', $host)->first();
                 if ($customRecord) {
                     $targetClinic = Tenant::find($customRecord->clinic_id);
                 }
             }
+        }
 
-            if ($targetClinic) {
-                // If user is not global superadmin and does not belong to this clinic
-                if ($user->role !== 'superadmin' && (string)$user->tenant_id !== (string)$targetClinic->id) {
-                    return response()->json([
-                        'message' => 'هذا الحساب غير مسجل في هذه العيادة. يرجى الدخول من النطاق المخصص لعيادتك.',
-                        'target_clinic' => $targetClinic->name,
-                        'user_clinic_id' => $user->tenant_id,
-                    ], 403);
-                }
+        // 4. If accessing via a dedicated clinic host/domain, enforce strict tenant isolation
+        if ($targetClinic) {
+            if ($user->role !== 'superadmin' && (string)$user->tenant_id !== (string)$targetClinic->id) {
+                $userClinic = $user->tenant_id ? Tenant::find($user->tenant_id) : null;
+                return response()->json([
+                    'message' => 'هذا الحساب غير مسجل في هذه العيادة. يرجى الدخول من النطاق المخصص لعيادتك.',
+                    'target_clinic' => $targetClinic->name,
+                    'user_clinic_id' => $user->tenant_id,
+                    'clinic_subdomain' => $userClinic?->subdomain,
+                    'redirect_url' => $userClinic ? "https://{$userClinic->subdomain}.psypro.tech" : null,
+                ], 403);
             }
         }
 
@@ -125,6 +135,7 @@ class AuthController extends Controller
                 'settings' => $tenant->settings,
                 'subscription_meta' => $tenant->subscription_meta,
             ] : null,
+            'redirect_url' => $tenant ? "https://{$tenant->subdomain}.psypro.tech" : null,
         ]);
     }
 
@@ -133,13 +144,20 @@ class AuthController extends Controller
      */
     protected function extractSubdomain(Request $request): ?string
     {
-        $host = $request->getHost();
-        if ($host === 'psypro.tech' || $host === 'www.psypro.tech' || $host === 'localhost' || $host === '127.0.0.1') {
+        $host = strtolower($request->getHost());
+        if (
+            in_array($host, ['psypro.tech', 'www.psypro.tech', 'localhost', '127.0.0.1', 'admin.psypro.tech', 'app.psypro.tech', 'api.psypro.tech']) ||
+            preg_match('/^\d+\.\d+\.\d+\.\d+$/', $host)
+        ) {
             return null;
         }
 
         if (str_ends_with($host, '.psypro.tech')) {
-            return str_replace('.psypro.tech', '', $host);
+            $sub = str_replace('.psypro.tech', '', $host);
+            if (!in_array($sub, ['www', 'admin', 'app', 'api'])) {
+                return $sub;
+            }
+            return null;
         }
 
         return null;
@@ -191,4 +209,29 @@ class AuthController extends Controller
             ] : null,
         ]);
     }
+
+    /**
+     * Mark onboarding tour as completed for current user and tenant.
+     */
+    public function completeTour(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user) {
+            $user->update(['has_completed_tour' => true]);
+
+            if ($user->tenant && in_array($user->role, ['admin_owner', 'admin', 'clinic_admin', 'owner'])) {
+                $user->tenant->update([
+                    'onboarding_tour_enabled' => false,
+                    'onboarding_completed_at' => $user->tenant->onboarding_completed_at ?? Carbon::now(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ إتمام الجولة التعريفية بنجاح.',
+            'has_completed_tour' => true,
+        ]);
+    }
 }
+

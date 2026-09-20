@@ -32,6 +32,10 @@ class CommunicationGateway extends Model
         'whatsapp_token',
         'whatsapp_phone_number_id',
         'whatsapp_sender_number',
+        'whatsapp_webhook_verify_token',
+        'whatsapp_app_secret',
+        'whatsapp_business_account_id',
+        'whatsapp_webhook_url',
         'is_whatsapp_active',
     ];
 
@@ -108,6 +112,31 @@ class CommunicationGateway extends Model
             return Crypt::decryptString($this->attributes['whatsapp_token']);
         } catch (\Exception $e) {
             return $this->attributes['whatsapp_token'];
+        }
+    }
+
+    public function setWhatsappAppSecretAttribute($value)
+    {
+        if (!empty($value)) {
+            try {
+                $this->attributes['whatsapp_app_secret'] = Crypt::encryptString($value);
+            } catch (\Exception $e) {
+                $this->attributes['whatsapp_app_secret'] = $value;
+            }
+        } else {
+            $this->attributes['whatsapp_app_secret'] = null;
+        }
+    }
+
+    public function getDecryptedWhatsappAppSecret(): ?string
+    {
+        if (empty($this->attributes['whatsapp_app_secret'])) {
+            return null;
+        }
+        try {
+            return Crypt::decryptString($this->attributes['whatsapp_app_secret']);
+        } catch (\Exception $e) {
+            return $this->attributes['whatsapp_app_secret'];
         }
     }
 }

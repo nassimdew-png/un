@@ -187,6 +187,9 @@ class PublicDirectoryController extends Controller
             '16:00 - 17:00',
         ];
 
+        $rawSettings = is_array($tenant->settings) ? $tenant->settings : (json_decode($tenant->settings ?? '{}', true) ?: []);
+        $landingSettings = $rawSettings['landing_page'] ?? [];
+
         return response()->json([
             'success' => true,
             'clinic' => [
@@ -202,9 +205,22 @@ class PublicDirectoryController extends Controller
                 'phone' => $tenant->phone,
                 'logo_url' => $tenant->logo_url ?: $tenant->logo_path,
                 'report_accent_color' => $tenant->report_accent_color ?: '#0d9488',
-                'public_bio' => $tenant->public_bio ?: 'عيادة متخصصة معتمدة مجهزة بأحدث أدوات التقييم السريري والتأهيل العصبي واللغوي.',
+                'public_bio' => $tenant->public_bio ?: ($landingSettings['public_bio'] ?? 'عيادة متخصصة معتمدة مجهزة بأحدث أدوات التقييم السريري والتأهيل العصبي واللغوي.'),
+                'hero_headline' => $landingSettings['hero_headline'] ?? 'بوابة حجز المواعيد والاستشارات السريرية المعتمدة',
+                'announcement_bar' => $landingSettings['announcement_bar'] ?? null,
+                'primary_cta_text' => $landingSettings['primary_cta_text'] ?? 'احجز موعدك الآن أونلاين',
+                'show_pricing' => $landingSettings['show_pricing'] ?? true,
+                'show_working_hours' => $landingSettings['show_working_hours'] ?? true,
+                'show_practitioners' => $landingSettings['show_practitioners'] ?? true,
+                'show_whatsapp_button' => $landingSettings['show_whatsapp_button'] ?? true,
+                'services_config' => $landingSettings['services'] ?? [
+                    'bilan' => true,
+                    'reeducation' => true,
+                    'consultation' => true,
+                    'teletherapy' => true,
+                ],
                 'consultation_fee_dzd' => $tenant->consultation_fee_dzd ?: 2000,
-                'accepts_public_bookings' => (bool)$tenant->accepts_public_bookings,
+                'accepts_public_bookings' => isset($landingSettings['enabled']) ? (bool)$landingSettings['enabled'] : (bool)$tenant->accepts_public_bookings,
                 'practitioners' => $practitioners,
                 'available_time_slots' => $availableSlots,
             ],
@@ -223,7 +239,7 @@ class PublicDirectoryController extends Controller
         $validated = $request->validate([
             'patient_name' => 'required|string|max:120',
             'phone' => 'required|string|max:30',
-            'specialty' => 'nullable|string|in:orthophonie,psychologie,neuro_psychiatrie,pluridisciplinaire',
+            'specialty' => 'nullable|string|in:orthophonie,psychologie,neuro_psychiatrie,pluridisciplinaire,orthophony,psychology,psychomotor,psychomotricite,parent_guidance,general',
             'preferred_date' => 'required|date|after_or_equal:today',
             'preferred_time_slot' => 'required|string|max:50',
             'reason_for_visit' => 'nullable|string|max:1000',

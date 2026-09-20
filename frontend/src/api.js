@@ -39,6 +39,11 @@ export async function apiRequest(endpoint, optionsOrMethod = {}, maybeData = nul
       throw new Error(data.message || 'Une erreur est survenue');
     }
 
+    // Trigger instant AI Quota update across UI
+    if (typeof window !== 'undefined' && (endpoint.startsWith('/ai-therapy') || endpoint.startsWith('/clinical-ai'))) {
+      window.dispatchEvent(new CustomEvent('clinic:ai-quota-updated'));
+    }
+
     return data;
   } catch (err) {
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
@@ -87,12 +92,25 @@ export const authApi = {
     body: JSON.stringify(credentials),
   }),
   getPublicTenantInfo: (subdomain) => apiRequest(`/public/tenant-info${subdomain ? `?subdomain=${encodeURIComponent(subdomain)}` : ''}`),
+  getRegistrationStatus: () => apiRequest('/public/registration-status'),
   registerClinic: (data) => apiRequest('/public/register-clinic', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
   me: () => apiRequest('/auth/me'),
   logout: () => apiRequest('/auth/logout', { method: 'POST' }),
+};
+
+export const userProfileApi = {
+  getProfile: () => apiRequest('/user/profile'),
+  updateProfile: (data) => apiRequest('/user/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  updatePassword: (data) => apiRequest('/user/password', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 };
 
 export const staffApi = {
@@ -110,6 +128,12 @@ export const staffApi = {
     body: JSON.stringify(data),
   }),
   delete: (id) => apiRequest(`/staff/${id}`, { method: 'DELETE' }),
+  getPermissionsCatalog: () => apiRequest('/staff/permissions-catalog'),
+  updatePermissions: (id, permissions) => apiRequest(`/staff/${id}/permissions`, {
+    method: 'POST',
+    body: JSON.stringify({ permissions }),
+  }),
+  toggleStatus: (id) => apiRequest(`/staff/${id}/toggle-status`, { method: 'POST' }),
 };
 
 export const tenantSettingsApi = {
@@ -142,6 +166,13 @@ export const patientApi = {
     const query = new URLSearchParams(params).toString();
     return apiRequest(`/patients${query ? `?${query}` : ''}`);
   },
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/patients${query ? `?${query}` : ''}`);
+  },
+  search: (searchQuery) => {
+    return apiRequest(`/patients?search=${encodeURIComponent(searchQuery)}`);
+  },
   get: (id) => apiRequest(`/patients/${id}`),
   create: (patientData) => apiRequest('/patients', {
     method: 'POST',
@@ -170,11 +201,18 @@ export const patientApi = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  getPublicPreIntake: (token) => apiRequest(`/public/pre-intake/${token}`),
-  submitPublicPreIntake: (token, data) => apiRequest(`/public/pre-intake/${token}`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  getPublicPreIntake: (token, subdomain = null) => {
+    const cleanToken = token && token !== 'new' ? `/${token}` : '';
+    const query = subdomain ? `?subdomain=${encodeURIComponent(subdomain)}` : '';
+    return apiRequest(`/public/pre-intake${cleanToken}${query}`);
+  },
+  submitPublicPreIntake: (token, data) => {
+    const cleanToken = token && token !== 'new' ? `/${token}` : '';
+    return apiRequest(`/public/pre-intake${cleanToken}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export const assessmentApi = {
@@ -218,6 +256,10 @@ export const appointmentApi = {
     const query = new URLSearchParams(params).toString();
     return apiRequest(`/appointments${query ? `?${query}` : ''}`);
   },
+  getLiveWaiting: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/appointments/live-waiting${query ? `?${query}` : ''}`);
+  },
   get: (id) => apiRequest(`/appointments/${id}`),
   create: (appointmentData) => apiRequest('/appointments', {
     method: 'POST',
@@ -230,6 +272,20 @@ export const appointmentApi = {
   delete: (id) => apiRequest(`/appointments/${id}`, { method: 'DELETE' }),
   whatsappReminder: (id) => apiRequest(`/appointments/${id}/whatsapp-reminder`),
   getWhatsAppReminder: (id) => apiRequest(`/appointments/${id}/whatsapp-reminder`),
+  sendWhatsAppReminder: (id) => apiRequest(`/appointments/${id}/send-whatsapp`, { method: 'POST' }),
+  checkConflicts: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/appointments/check-conflicts${query ? `?${query}` : ''}`);
+  },
+  exportDailySchedule: (date) => apiRequest(`/appointments/export-daily-pdf?date=${date || ''}`),
+  listBookingRequests: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/clinic/booking-requests${query ? `?${query}` : ''}`);
+  },
+  updateBookingStatus: (id, data) => apiRequest(`/clinic/booking-requests/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
   quickStart: (data) => apiRequest('/appointments/quick-start', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -241,16 +297,75 @@ export const appointmentApi = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  updateStatus: (id, status) => apiRequest(`/appointments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(typeof status === 'string' ? { status } : status),
+  }),
+  updateAppointmentStatus: (id, status) => apiRequest(`/appointments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(typeof status === 'string' ? { status } : status),
+  }),
 };
 
 export const sessionApi = {
-  list: (patientId, params = {}) => {
+  list: (patientIdOrParams, maybeParams = {}) => {
+    let pid = null;
+    let params = {};
+
+    if (typeof patientIdOrParams === 'object' && patientIdOrParams !== null) {
+      if (patientIdOrParams.id) {
+        pid = patientIdOrParams.id;
+        params = maybeParams || {};
+      } else {
+        params = patientIdOrParams;
+      }
+    } else if (patientIdOrParams && patientIdOrParams !== '[object Object]') {
+      pid = patientIdOrParams;
+      params = maybeParams || {};
+    } else if (maybeParams) {
+      params = maybeParams;
+    }
+
+    const cleanPid = (typeof pid === 'object' && pid !== null) ? (pid.id || pid.patient_id) : pid;
+    const url = (cleanPid && cleanPid !== '[object Object]') ? `/patients/${cleanPid}/sessions` : '/sessions';
     const query = new URLSearchParams(params).toString();
-    return apiRequest(`/patients/${patientId}/sessions${query ? `?${query}` : ''}`);
+    return apiRequest(`${url}${query ? `?${query}` : ''}`);
   },
-  create: (patientId, sessionData) => apiRequest(`/patients/${patientId}/sessions`, {
+  create: (patientIdOrData, maybeData) => {
+    // If called with (patientId, data)
+    if (maybeData !== undefined && maybeData !== null) {
+      const rawPid = (typeof patientIdOrData === 'object' && patientIdOrData !== null)
+        ? (patientIdOrData.id || patientIdOrData.patient_id)
+        : patientIdOrData;
+      const cleanPid = (rawPid && rawPid !== '[object Object]') ? rawPid : null;
+
+      const payload = {
+        ...(typeof maybeData === 'object' ? maybeData : {}),
+        ...(cleanPid ? { patient_id: cleanPid } : {}),
+      };
+
+      return apiRequest('/sessions', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
+
+    // If called with (singleDataPayload)
+    let payload = { ...(typeof patientIdOrData === 'object' && patientIdOrData !== null ? patientIdOrData : {}) };
+    if (payload.patient && typeof payload.patient === 'object' && payload.patient.id && !payload.patient_id) {
+      payload.patient_id = payload.patient.id;
+    } else if (typeof payload.patient_id === 'object' && payload.patient_id !== null && payload.patient_id.id) {
+      payload.patient_id = payload.patient_id.id;
+    }
+
+    return apiRequest('/sessions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  seedDemo: (tenantId = null) => apiRequest('/sessions/seed-demo', {
     method: 'POST',
-    body: JSON.stringify(sessionData),
+    body: JSON.stringify({ tenant_id: tenantId }),
   }),
   update: (id, sessionData) => apiRequest(`/sessions/${id}`, {
     method: 'PUT',
@@ -275,6 +390,51 @@ export const invoiceApi = {
   }),
   delete: (id) => apiRequest(`/invoices/${id}`, { method: 'DELETE' }),
   downloadPdf: (id, fileName = `recu-${id}.pdf`) => downloadPdfBlob(`/invoices/${id}/pdf`, fileName),
+  getAnalytics: (params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiRequest(`/invoices/analytics${qs}`);
+  },
+  getDailyTreasury: (params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiRequest(`/invoices/daily-treasury${qs}`);
+  },
+  getUnbilledAppointments: () => apiRequest('/invoices/unbilled-appointments'),
+  recordPayment: (id, data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('token') || localStorage.getItem('clinic_token');
+      return fetch(`${API_BASE}/invoices/${id}/payments`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: data,
+      }).then(res => res.json());
+    }
+    return apiRequest(`/invoices/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  reconcileCcp: (id, data) => {
+    if (data instanceof FormData) {
+      const token = localStorage.getItem('token') || localStorage.getItem('clinic_token');
+      return fetch(`${API_BASE}/invoices/${id}/reconcile-ccp`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: data,
+      }).then(res => res.json());
+    }
+    return apiRequest(`/invoices/${id}/reconcile-ccp`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  getWhatsAppReminder: (id) => apiRequest(`/invoices/${id}/whatsapp-reminder`),
+  sendWhatsAppReminder: (id) => apiRequest(`/invoices/${id}/send-whatsapp`, { method: 'POST' }),
 };
 
 export const attachmentApi = {
@@ -311,11 +471,22 @@ export const attachmentApi = {
 };
 
 export const kioskApi = {
-  checkIn: (data) => apiRequest('/kiosk/check-in', {
+  getInfo: (subdomain) => apiRequest(`/kiosk/info${subdomain ? `?subdomain=${encodeURIComponent(subdomain)}` : ''}`),
+  verifyAccess: (pin, subdomain) => apiRequest('/kiosk/verify-access', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ pin, subdomain }),
   }),
+  checkIn: (dataOrPin, subdomain) => {
+    const body = typeof dataOrPin === 'object'
+      ? dataOrPin
+      : { kiosk_pin: dataOrPin, subdomain };
+    return apiRequest('/kiosk/check-in', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
 };
+
 
 export const subscriptionApi = {
   getCurrent: () => apiRequest('/subscription/current'),
@@ -386,7 +557,7 @@ export const patientDocumentApi = {
 };
 
 export const exerciseApi = {
-  list: (params) => {
+  list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return apiRequest(`/exercises${query ? `?${query}` : ''}`);
   },
@@ -464,7 +635,14 @@ export const queueApi = {
     body: JSON.stringify(data),
   }),
   getTvQueue: (tenantSlug = '') => apiRequest(`/public/tv-queue${tenantSlug ? `/${tenantSlug}` : ''}`),
+  updateTvSettings: (data) => apiRequest('/queue/tv-settings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };
+
+export const waitingRoomTvApi = queueApi;
+
 
 export const parentPortalApi = {
   login: (phone, pin) => apiRequest('/public/parent-portal/login', {
@@ -475,6 +653,44 @@ export const parentPortalApi = {
   toggleHomework: (homeworkId) => apiRequest(`/public/parent-portal/homework/${homeworkId}/toggle-status`, {
     method: 'POST',
   }),
+
+  // Magic Link Parent Companion Portal & Homework Hub
+  getAccess: (token) => apiRequest(`/portal/${token}`),
+  confirmAppointment: (token, appointmentId) => apiRequest(`/portal/${token}/appointment/${appointmentId}/confirm`, {
+    method: 'POST',
+  }),
+  completeHomework: (token, homeworkId, payload) => {
+    if (payload instanceof FormData) {
+      const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+      return fetch(`${BASE_URL}/portal/${token}/homework/${homeworkId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: payload,
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'حدث خطأ أثناء حفظ الإنجاز.');
+        return data;
+      });
+    }
+
+    return apiRequest(`/portal/${token}/homework/${homeworkId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(typeof payload === 'string' ? { parent_feedback: payload } : payload),
+    });
+  },
+  generatePortalLink: (patientId) => apiRequest(`/patients/${patientId}/generate-portal-link`, {
+    method: 'POST',
+  }),
+  saveJournalNote: (token, noteData) => apiRequest(`/portal/${token}/journal`, {
+    method: 'POST',
+    body: JSON.stringify(noteData),
+  }),
+  getBilanPdfUrl: (token, bilanId) => {
+    const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+    return `${BASE_URL}/portal/${token}/bilan/${bilanId}/pdf`;
+  },
 };
 
 export const digitalTherapyApi = {
@@ -731,6 +947,12 @@ export const patientBilanApi = {
     body: JSON.stringify(data),
   }),
   listBilans: (patientId) => apiRequest(`/patients/${patientId}/bilans`),
+  listAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/patient-bilans${query ? `?${query}` : ''}`);
+  },
+  getBilan: (bilanId) => apiRequest(`/patient-bilans/${bilanId}`),
+  deleteBilan: (bilanId) => apiRequest(`/patient-bilans/${bilanId}`, { method: 'DELETE' }),
   bilanPdfUrl: (bilanId) => {
     const token = localStorage.getItem('token') || localStorage.getItem('clinic_token');
     return `/api/patient-bilans/${bilanId}/pdf${token ? `?token=${token}` : ''}`;
@@ -809,6 +1031,45 @@ export const portalMagicLinkApi = {
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erreur');
+      return data;
+    });
+  },
+  uploadAudio: (token, fileOrBlob, extra = {}) => {
+    let body;
+    if (fileOrBlob instanceof FormData) {
+      body = fileOrBlob;
+    } else {
+      body = new FormData();
+      body.append('audio', fileOrBlob, fileOrBlob.name || 'voice_sample.webm');
+      if (extra.notes) body.append('notes', extra.notes);
+      if (extra.fileName) body.append('file_name', extra.fileName);
+    }
+    return fetch(`/api/portal/${token}/audio`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors de l\'envoi du fichier audio');
+      return data;
+    });
+  },
+  getAudioSamples: (token) => {
+    return fetch(`/api/portal/${token}/audio`, {
+      headers: { 'Accept': 'application/json' },
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors du chargement des enregistrements');
+      return data;
+    });
+  },
+  deleteAudioSample: (token, sampleId) => {
+    return fetch(`/api/portal/${token}/audio/${sampleId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors de la suppression');
       return data;
     });
   },
@@ -960,6 +1221,10 @@ export const superAdminApi = {
   impersonateClinic: (id) => apiRequest(`/super-admin/clinics/${id}/impersonate`, {
     method: 'POST',
   }),
+  resetClinicPassword: (id, password) => apiRequest(`/super-admin/clinics/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
   deleteTenant: (id) => apiRequest(`/superadmin/tenants/${id}`, {
     method: 'DELETE',
   }),
@@ -1010,6 +1275,26 @@ export const superAdminApi = {
     method: 'POST',
   }),
   syncDefaultTestsCatalog: () => apiRequest('/super-admin/tests/sync-defaults', {
+    method: 'POST',
+  }),
+
+  // Global Clinical Exercises & Worksheets Catalog (Super Admin Bank)
+  getGlobalExercises: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiRequest(`/super-admin/exercises${q ? `?${q}` : ''}`);
+  },
+  createExercise: (data) => apiRequest('/super-admin/exercises', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateExercise: (id, data) => apiRequest(`/super-admin/exercises/${id}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  deleteExercise: (id) => apiRequest(`/super-admin/exercises/${id}`, {
+    method: 'DELETE',
+  }),
+  toggleExerciseStatus: (id) => apiRequest(`/super-admin/exercises/${id}/toggle`, {
     method: 'POST',
   }),
 
@@ -1195,11 +1480,183 @@ export const superAdminApi = {
   provisionSslCertificate: (clinicId) => apiRequest(`/super-admin/clinics/${clinicId}/domains/provision-ssl`, {
     method: 'POST',
   }),
+
+  // Teletherapy & Remote Sessions Governance
+  getTeletherapyOverview: () => apiRequest('/super-admin/teletherapy/overview'),
+  getTeletherapyRooms: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiRequest(`/super-admin/teletherapy/rooms${q ? `?${q}` : ''}`);
+  },
+  terminateTeletherapyRoom: (roomCode) => apiRequest(`/super-admin/teletherapy/rooms/${roomCode}/terminate`, {
+    method: 'POST',
+  }),
+  deleteTeletherapyRoom: (roomCode) => apiRequest(`/super-admin/teletherapy/rooms/${roomCode}`, {
+    method: 'DELETE',
+  }),
+  getTeletherapySettings: () => apiRequest('/super-admin/teletherapy/settings'),
+  updateTeletherapySettings: (settings) => apiRequest('/super-admin/teletherapy/settings', {
+    method: 'POST',
+    body: JSON.stringify(settings),
+  }),
+
+  // Server Health & PM2 Live Telemetry Cockpit
+  getTelemetryOverview: () => apiRequest('/super-admin/telemetry/overview'),
+  restartPm2Process: (process) => apiRequest('/super-admin/telemetry/pm2/restart', {
+    method: 'POST',
+    body: JSON.stringify({ process }),
+  }),
+  clearSystemCache: () => apiRequest('/super-admin/telemetry/cache/clear', {
+    method: 'POST',
+  }),
+  manageQueueAction: (action) => apiRequest('/super-admin/telemetry/queue/action', {
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  }),
+  getSystemLogs: (lines = 30) => apiRequest(`/super-admin/telemetry/logs?lines=${lines}`),
+
+  // Global Audit Logs & Security Guard
+  getAuditOverview: () => apiRequest('/super-admin/audit-logs/overview'),
+  getAuditLogs: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiRequest(`/super-admin/audit-logs${q ? `?${q}` : ''}`);
+  },
+  getBlockedIps: () => apiRequest('/super-admin/audit-logs/blocked-ips'),
+  blockIp: (data) => apiRequest('/super-admin/audit-logs/block-ip', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  unblockIp: (id) => apiRequest(`/super-admin/audit-logs/blocked-ips/${id}`, {
+    method: 'DELETE',
+  }),
+  exportAuditLogsUrl: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return `/api/super-admin/audit-logs/export${q ? `?${q}` : ''}`;
+  },
+
+  // 3. Subscription Lifecycle, Smart Chaser & BaridiMob Automation
+  getLifecycleOverview: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiRequest(`/super-admin/lifecycle/overview${q ? `?${q}` : ''}`);
+  },
+  sendRenewalChaser: (clinicId, data) => apiRequest(`/super-admin/lifecycle/clinics/${clinicId}/chase`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  grantGracePeriod: (clinicId, data) => apiRequest(`/super-admin/lifecycle/clinics/${clinicId}/grace-period`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  manualRenewClinic: (clinicId, data) => apiRequest(`/super-admin/lifecycle/clinics/${clinicId}/manual-renew`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getPaymentProofInbox: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiRequest(`/super-admin/lifecycle/proofs${q ? `?${q}` : ''}`);
+  },
+  approvePaymentProof: (id, data = {}) => apiRequest(`/super-admin/lifecycle/proofs/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  rejectPaymentProof: (id, data) => apiRequest(`/super-admin/lifecycle/proofs/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // 4. Global Broadcast & Announcements Hub
+  getBroadcasts: () => apiRequest('/super-admin/broadcasts'),
+  createBroadcast: (data) => apiRequest('/super-admin/broadcasts', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateBroadcast: (id, data) => apiRequest(`/super-admin/broadcasts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  toggleBroadcastStatus: (id) => apiRequest(`/super-admin/broadcasts/${id}/toggle-status`, {
+    method: 'POST',
+  }),
+  deleteBroadcast: (id) => apiRequest(`/super-admin/broadcasts/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // 5. AI Routing, Failover Cascade & Cost Studio
+  getAiRoutingOverview: () => apiRequest('/super-admin/ai-routing/overview'),
+  updateAiProvider: (id, data) => apiRequest(`/super-admin/ai-routing/providers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  pingAiProvider: (id) => apiRequest(`/super-admin/ai-routing/providers/${id}/ping`, {
+    method: 'POST',
+  }),
+  updateAiTaskRoute: (id, data) => apiRequest(`/super-admin/ai-routing/routes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  // 6. Algeria Geo-Clinic Map
+  getGeoMapOverview: () => apiRequest('/super-admin/geo-map/overview'),
+  updateClinicLocation: (clinicId, data) => apiRequest(`/super-admin/geo-map/clinics/${clinicId}/location`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  autoGeocodeClinics: () => apiRequest('/super-admin/geo-map/auto-geocode', {
+    method: 'POST',
+  }),
+
+  // 7. Clinic Onboarding & Conversion Funnel
+  getOnboardingFunnelOverview: () => apiRequest('/super-admin/onboarding-funnel/overview'),
+  sendOnboardingNudge: (clinicId, data) => apiRequest(`/super-admin/onboarding-funnel/clinics/${clinicId}/nudge`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  toggleOnboardingTour: (clinicId) => apiRequest(`/super-admin/onboarding-funnel/clinics/${clinicId}/toggle-tour`, {
+    method: 'POST',
+  }),
+
+  // 8. Promo Coupons & Referral Engine
+  getPromosAndReferralsOverview: () => apiRequest('/super-admin/promos-referrals/overview'),
+  createPromoCoupon: (data) => apiRequest('/super-admin/promos-referrals/coupons', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updatePromoCoupon: (id, data) => apiRequest(`/super-admin/promos-referrals/coupons/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  togglePromoCoupon: (id) => apiRequest(`/super-admin/promos-referrals/coupons/${id}/toggle`, {
+    method: 'POST',
+  }),
+  deletePromoCoupon: (id) => apiRequest(`/super-admin/promos-referrals/coupons/${id}`, {
+    method: 'DELETE',
+  }),
+  createReferralPartner: (data) => apiRequest('/super-admin/promos-referrals/partners', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateReferralPartner: (id, data) => apiRequest(`/super-admin/promos-referrals/partners/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  toggleReferralPartner: (id) => apiRequest(`/super-admin/promos-referrals/partners/${id}/toggle`, {
+    method: 'POST',
+  }),
+  deleteReferralPartner: (id) => apiRequest(`/super-admin/promos-referrals/partners/${id}`, {
+    method: 'DELETE',
+  }),
+  recordPartnerPayout: (id, data) => apiRequest(`/super-admin/promos-referrals/partners/${id}/payout`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getWhatsAppShareText: (type, id) => apiRequest(`/super-admin/promos-referrals/share-whatsapp?type=${type}&id=${id}`),
 };
 
 export const superadminApi = superAdminApi;
 
 export const clinicApi = {
+  // Global Broadcast Feed
+  getActiveBroadcasts: () => apiRequest('/tenant/broadcasts/active'),
+
   // Branding & Letterhead
   getBranding: () => apiRequest('/clinic/branding'),
   updateBranding: (formData) => {
@@ -1246,6 +1703,14 @@ export const clinicApi = {
   }),
   deleteWaitingEntry: (id) => apiRequest(`/clinic/waiting-list/${id}`, {
     method: 'DELETE',
+  }),
+  updateAppointmentStatus: (id, status) => apiRequest(`/appointments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(typeof status === 'string' ? { status } : status),
+  }),
+  updateStatus: (id, status) => apiRequest(`/appointments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(typeof status === 'string' ? { status } : status),
   }),
 };
 
@@ -1406,6 +1871,14 @@ export const clinicalAiCopilotApi = {
     body: JSON.stringify(data),
   }),
   generateDiagnosticReport: (data) => apiRequest('/clinic/ai/diagnostic-report', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  suggestPeiGoals: (data) => apiRequest('/clinic/ai/suggest-pei-goals', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  suggestNextSession: (data) => apiRequest('/clinic/ai/suggest-next-session', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -1592,6 +2065,26 @@ export const communicationGatewayApi = {
     method: 'POST',
     body: JSON.stringify({ test_phone: phone }),
   }),
+  getWhatsappLogs: (limit = 50) => apiRequest(`/superadmin/communication-settings/whatsapp-logs?limit=${limit}`),
+  simulateWhatsappWebhook: (data) => apiRequest('/superadmin/communication-settings/simulate-whatsapp-webhook', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getTemplates: () => apiRequest('/superadmin/communication-settings/templates'),
+  createTemplate: (data) => apiRequest('/superadmin/communication-settings/templates/create', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  syncDefaultTemplates: () => apiRequest('/superadmin/communication-settings/templates/sync-defaults', {
+    method: 'POST',
+  }),
+  deleteTemplate: (name) => apiRequest(`/superadmin/communication-settings/templates/${name}`, {
+    method: 'DELETE',
+  }),
+  testSendTemplate: (data) => apiRequest('/superadmin/communication-settings/templates/test-send', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };
 
 // Dynamic Subscription Plans & Pricing Manager API
@@ -1612,6 +2105,75 @@ export const subscriptionPlansApi = {
     method: 'DELETE',
   }),
   getPublicPlans: () => apiRequest('/public/subscription-plans'),
+};
+
+// SuperAdmin Landing Page CMS & Appearance Studio API
+export const landingPageStudioApi = {
+  getConfig: () => apiRequest('/superadmin/landing-page-config'),
+  updateConfig: (data) => apiRequest('/superadmin/landing-page-config', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  resetConfig: () => apiRequest('/superadmin/landing-page-config/reset', {
+    method: 'POST',
+  }),
+  getPublicConfig: () => apiRequest('/public/landing-page-config'),
+};
+
+// SuperAdmin Help Center & User Guide CMS Studio API
+export const helpCenterStudioApi = {
+  getConfig: () => apiRequest('/superadmin/help-center-config'),
+  updateConfig: (data) => apiRequest('/superadmin/help-center-config', {
+    method: 'PUT',
+    body: JSON.stringify(data?.config ? data : { config: data }),
+  }),
+  resetConfig: () => apiRequest('/superadmin/help-center-config/reset', {
+    method: 'POST',
+  }),
+  getPublicConfig: () => apiRequest('/help-center/content'),
+};
+
+export const helpCenterApi = {
+  getContent: () => apiRequest('/help-center/content').catch(() => apiRequest('/public/help-center-config')),
+};
+
+// 🎓 Academic & Student Offer 9-Months Free API
+export const studentOfferApi = {
+  // Public Landing Page & Application
+  getPublicOffer: () => apiRequest('/public/student-offer'),
+  submitApplication: (formData) => apiRequest('/public/student-offer/apply', {
+    method: 'POST',
+    body: formData,
+  }),
+
+  // SuperAdmin Control Studio
+  getSuperAdminConfig: () => apiRequest('/superadmin/student-offers/config'),
+  updateSuperAdminConfig: (data) => apiRequest('/superadmin/student-offers/config', {
+    method: 'PUT',
+    body: JSON.stringify(data?.config ? data : { config: data }),
+  }),
+  getApplications: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/superadmin/student-offers/applications${qs ? '?' + qs : ''}`);
+  },
+  approveApplication: (id, data = {}) => apiRequest(`/superadmin/student-offers/applications/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  rejectApplication: (id, reason) => apiRequest(`/superadmin/student-offers/applications/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }),
+  extendApplication: (id, months = 3) => apiRequest(`/superadmin/student-offers/applications/${id}/extend`, {
+    method: 'POST',
+    body: JSON.stringify({ months }),
+  }),
+  deleteApplication: (id, deleteTenant = false) => apiRequest(`/superadmin/student-offers/applications/${id}${deleteTenant ? '?delete_tenant=1' : ''}`, {
+    method: 'DELETE',
+  }),
+  impersonateStudent: (id) => apiRequest(`/superadmin/student-offers/applications/${id}/impersonate`, {
+    method: 'POST',
+  }),
 };
 
 // Custom Domains & Let's Encrypt SSL Automation API
@@ -1643,6 +2205,235 @@ export const customDomainsApi = {
   deleteGlobalDomain: (id) => apiRequest(`/superadmin/domains/${id}`, {
     method: 'DELETE',
   }),
+};
+
+// Clinical Tests & Questionnaires Remote/Tablet Assignment API
+export const clinicalTestAssignmentApi = {
+  create: (patientId, data) => apiRequest(`/patients/${patientId}/test-assignments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getPatientAssignments: (patientId) => apiRequest(`/patients/${patientId}/test-assignments`),
+  revoke: (assignmentId) => apiRequest(`/test-assignments/${assignmentId}`, {
+    method: 'DELETE',
+  }),
+  getPublicTest: (token, pin = null) => apiRequest(`/public/clinical-test/${token}${pin ? `?pin=${pin}` : ''}`),
+  submitPublicTest: (token, data) => apiRequest(`/public/clinical-test/${token}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  sendWhatsApp: (assignmentId, data = {}) => apiRequest(`/test-assignments/${assignmentId}/send-whatsapp`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Psychomotor & Sensory Body Map Clinical Assessment API
+export const psychomotorAssessmentApi = {
+  getPatientAssessments: (patientId) => apiRequest(`/patients/${patientId}/psychomotor-assessments`),
+  getLatestAssessment: (patientId) => apiRequest(`/patients/${patientId}/psychomotor-assessments/latest`),
+  createAssessment: (patientId, data) => apiRequest(`/patients/${patientId}/psychomotor-assessments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  deleteAssessment: (id) => apiRequest(`/psychomotor-assessments/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Tele-Therapy & Interactive Clinical Canvas API
+export const teletherapyApi = {
+  createRoom: (data) => apiRequest('/teletherapy/rooms', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getRoom: (roomCode) => apiRequest(`/teletherapy/rooms/${roomCode}`),
+  saveSession: (data) => apiRequest('/teletherapy/save-session', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  signalSend: (roomCode, data) => apiRequest(`/teletherapy/rooms/${roomCode}/signal`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  signalPoll: (roomCode, since = 0) => apiRequest(`/teletherapy/rooms/${roomCode}/signal?since=${since}`),
+  getPublicRoom: (roomCode, pin = null) => apiRequest(`/public/teletherapy/${roomCode}${pin ? `?pin=${pin}` : ''}`),
+};
+
+// Patient Retention & Clinical Recall Radar API
+export const patientRetentionRadarApi = {
+  getOverview: () => apiRequest('/clinic/retention-radar'),
+  sendRecallWhatsApp: (data) => apiRequest('/clinic/retention-radar/recall', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateSettings: (data) => apiRequest('/clinic/retention-radar/settings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// AI Clinic Receptionist & WhatsApp Triage Simulator API
+export const clinicAiReceptionistApi = {
+  getSettings: () => apiRequest('/clinic/receptionist/settings'),
+  updateSettings: (data) => apiRequest('/clinic/receptionist/settings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  simulateMessage: (message) => apiRequest('/clinic/receptionist/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  }),
+};
+
+// Digital Parent Home-Care Daily Log, Homework & Compliance Sync API
+export const parentHomeCareApi = {
+  getPatientNotes: (patientId) => apiRequest(`/patients/${patientId}/parent-notes`),
+  acknowledgeNote: (patientId, noteId) => apiRequest(`/patients/${patientId}/parent-notes/${noteId}/acknowledge`, {
+    method: 'POST',
+  }),
+  getOverview: (patientId) => apiRequest(`/patients/${patientId}/home-care/overview`),
+  assignHomework: (patientId, data) => apiRequest(`/patients/${patientId}/home-care/assign`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  toggleHomework: (patientId, homeworkId) => apiRequest(`/patients/${patientId}/home-care/${homeworkId}/toggle`, {
+    method: 'POST',
+  }),
+  deleteHomework: (patientId, homeworkId) => apiRequest(`/patients/${patientId}/home-care/${homeworkId}`, {
+    method: 'DELETE',
+  }),
+};
+
+export const homeCareApi = parentHomeCareApi;
+
+// Clinical Diagnostic Decision Support System (DDSS - DSM-5-TR & ICD-11) API
+export const clinicalDdssApi = {
+  evaluate: (payload) => apiRequest('/clinical-ai/ddss/evaluate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  saveRecord: (payload) => apiRequest('/clinical-ai/ddss/save', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getPatientHistory: (patientId) => apiRequest(`/clinical-ai/ddss/patient/${patientId}`),
+};
+
+// Smart Individualized Rehabilitation Plan (PEI) & Exercise Bank API
+export const smartPeiApi = {
+  generate: (patientId, payload = {}) => apiRequest(`/rehab/smart-pei/generate/${patientId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  savePlan: (patientId, payload) => apiRequest(`/rehab/patient-plans/${patientId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getPatientPlans: (patientId) => apiRequest(`/rehab/patient-plans/${patientId}`),
+  updateGoalStatus: (planId, payload) => apiRequest(`/rehab/goal-status/${planId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getExercisesCatalog: (specialty = null) => apiRequest(`/rehab/exercises-catalog${specialty ? `?specialty=${specialty}` : ''}`),
+  dispatchToPortal: (payload) => apiRequest('/rehab/dispatch-portal', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+};
+
+// Vision AI Medical Document Ingestion & Intake API
+export const visionMedicalDocumentApi = {
+  ingest: (formDataOrBase64) => {
+    if (formDataOrBase64 instanceof FormData) {
+      return apiRequest('/clinical-ai/vision/ingest', {
+        method: 'POST',
+        body: formDataOrBase64,
+      });
+    }
+    return apiRequest('/clinical-ai/vision/ingest', {
+      method: 'POST',
+      body: JSON.stringify(formDataOrBase64),
+    });
+  },
+  inject: (patientId, payload) => apiRequest(`/clinical-ai/vision/inject/${patientId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+};
+
+// Sovereign Command & Control Tower API (Super Admin)
+export const sovereignTowerApi = {
+  getOverview: () => apiRequest('/superadmin/sovereign-tower/overview'),
+  toggleGlobalMaintenance: (data) => apiRequest('/superadmin/sovereign-tower/maintenance/toggle', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  toggleClinicRegistration: (data) => apiRequest('/superadmin/sovereign-tower/registration/toggle', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  rotateBypassToken: () => apiRequest('/superadmin/sovereign-tower/maintenance/rotate-token', {
+    method: 'POST',
+  }),
+  quarantineClinic: (id, data) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/quarantine`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  liftQuarantine: (id) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/lift-quarantine`, {
+    method: 'POST',
+  }),
+  getClinicFeaturesAndQuotas: (id) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/features`),
+  updateFeatureOverrides: (id, data) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/features`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  instantQuotaBump: (id, data) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/bump-quota`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getRevenueAndChurnRadar: () => apiRequest('/superadmin/sovereign-tower/revenue-churn-radar'),
+  getSystemPromptsHub: () => apiRequest('/superadmin/sovereign-tower/system-prompts'),
+  updateSystemPrompt: (data) => apiRequest('/superadmin/sovereign-tower/system-prompts/update', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  testSystemPrompt: (data) => apiRequest('/superadmin/sovereign-tower/system-prompts/test', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  cloneTenantSandbox: (id, data = {}) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/clone-sandbox`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  createTenantSnapshot: (id, data = {}) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/snapshots`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  listTenantSnapshots: (id) => apiRequest(`/superadmin/sovereign-tower/clinics/${id}/snapshots`),
+  getLiveAuditPulse: (limit = 20) => apiRequest(`/superadmin/sovereign-tower/live-audit-pulse?limit=${limit}`),
+  dispatchSovereignBroadcast: (data) => apiRequest('/superadmin/sovereign-tower/broadcasts/dispatch', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Universal Centralized WhatsApp Dispatcher API
+export const whatsappApi = {
+  sendMessage: (payload) => apiRequest('/whatsapp/send-message', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+};
+
+// Comprehensive Multi-Tab Clinic Configuration API
+export const clinicConfigApi = {
+  getConfig: () => apiRequest('/clinic/config'),
+  updateConfig: (data) => apiRequest('/clinic/config', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  exportDataUrl: (format = 'json') => `/api/clinic/export-data?format=${format}`,
 };
 
 

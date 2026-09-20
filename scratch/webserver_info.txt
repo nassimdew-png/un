@@ -1,0 +1,39 @@
+=== Listening Ports ===
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                    
+udp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=1690664,fd=16))             
+udp   UNCONN 0      0      127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=1690664,fd=14))             
+udp   UNCONN 0      0            0.0.0.0:443        0.0.0.0:*    users:(("docker-proxy",pid=310813,fd=8))                  
+udp   UNCONN 0      0            0.0.0.0:4789       0.0.0.0:*                                                              
+udp   UNCONN 0      0          127.0.0.1:1721       0.0.0.0:*    users:(("monarx-agent",pid=1042457,fd=9))                 
+udp   UNCONN 0      0               [::]:443           [::]:*    users:(("docker-proxy",pid=310818,fd=8))                  
+udp   UNCONN 0      0                  *:7946             *:*    users:(("dockerd",pid=926,fd=46))                         
+tcp   LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=1690670,fd=3),("systemd",pid=1,fd=107))
+tcp   LISTEN 0      4096         0.0.0.0:80         0.0.0.0:*    users:(("docker-proxy",pid=310771,fd=8))                  
+tcp   LISTEN 0      4096         0.0.0.0:443        0.0.0.0:*    users:(("docker-proxy",pid=310793,fd=8))                  
+tcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=1690664,fd=15))             
+tcp   LISTEN 0      4096       127.0.0.1:3306       0.0.0.0:*    users:(("docker-proxy",pid=1752650,fd=8))                 
+tcp   LISTEN 0      4096         0.0.0.0:3000       0.0.0.0:*    users:(("docker-proxy",pid=479183,fd=8))                  
+tcp   LISTEN 0      511          0.0.0.0:3001       0.0.0.0:*    users:(("node /var/www/c",pid=2153399,fd=20))             
+tcp   LISTEN 0      4096       127.0.0.1:65529      0.0.0.0:*    users:(("monarx-agent",pid=1042457,fd=12))                
+tcp   LISTEN 0      4096       127.0.0.1:6379       0.0.0.0:*    users:(("docker-proxy",pid=1670,fd=8))                    
+tcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=1690664,fd=17))             
+tcp   LISTEN 0      4096         0.0.0.0:8000       0.0.0.0:*    users:(("php8.3",pid=2153398,fd=7))                       
+tcp   LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=1690670,fd=4),("systemd",pid=1,fd=108))
+tcp   LISTEN 0      4096            [::]:80            [::]:*    users:(("docker-proxy",pid=310778,fd=8))                  
+tcp   LISTEN 0      4096            [::]:443           [::]:*    users:(("docker-proxy",pid=310799,fd=8))                  
+tcp   LISTEN 0      4096               *:2377             *:*    users:(("dockerd",pid=926,fd=40))                         
+tcp   LISTEN 0      4096            [::]:3000          [::]:*    users:(("docker-proxy",pid=479189,fd=8))                  
+tcp   LISTEN 0      4096               *:7946             *:*    users:(("dockerd",pid=926,fd=41))                         
+=== Web server processes ===
+root      479091  0.1 10.4 31191356 853316 ?     Ssl  Sep03  21:46 node -r dotenv/config dist/server.mjs
+root     2153387  0.1  0.7 129408 61524 ?        Ss   01:13   0:00 php /var/www/clinic-saas/backend/artisan serve --host=0.0.0.0 --port=8000
+root     2153398  0.3  0.7 236588 63708 ?        S    01:13   0:00 /usr/bin/php8.3 -S 0.0.0.0:8000 /var/www/clinic-saas/backend/vendor/laravel/framework/src/Illuminate/Foundation/Console/../resources/server.php
+root     2153399  1.3  1.1 11834332 93800 ?      Ssl  01:13   0:01 node /var/www/clinic-saas/frontend/node_modules/.bin/vite
+root     2153418  0.0  0.1 1235620 11512 ?       Sl   01:13   0:00 /var/www/clinic-saas/frontend/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.25.12 --ping
+root     2153423  0.2  0.7 131456 63212 ?        Ss   01:13   0:00 php /var/www/clinic-saas/backend/artisan queue:work --sleep=3 --tries=3
+=== Caddyfile? ===
+/etc/fail2ban/filter.d/nginx-limit-req.conf
+/etc/fail2ban/filter.d/nginx-botsearch.conf
+/etc/fail2ban/filter.d/nginx-http-auth.conf
+/etc/fail2ban/filter.d/nginx-bad-request.conf
+/etc/fail2ban/action.d/nginx-block-map.conf

@@ -115,19 +115,31 @@ PROMPT;
             $url1 = "https://image.pollinations.ai/prompt/" . rawurlencode("High quality 3D pediatric animation render, Pixar style, cute expressive character, clean background: " . $scene1Prompt) . "?width={$width}&height={$height}&nologo=true&seed={$seed1}";
             $url2 = "https://image.pollinations.ai/prompt/" . rawurlencode("High quality 3D pediatric animation render, Pixar style, happy smiling character celebrating, bright warm colors: " . $scene2Prompt) . "?width={$width}&height={$height}&nologo=true&seed={$seed2}";
 
-            $res1 = Http::timeout(45)->get($url1);
-            if ($res1->successful()) File::put($frame1Path, $res1->body());
-
-            $res2 = Http::timeout(45)->get($url2);
-            if ($res2->successful()) File::put($frame2Path, $res2->body());
-
-            // Ensure we have at least one frame
-            if (!File::exists($frame1Path)) {
-                $colorCmd = sprintf('ffmpeg -y -f lavfi -i "color=c=0x1e1b4b:s=%dx%d:d=1" -vframes 1 %s', $width, $height, escapeshellarg($frame1Path));
-                exec($colorCmd);
+            try {
+                $res1 = Http::timeout(25)->get($url1);
+                if ($res1->successful() && strlen($res1->body()) > 2000) {
+                    File::put($frame1Path, $res1->body());
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Video frame 1 download failed: " . $e->getMessage());
             }
+
+            try {
+                $res2 = Http::timeout(25)->get($url2);
+                if ($res2->successful() && strlen($res2->body()) > 2000) {
+                    File::put($frame2Path, $res2->body());
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Video frame 2 download failed: " . $e->getMessage());
+            }
+
+            // Ensure rich visual frame 1
+            if (!File::exists($frame1Path)) {
+                $this->generateRichClinicalCanvas($frame1Path, $width, $height, $video->title, 'المشهد الأول: بداية الموقف والتمرين السلوكي', '0x1e1b4b', '0x0d9488');
+            }
+            // Ensure rich visual frame 2
             if (!File::exists($frame2Path)) {
-                File::copy($frame1Path, $frame2Path);
+                $this->generateRichClinicalCanvas($frame2Path, $width, $height, $video->title, 'المشهد الثاني: السلوك الإيجابي والتعزيز السريري', '0x0f172a', '0x6366f1');
             }
 
             // 5. Render Animated MP4 via FFmpeg with Smooth Pan & Crossfade
@@ -171,7 +183,9 @@ PROMPT;
                 exec($fallbackCmd);
             }
 
-            chmod($finalVideoPath, 0664);
+            if (File::exists($finalVideoPath)) {
+                @chmod($finalVideoPath, 0664);
+            }
 
             // 6. Generate Thumbnail Image
             $thumbCmd = sprintf(
@@ -181,7 +195,7 @@ PROMPT;
             );
             exec($thumbCmd);
             if (File::exists($finalThumbPath)) {
-                chmod($finalThumbPath, 0664);
+                @chmod($finalThumbPath, 0664);
             }
 
             // 7. Update Video Record
@@ -233,6 +247,38 @@ PROMPT;
             try {
                 File::deleteDirectory($tmpDir);
             } catch (\Throwable $e) {}
+        }
+    }
+
+    /**
+     * Generate High-Quality Vibrant Clinical Scene Frame.
+     */
+    private function generateRichClinicalCanvas(string $outputPath, int $width, int $height, string $title, string $subtitle, string $bgColor1 = '0x1e1b4b', string $accentColor = '0x0d9488'): void
+    {
+        if (function_exists('imagecreatetruecolor')) {
+            $img = imagecreatetruecolor($width, $height);
+            // Gradient fill
+            $r1 = 15; $g1 = 23; $b1 = 42; // #0f172a
+            $r2 = 30; $g2 = 27; $b2 = 75; // #1e1b4b
+            for ($y = 0; $y < $height; $y++) {
+                $r = (int)($r1 + ($r2 - $r1) * ($y / $height));
+                $g = (int)($g1 + ($g2 - $g1) * ($y / $height));
+                $b = (int)($b1 + ($b2 - $b1) * ($y / $height));
+                $col = imagecolorallocate($img, $r, $g, $b);
+                imageline($img, 0, $y, $width, $y, $col);
+            }
+            // Draw glowing borders
+            $teal = imagecolorallocate($img, 13, 148, 136);
+            $indigo = imagecolorallocate($img, 99, 102, 241);
+            imagesetthickness($img, 8);
+            imagerectangle($img, 24, 24, $width - 24, $height - 24, $teal);
+            imagesetthickness($img, 2);
+            imagerectangle($img, 36, 36, $width - 36, $height - 36, $indigo);
+            imagejpeg($img, $outputPath, 95);
+            imagedestroy($img);
+        } else {
+            $cmd = sprintf('ffmpeg -y -f lavfi -i "color=c=%s:s=%dx%d:d=1" -vframes 1 %s', $bgColor1, $width, $height, escapeshellarg($outputPath));
+            @exec($cmd);
         }
     }
 }

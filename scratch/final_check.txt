@@ -1,0 +1,6 @@
+
+STDERR:
+PHP Fatal error:  Uncaught Error: Class "App\Models\SubscriptionPlan" not found in Command line code:2
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 2

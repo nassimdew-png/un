@@ -236,18 +236,31 @@
         <p style="font-style: italic; color: #64748b;">Aucune grille spécifique renseignée pour ce bilan.</p>
     @endif
 
+@php
+if (!function_exists('renderClinicalMarkdown')) {
+    function renderClinicalMarkdown($text) {
+        if (empty($text) || !is_string($text)) return '';
+        $clean = e($text);
+        $clean = preg_replace('/\*\*(.*?)\*\*/s', '<strong>$1</strong>', $clean);
+        $clean = str_replace('**', '', $clean);
+        $clean = preg_replace('/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/s', '<em>$1</em>', $clean);
+        return nl2br($clean);
+    }
+}
+@endphp
+
     <!-- Diagnostic Conclusion -->
     <div class="section-title">2. Conclusion Clinique & Diagnostic</div>
     <div class="conclusion-box">
         <strong>Diagnostic :</strong><br>
-        {{ $assessment->diagnostic_conclusion ?? 'Diagnostic clinique établi selon les épreuves standardisées.' }}
+        {!! renderClinicalMarkdown($assessment->diagnostic_conclusion ?? 'Diagnostic clinique établi selon les épreuves standardisées.') !!}
     </div>
 
     <!-- Recommendations -->
     <div class="section-title">3. Préconisations & Projet Thérapeutique</div>
     <div class="recommendation-box">
         <strong>Recommandations :</strong><br>
-        {{ $assessment->recommendations ?? 'Poursuite des séances de prise en charge hebdomadaires.' }}
+        {!! renderClinicalMarkdown($assessment->recommendations ?? 'Poursuite des séances de prise en charge hebdomadaires.') !!}
     </div>
 
     <!-- Signatures -->

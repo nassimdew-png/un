@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformFeatureFlag;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -61,6 +62,21 @@ class FeatureFlagController extends Controller
             (bool)$validated['is_enabled'],
             $validated['maintenance_message'] ?? null,
             $user?->id
+        );
+
+        $actionWord = $flag->is_enabled ? 'تفعيل' : 'تعطيل';
+        AuditLogger::log(
+            'feature_flag.toggled',
+            "قام المشرف العام ب{$actionWord} ميزة المنصة: ({$flag->feature_name}) [{$flag->feature_key}]",
+            $flag->is_enabled ? 'info' : 'warning',
+            'PlatformFeatureFlag',
+            (string) $flag->id,
+            [
+                'feature_key' => $flag->feature_key,
+                'feature_name' => $flag->feature_name,
+                'is_enabled' => $flag->is_enabled,
+                'maintenance_message' => $flag->maintenance_message,
+            ]
         );
 
         return response()->json([

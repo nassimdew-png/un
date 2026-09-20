@@ -1,0 +1,19 @@
+3️⃣ الدمج الشامل في واجهات المنصة
+1. **غرفة التطبيب عن بعد ([`TeletherapyRoomView.jsx`](file:///e:/3/frontend/src/components/teletherapy/TeletherapyRoomView.jsx))**:
+   - إضافة زر `🎙️ المختبر الصوتي (Speech AI)` في شريط الأدوات العلوي للجلسة الافتراضية مع حقن النتائج مباشرة في بطاقة الـ SOAP الخاصة بالجلسة الجارية.
+2. **وحدة الأرطوفونيا المتخصصة ([`SpecialtyModules.jsx`](file:///e:/3/frontend/src/components/SpecialtyModules.jsx))**:
+   - إضافة بطاقة الركيزة الرابعة: `Speech AI & Biomarkers`.
+   - زر الإطلاق السريع بالأعلى وزر فحص مباشر بجانب كل مريض مسجل في العيادة.
+3. **مصفوفة الفحص الفونولوجي والعضوي ([`SpeechArticulationMatrixModal.jsx`](file:///e:/3/frontend/src/components/orthophony/SpeechArticulationMatrixModal.jsx))**:
+   - إضافة زر مباشر في شريط التبويبات لإطلاق المختبر الصوتي الحي وتحديث الحصيلة الإكلينيكية وتقرير A4.
+
+---
+
+### 🚀 حالة النشر والتحقق على خادم الإنتاج:
+```bash
+✓ built in 9.78s (dist/assets/index-Bs9Hoo1Y.js)
+✓ PM2 restart 0 (clinic-backend) -> ONLINE
+✓ PM2 restart 1 (clinic-frontend) -> ONLINE
+✓ PM2 process 2 (clinic-queue) -> ONLINE
+```
+الميزة جاهزة الآن للاستخدام الحي على بيئة الإنتاج في العيادة وعبر التطبيب عن بعد!

@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { isSoundEnabled, toggleSound } from '../utils/soundNotifier';
 import { offlineSyncService } from '../services/offlineSync';
+import { getBaseDomain } from '../utils/subdomain';
+import ThemeToggle from './common/ThemeToggle';
+import { apiRequest } from '../api';
 
 export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpenWaitingModal, onToggleMobileMenu }) {
   const { t, i18n } = useTranslation();
@@ -85,10 +88,13 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
 
   let isImpersonating = false;
   try {
-    isImpersonating = localStorage.getItem('is_impersonating') === 'true' || 
-                      !!sessionStorage.getItem('superadmin_backup_token') || 
-                      !!localStorage.getItem('backup_superadmin_token') || 
-                      !!localStorage.getItem('superadmin_backup_token');
+    const hasBackupToken = Boolean(
+      localStorage.getItem('backup_superadmin_token') || 
+      localStorage.getItem('superadmin_backup_token') || 
+      sessionStorage.getItem('superadmin_backup_token')
+    );
+    const isExplicitlyImpersonating = localStorage.getItem('is_impersonating') === 'true';
+    isImpersonating = isExplicitlyImpersonating && hasBackupToken && user?.role !== 'superadmin';
   } catch (e) {
     isImpersonating = false;
   }
@@ -102,8 +108,13 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
     setSoundOn(nextState);
   };
 
-  const handleExitImpersonation = () => {
+  const handleExitImpersonation = async () => {
     try {
+      try {
+        await apiRequest('/impersonate/stop', 'POST');
+      } catch (err) {
+        // Silently continue exit on network or auth failure
+      }
       const backupToken = localStorage.getItem('backup_superadmin_token') || 
                           localStorage.getItem('superadmin_backup_token') || 
                           sessionStorage.getItem('superadmin_backup_token');
@@ -123,12 +134,17 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
       localStorage.removeItem('is_impersonating');
       localStorage.removeItem('impersonating_clinic_name');
 
-      const targetUrl = window.location.hostname.includes('psypro.tech') ? 'https://psypro.tech/superadmin' : '/superadmin';
+      const baseDomain = getBaseDomain();
+      const targetUrl = (window.location.hostname.includes('psysnap.com') || window.location.hostname.includes('psypro.tech')) 
+        ? `https://${baseDomain}/superadmin` 
+        : '/superadmin';
       window.location.href = targetUrl;
     } catch (e) {
       window.location.href = '/superadmin';
     }
   };
+
+  const baseDomain = getBaseDomain();
 
   return (
     <>
@@ -138,7 +154,7 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
           <div className="flex items-center space-x-2 space-x-reverse">
             <span className="text-base">⚠️</span>
             <span>
-              أنت تتصفح الآن بصلاحية أدمن العيادة: <strong className="font-black text-slate-900">{tenant?.name || localStorage.getItem('impersonating_clinic_name') || 'العيادة'}</strong> {tenant?.subdomain ? `(${tenant.subdomain}.psypro.tech)` : ''}
+              أنت تتصفح الآن بصلاحية أدمن العيادة: <strong className="font-black text-slate-900">{tenant?.name || localStorage.getItem('impersonating_clinic_name') || 'العيادة'}</strong> {tenant?.subdomain ? `(${tenant.subdomain}.${baseDomain})` : ''}
             </span>
           </div>
 
@@ -166,15 +182,15 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
             </svg>
           </button>
           <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-cyan-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-brand-500/25">
-              🩺
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-cyan-500/20 border border-slate-700/80 bg-slate-950 p-0.5 flex items-center justify-center shrink-0">
+              <img src={tenant?.logo_url || "/psysnap-logo.png"} alt="PsySnap" className="w-full h-full object-cover rounded-xl" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-white tracking-wide flex items-center space-x-2 space-x-reverse">
-                <span>{tenant ? tenant.name : 'ClinicSaaS DZ'}</span>
+                <span>{tenant ? tenant.name : 'PsySnap'}</span>
                 {tenant?.subdomain && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono hidden md:inline">
-                    {tenant.subdomain}.psypro.tech
+                    {tenant.subdomain}.{baseDomain}
                   </span>
                 )}
               </h1>
@@ -265,6 +281,9 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
             {soundOn ? <Volume2 className="w-4 h-4 text-teal-400" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
+          {/* Dark / Light Mode Toggle */}
+          <ThemeToggle />
+
           {/* Language Switcher */}
           <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
             <button
@@ -292,7 +311,19 @@ export default function Navbar({ tenant, user, onLogout, waitingCount = 0, onOpe
           <div className="text-right hidden md:block">
             <p className="text-xs font-semibold text-slate-200">{user?.name}</p>
             <p className="text-[10px] text-slate-400 capitalize">
-              {user?.role === 'clinic_admin' ? (t('auth.clinic_admin_role') || 'Admin') : user?.role === 'superadmin' ? 'Superadmin' : (user?.role || '')}
+              {user?.role === 'clinic_admin' || user?.role === 'admin' || user?.role === 'admin_owner'
+                ? (t('auth.clinic_admin_role') || 'مدير العيادة (Clinic Admin)')
+                : user?.role === 'superadmin' || user?.role === 'super_admin'
+                ? (t('auth.superadmin_role') || 'المشرف العام (Superadmin)')
+                : user?.role === 'orthophonist'
+                ? (t('auth.orthophonist_role') || 'أخصائي أرطوفونيا وتخاطب')
+                : user?.role === 'psychologist'
+                ? (t('auth.psychologist_role') || 'طبيب / أخصائي نفسي')
+                : user?.role === 'psychomotor'
+                ? (t('auth.psychomotor_role') || 'أخصائي تأهيل حركي نفسي')
+                : user?.role === 'secretary' || user?.role === 'receptionist'
+                ? (t('auth.secretary_role') || 'سكرتارية واستقبال')
+                : (user?.role || 'أخصائي')}
             </p>
           </div>
 

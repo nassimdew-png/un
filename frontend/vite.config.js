@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'PsyPro Clinic Suite - المنصة الطبية',
-        short_name: 'PsyPro DZ',
-        description: 'المنصة الطبية السحابية المتكاملة لعيادات ومراكز الأرطوفونيا وعلم النفس والطب النفسي في الجزائر',
+        name: 'PsySnap - المنظومة الإكلينيكية والطبية السحابية',
+        short_name: 'PsySnap',
+        description: 'المنصة الطبية السحابية المتكاملة لعيادات ومراكز الأرطوفونيا وعلم النفس والطب النفسي',
         theme_color: '#0d9488',
         background_color: '#020617',
         display: 'standalone',

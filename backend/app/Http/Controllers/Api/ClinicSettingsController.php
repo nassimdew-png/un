@@ -209,4 +209,181 @@ class ClinicSettingsController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get structured clinic configurations.
+     */
+    public function getConfig(Request $request): JsonResponse
+    {
+        $tenant = $this->getActiveTenant();
+        if (!$tenant) {
+            return response()->json(['success' => false, 'message' => 'العيادة غير موجودة أو غير مسجلة.'], 404);
+        }
+
+        $rawSettings = is_array($tenant->settings) ? $tenant->settings : (json_decode($tenant->settings ?? '{}', true) ?: []);
+
+        $defaults = [
+            'landing_page' => [
+                'enabled' => (bool)($tenant->accepts_public_bookings ?? true),
+                'hero_headline' => 'بوابة حجز المواعيد والاستشارات السريرية المعتمدة',
+                'public_bio' => $tenant->public_bio ?: 'عيادة متخصصة ومعتمدة مجهزة بأحدث أدوات التقييم السريري والتأهيل العصبي واللغوي.',
+                'primary_cta_text' => 'احجز موعدك الآن أونلاين',
+                'announcement_bar' => '',
+                'show_pricing' => true,
+                'show_working_hours' => true,
+                'show_practitioners' => true,
+                'show_whatsapp_button' => true,
+                'require_parent_name' => false,
+                'services' => [
+                    'bilan' => true,
+                    'reeducation' => true,
+                    'consultation' => true,
+                    'teletherapy' => true,
+                ],
+            ],
+            'working_hours' => [
+                'days' => ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'saturday'],
+                'open_time' => '08:30',
+                'close_time' => '17:00',
+                'slot_duration' => 45,
+                'buffer_time' => 10,
+                'max_daily_patients' => 12,
+            ],
+            'tarification' => [
+                'currency' => 'DZD',
+                'bilan_initial_fee' => 3500,
+                'therapy_session_fee' => 2000,
+                'teletherapy_fee' => 2500,
+                'group_session_fee' => 1500,
+                'accepted_payment_methods' => ['cash', 'baridimob', 'ccp', 'cheque'],
+                'baridimob_rip' => '00799999000000000000',
+                'invoice_prefix' => 'FAC-2026-',
+                'receipt_prefix' => 'REC-',
+            ],
+            'whatsapp_automation' => [
+                'auto_appointment_reminders' => true,
+                'reminder_timing_hours' => 24,
+                'auto_send_homework_summary' => true,
+                'send_on_session_complete' => true,
+                'auto_absence_chaser' => true,
+            ],
+            'parent_portal' => [
+                'enabled' => true,
+                'allow_download_bilans_pdf' => true,
+                'allow_view_homework' => true,
+                'allow_parent_audio_uploads' => true,
+                'magic_link_expiry_days' => 30,
+            ],
+            'ai_preferences' => [
+                'default_language' => 'darja',
+                'bilan_tone' => 'clinical_detailed',
+                'red_alert_audio_enabled' => true,
+            ],
+        ];
+
+        $merged = array_replace_recursive($defaults, $rawSettings);
+
+        return response()->json([
+            'success' => true,
+            'config' => $merged,
+            'tenant' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'subdomain' => $tenant->subdomain,
+                'public_bio' => $tenant->public_bio,
+                'phone' => $tenant->phone,
+                'address' => $tenant->address,
+                'wilaya' => $tenant->wilaya,
+            ],
+        ]);
+    }
+
+    /**
+     * Update structured clinic configurations.
+     */
+    public function updateConfig(Request $request): JsonResponse
+    {
+        $tenant = $this->getActiveTenant();
+        if (!$tenant) {
+            return response()->json(['success' => false, 'message' => 'العيادة غير موجودة.'], 404);
+        }
+
+        $validated = $request->validate([
+            'landing_page' => 'nullable|array',
+            'working_hours' => 'nullable|array',
+            'tarification' => 'nullable|array',
+            'whatsapp_automation' => 'nullable|array',
+            'parent_portal' => 'nullable|array',
+            'ai_preferences' => 'nullable|array',
+        ]);
+
+        $rawSettings = is_array($tenant->settings) ? $tenant->settings : (json_decode($tenant->settings ?? '{}', true) ?: []);
+
+        $newSettings = array_replace_recursive($rawSettings, array_filter($validated, fn($v) => !is_null($v)));
+
+        $tenant->settings = $newSettings;
+
+        // Sync landing page public bio and status if provided
+        if (isset($validated['landing_page'])) {
+            if (!empty($validated['landing_page']['public_bio'])) {
+                $tenant->public_bio = $validated['landing_page']['public_bio'];
+            }
+            if (isset($validated['landing_page']['enabled'])) {
+                $tenant->accepts_public_bookings = (bool)$validated['landing_page']['enabled'];
+            }
+        }
+
+        $tenant->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ وتطبيق إعدادات العيادة وصفحة الهبوط بنجاح! ✨',
+            'config' => $newSettings,
+        ]);
+    }
+
+    /**
+     * Export all clinic records (Patients, Appointments, Invoices, Bilans).
+     */
+    public function exportData(Request $request)
+    {
+        $tenant = $this->getActiveTenant();
+        if (!$tenant) {
+            return response()->json(['success' => false, 'message' => 'العيادة غير موجودة.'], 404);
+        }
+
+        $tenantId = $tenant->id;
+
+        $patients = \App\Models\Patient::withoutGlobalScopes()->where('tenant_id', $tenantId)->get();
+        $appointments = \App\Models\Appointment::withoutGlobalScopes()->where('tenant_id', $tenantId)->get();
+        $invoices = \App\Models\Invoice::withoutGlobalScopes()->where('tenant_id', $tenantId)->get();
+        $bilans = \App\Models\PatientBilan::withoutGlobalScopes()->where('tenant_id', $tenantId)->get();
+
+        $exportPayload = [
+            'exported_at' => now()->toIso8601String(),
+            'clinic' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'subdomain' => $tenant->subdomain,
+            ],
+            'statistics' => [
+                'patients_count' => $patients->count(),
+                'appointments_count' => $appointments->count(),
+                'invoices_count' => $invoices->count(),
+                'bilans_count' => $bilans->count(),
+            ],
+            'patients' => $patients,
+            'appointments' => $appointments,
+            'invoices' => $invoices,
+            'bilans' => $bilans,
+        ];
+
+        $jsonContent = json_encode($exportPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $fileName = 'clinic_backup_' . ($tenant->subdomain ?? 'export') . '_' . date('Y_m_d_His') . '.json';
+
+        return response($jsonContent, 200, [
+            'Content-Type' => 'application/json; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
+    }
 }

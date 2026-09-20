@@ -83,4 +83,9 @@ class Patient extends Model
     {
         return $this->hasMany(PatientAiRecord::class, 'patient_id')->orderBy('created_at', 'desc');
     }
+
+    public function recallLogs(): HasMany
+    {
+        return $this->hasMany(PatientRecallLog::class, 'patient_id')->orderBy('created_at', 'desc');
+    }
 }

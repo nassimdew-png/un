@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
   Sparkles,
@@ -18,6 +18,18 @@ export default function SocialStoriesStudio({ selectedPatient, onSaveToPatient }
   const [storyOutput, setStoryOutput] = useState(null);
   const [error, setError] = useState(null);
 
+  // Synchronize state when target patient changes
+  useEffect(() => {
+    if (selectedPatient) {
+      if (selectedPatient.first_name) {
+        setChildName(selectedPatient.first_name);
+      }
+      if (selectedPatient.age) {
+        setChildAge(selectedPatient.age);
+      }
+    }
+  }, [selectedPatient]);
+
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
@@ -30,14 +42,94 @@ export default function SocialStoriesStudio({ selectedPatient, onSaveToPatient }
         cultural_setting: setting,
       });
 
-      let parsed = res.data?.content;
-      if (typeof parsed === 'string') {
+      let raw = res.data?.story || res.story || res.data?.content || res.data?.data?.content || res.data?.data || res.content;
+      let parsed = raw;
+
+      if (typeof raw === 'string') {
         try {
-          parsed = JSON.parse(parsed.replace(/```json|```/g, '').trim());
+          parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
         } catch {
-          parsed = { story_title: 'قصة اجتماعية', panels: [], parent_guidelines: parsed };
+          // If JSON parse fails on text, build 4 structured panels automatically
+          const lines = raw.split('\n').filter((l) => l.trim().length > 0);
+          parsed = {
+            story_title: `قصة اجتماعية: ${behaviorTarget}`,
+            panels: [
+              {
+                step_number: 1,
+                panel_title: '1. الموقف والبيئة (الوضعية المبدئية)',
+                text_arabic: lines[0] || `عندما يكون ${childName} في ${setting}...`,
+                text_darja: `كي يكون ${childName} في ${setting}...`,
+                visual_prompt: 'رسم كرتوني هادئ للطفل في البيئة المحددة',
+                emotion_icon: '😊',
+              },
+              {
+                step_number: 2,
+                panel_title: '2. المشاعر والأفكار (فهم الموقف)',
+                text_arabic: lines[1] || `يشعر ${childName} أحياناً بالحاجة إلى ${behaviorTarget}...`,
+                text_darja: `يحس ${childName} بلي لازملو يهدأ ويتصرف بعقل...`,
+                visual_prompt: 'تعبير وجه يفكر بتركيز وإيجابية',
+                emotion_icon: '🤔',
+              },
+              {
+                step_number: 3,
+                panel_title: '3. السلوك البديل والتصرف الإيجابي',
+                text_arabic: lines[2] || `أفضل طريقة هي أن يطلب بهدوء وينتظر دوره بكل ثقة.`,
+                text_darja: `أحسن حاجة يطلب بهدوء ويستنى نوبتو براحة.`,
+                visual_prompt: 'الطفل يقوم بالتصرف الإيجابي الصحيح',
+                emotion_icon: '⭐',
+              },
+              {
+                step_number: 4,
+                panel_title: '4. النتيجة والمكافأة (التعزيز)',
+                text_arabic: lines[3] || `الجميع يكونون فخورين بـ ${childName} ويشعر هو بسعادة كبيرة.`,
+                text_darja: `الدار والمدرسة يفرحو بيه وهو يحس روحو بطل!`,
+                visual_prompt: 'الجميع يبتسمون والطفل فخور بنجاحه',
+                emotion_icon: '🎉',
+              },
+            ],
+            parent_guidelines: lines.slice(4).join('\n') || 'قراءة القصة مع الطفل مرتين يومياً وتثبيت السلوك بالمدح المباشر.',
+          };
         }
       }
+
+      // Ensure panels array is populated
+      if (!parsed.panels || !Array.isArray(parsed.panels) || parsed.panels.length === 0) {
+        parsed.panels = [
+          {
+            step_number: 1,
+            panel_title: '1. الموقف والبيئة',
+            text_arabic: `عندما يكون ${childName} في ${setting}...`,
+            text_darja: `كي يكون ${childName} في ${setting}...`,
+            visual_prompt: 'المشهد في البيئة الطبيعية',
+            emotion_icon: '😊',
+          },
+          {
+            step_number: 2,
+            panel_title: '2. المشاعر والأفكار',
+            text_arabic: `يتذكر ${childName} كيف يتحكم في مشاعره بهدوء.`,
+            text_darja: `يتفكر ${childName} كيفاش يهدأ ويتحكم في روحو.`,
+            visual_prompt: 'الطفل يفكر بتركيز',
+            emotion_icon: '🤔',
+          },
+          {
+            step_number: 3,
+            panel_title: '3. السلوك الإيجابي المستهدف',
+            text_arabic: `يقوم ${childName} بـ: ${behaviorTarget}.`,
+            text_darja: `يدير ${childName} السلوك الصحيح بكل ثقة.`,
+            visual_prompt: 'الطفل ينفذ السلوك المطلوب',
+            emotion_icon: '⭐',
+          },
+          {
+            step_number: 4,
+            panel_title: '4. النجاح والتعزيز',
+            text_arabic: `يشعر ${childName} بالفخر والراحة وتشكره أسرته ومعلموه.`,
+            text_darja: `يفرح بيه الجميع ويحس روحو مرتاح ومتميز!`,
+            visual_prompt: 'الجميع يحتفلون بنجاح الطفل',
+            emotion_icon: '🎉',
+          },
+        ];
+      }
+
       setStoryOutput(parsed);
     } catch (err) {
       setError(err.message || 'فشل إنشاء القصة الاجتماعية.');

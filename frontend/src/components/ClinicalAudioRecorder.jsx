@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Mic, Square, Play, Pause, Save, Sparkles, Loader2, Volume2, CheckCircle2 } from 'lucide-react';
 import { patientApi } from '../api';
+import VoiceScribeRecorderModal from './sessions/VoiceScribeRecorderModal';
 
 export default function ClinicalAudioRecorder({ patientId, onRecorded = null }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -10,6 +11,7 @@ export default function ClinicalAudioRecorder({ patientId, onRecorded = null }) 
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [feedback, setFeedback] = useState(null);
+  const [showScribeModal, setShowScribeModal] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
@@ -78,22 +80,35 @@ export default function ClinicalAudioRecorder({ patientId, onRecorded = null }) 
 
   return (
     <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h4 className="text-sm font-black text-white flex items-center space-x-2 space-x-reverse">
-            <Mic className="w-5 h-5 text-rose-400" />
-            <span>مسجل الإملاء الصوتي وملاحظات الجلسة المباشرة</span>
+            <Mic className="w-5 h-5 text-indigo-400" />
+            <span>تفريغ صوتي ذكي للملاحظات السريرية (AI Medical Scribe)</span>
           </h4>
           <p className="text-xs text-slate-400 mt-1">
-            سجل عينات النطق، الإملاء السريري، وتفريغ ملاحظات SOAP للمريض
+            سجل عينات النطق، الإملاء السريري، وتفريغ ملاحظات SOAP للمريض بدقة
           </p>
         </div>
-        {isRecording && (
-          <div className="flex items-center space-x-2 space-x-reverse px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-mono font-bold animate-pulse">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-            <span>جاري التسجيل: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isRecording && (
+            <div className="flex items-center space-x-2 space-x-reverse px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-mono font-bold animate-pulse">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+              <span>جاري التسجيل: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            id="ambient-scribe-btn"
+            data-testid="ambient-scribe-btn"
+            data-cy="ambient-scribe-btn"
+            onClick={() => setShowScribeModal(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>تفريغ صوتي ذكي للملاحظات السريرية</span>
+          </button>
+        </div>
       </div>
 
       {feedback && (
@@ -120,26 +135,33 @@ export default function ClinicalAudioRecorder({ patientId, onRecorded = null }) 
           <button
             type="button"
             onClick={stopRecording}
-            className="w-16 h-16 rounded-full bg-slate-800 hover:bg-slate-700 text-rose-400 border-2 border-rose-500 flex items-center justify-center shadow-lg transition-all animate-pulse"
+            className="w-16 h-16 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow-lg shadow-amber-500/40 transition-all hover:scale-105 active:scale-95 animate-pulse"
           >
-            <Square className="w-6 h-6" />
+            <Square className="w-8 h-8 fill-current" />
           </button>
         )}
-        <div className="text-xs text-slate-400">
-          {!isRecording ? 'اضغط على زر الميكروفون لبدء التسجيل' : 'اضغط لإيقاف التسجيل وإنهاء العينة'}
+
+        <div className="text-center">
+          <p className="text-sm font-bold text-slate-200">
+            {isRecording ? 'جاري تسجيل الصوت والملاحظات...' : 'انقر على الميكروفون لبدء التسجيل السريري'}
+          </p>
+          <span className="text-xs text-slate-500">
+            {isRecording ? 'انقر على المربع الأصفر لإيقاف التسجيل' : 'أو افتح نافذة تفريغ صوتي ذكي للملاحظات السريرية أعلاه'}
+          </span>
         </div>
       </div>
 
-      {/* Preview & Save Form */}
-      {audioUrl && (
+      {/* Audio player & save action */}
+      {audioUrl && !isRecording && (
         <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
           <audio src={audioUrl} controls className="w-full" />
-          <div className="flex gap-2">
+
+          <div className="flex items-center space-x-2 space-x-reverse pt-2">
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="عنوان التسجيل (مثال: نطق حرف الراء، اختبار القراءة...)"
+              placeholder="عنوان التسجيل (مثال: نطق حرف الراء / فحص حبسة كلامية)..."
               className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
             />
             <button
@@ -153,6 +175,15 @@ export default function ClinicalAudioRecorder({ patientId, onRecorded = null }) 
             </button>
           </div>
         </div>
+      )}
+
+      {/* Voice Scribe Modal */}
+      {showScribeModal && (
+        <VoiceScribeRecorderModal
+          isOpen={showScribeModal}
+          onClose={() => setShowScribeModal(false)}
+          patient={{ id: patientId }}
+        />
       )}
     </div>
   );

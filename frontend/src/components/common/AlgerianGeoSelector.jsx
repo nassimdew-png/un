@@ -3,8 +3,9 @@ import { ALGERIAN_WILAYAS, getCommunesForWilaya } from '../../data/algerianWilay
 import { MapPin } from 'lucide-react';
 
 export default function AlgerianGeoSelector({
-  wilayaCode,
-  communeName,
+  wilayaCode = '16',
+  communeName = '',
+  onChange,
   onWilayaChange,
   onCommuneChange,
   className = '',
@@ -16,10 +17,26 @@ export default function AlgerianGeoSelector({
 
   const handleWilayaSelect = (e) => {
     const newCode = e.target.value;
-    onWilayaChange(newCode);
+    if (typeof onWilayaChange === 'function') {
+      onWilayaChange(newCode);
+    }
     const newCommunes = getCommunesForWilaya(newCode);
-    if (newCommunes.length > 0 && !newCommunes.includes(communeName)) {
-      onCommuneChange(newCommunes[0]);
+    const newCommune = (newCommunes.length > 0 && !newCommunes.includes(communeName)) ? newCommunes[0] : (communeName || '');
+    if (typeof onCommuneChange === 'function') {
+      onCommuneChange(newCommune);
+    }
+    if (typeof onChange === 'function') {
+      onChange({ wilayaCode: newCode, communeName: newCommune });
+    }
+  };
+
+  const handleCommuneSelect = (e) => {
+    const newCommune = e.target.value;
+    if (typeof onCommuneChange === 'function') {
+      onCommuneChange(newCommune);
+    }
+    if (typeof onChange === 'function') {
+      onChange({ wilayaCode: wilayaCode || '16', communeName: newCommune });
     }
   };
 
@@ -52,7 +69,7 @@ export default function AlgerianGeoSelector({
         <select
           value={communeName || ''}
           disabled={disabled}
-          onChange={(e) => onCommuneChange(e.target.value)}
+          onChange={handleCommuneSelect}
           className="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-all"
         >
           <option value="">-- اختر البلدية --</option>

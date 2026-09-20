@@ -130,7 +130,7 @@ export default function PublicBookingsInboxWidget({ onAppointmentCreated = null 
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-teal-400" />
-                    <span>تاريخ الموعد: <strong>{req.preferred_date}</strong> ({req.preferred_time_slot})</span>
+                    <span>تاريخ الموعد: <strong>{req.preferred_date ? new Date(req.preferred_date).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' }) : '--'}</strong> ({req.preferred_time_slot})</span>
                   </span>
                 </div>
 

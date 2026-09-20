@@ -415,7 +415,7 @@ export default function DisasterRecoveryTab() {
                         ☁️ قاعدة بيانات مضغوطة (.sql.gz)
                       </span>
                     </td>
-                    <td className="p-4 font-mono font-bold text-teal-300">
+                    <td className="p-4 font-mono font-bold text-teal-300" dir="ltr">
                       {b.size_formatted}
                     </td>
                     <td className="p-4 text-slate-400 font-mono flex items-center gap-1.5 pt-5">

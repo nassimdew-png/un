@@ -8,6 +8,7 @@ use App\Models\ClinicalAssessment;
 use App\Models\ClinicSubscription;
 use App\Models\Patient;
 use App\Models\SubscriptionPlan;
+use App\Models\SystemSetting;
 use App\Models\Tenant;
 use App\Models\User;
 use Carbon\Carbon;
@@ -91,7 +92,7 @@ class PublicAuthController extends Controller
                 'specialty' => $tenant->type,
                 'wilaya' => $tenant->wilaya ?: ($tenant->settings['city'] ?? 'الجزائر'),
                 'phone' => $tenant->phone,
-                'email' => $tenant->email,
+                'email' => $tenant->users()->first()?->email ?? ('contact@' . ($tenant->subdomain ?: 'clinic') . '.dz'),
                 'address' => $tenant->address,
                 'report_accent_color' => $tenant->report_accent_color ?: '#0d9488',
                 'status' => $tenant->status,
@@ -103,8 +104,12 @@ class PublicAuthController extends Controller
     protected function extractSubdomain(Request $request): ?string
     {
         $host = $request->getHost();
-        if ($host === 'psypro.tech' || $host === 'www.psypro.tech' || $host === 'localhost' || $host === '127.0.0.1') {
+        if (in_array($host, ['psysnap.com', 'www.psysnap.com', 'psypro.tech', 'www.psypro.tech', 'localhost', '127.0.0.1'])) {
             return null;
+        }
+
+        if (str_ends_with($host, '.psysnap.com')) {
+            return str_replace('.psysnap.com', '', $host);
         }
 
         if (str_ends_with($host, '.psypro.tech')) {
@@ -115,10 +120,36 @@ class PublicAuthController extends Controller
     }
 
     /**
+     * Check if new clinic registration is enabled or temporarily paused.
+     * GET /api/public/registration-status
+     */
+    public function getRegistrationStatus(): JsonResponse
+    {
+        $disabled = SystemSetting::get('registration_disabled', '0') === '1';
+        $message = SystemSetting::get('registration_disabled_message', 'نعتذر، التسجيل لعيادات جديدة مغلق مؤقتاً لأعمال الصيانة والتحديثات السريرية. يرجى المحاولة في وقت لاحق.');
+
+        return response()->json([
+            'success' => true,
+            'is_disabled' => $disabled,
+            'message' => $message,
+        ]);
+    }
+
+    /**
      * Self-Registration for Clinics (14-Day Free Trial Onboarding).
      */
     public function registerClinic(Request $request): JsonResponse
     {
+        $registrationDisabled = SystemSetting::get('registration_disabled', '0') === '1';
+        if ($registrationDisabled) {
+            $message = SystemSetting::get('registration_disabled_message', 'نعتذر، التسجيل لعيادات جديدة مغلق مؤقتاً لأعمال الصيانة والتحديثات السريرية. يرجى المحاولة في وقت لاحق.');
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'is_registration_disabled' => true,
+            ], 422);
+        }
+
         $validated = $request->validate([
             'clinic_name' => 'required|string|max:120',
             'owner_name' => 'required|string|max:100',

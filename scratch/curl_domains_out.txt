@@ -1,0 +1,12 @@
+=== Test curl https://psypro.tech/ ===
+HTTP_STATUS:200
+=== Test curl https://psypro.tech/dashboard ===
+HTTP_STATUS:200
+=== Test curl https://qa-test-clinic-20260913.psypro.tech/ ===
+HTTP_STATUS:200
+=== Test curl https://qa-test-clinic-20260913.psypro.tech/dashboard ===
+HTTP_STATUS:200
+=== Test curl https://qa-test-clinic-20260913.psypro.tech/billing ===
+HTTP_STATUS:200
+
+--- STDERR ---

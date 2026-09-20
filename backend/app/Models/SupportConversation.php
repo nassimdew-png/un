@@ -10,6 +10,7 @@ class SupportConversation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'clinic_id',
         'session_id',
         'user_id',
         'role',

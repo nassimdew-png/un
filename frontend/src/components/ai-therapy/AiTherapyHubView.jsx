@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -34,7 +34,9 @@ import {
   Radio,
   Palette,
   Video,
-  Activity
+  Activity,
+  X,
+  Check
 } from 'lucide-react';
 import { aiTherapyApi, patientApi } from '../../api';
 import { useFeatureFlags } from '../../context/FeatureFlagsContext';
@@ -51,15 +53,77 @@ import LiveInteractiveAudioStudio from './LiveInteractiveAudioStudio';
 import AiQuotaProgressBar from '../common/AiQuotaProgressBar';
 import UpgradePlanModal from '../common/UpgradePlanModal';
 import PrintableClinicalReport from '../common/PrintableClinicalReport';
+import {
+  DEFAULT_DEMO_PATIENT,
+  DEFAULT_DEMO_PATIENT_2
+} from '../common/SearchablePatientSelect';
 
-export default function AiTherapyHubView() {
+export default function AiTherapyHubView({ patients: propPatients = [] }) {
   const { t } = useTranslation();
   const { isFeatureEnabled } = useFeatureFlags();
-  const [patients, setPatients] = useState([]);
+  const [patients, setPatients] = useState(
+    Array.isArray(propPatients) && propPatients.length > 0 ? propPatients : []
+  );
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const initialAutoSelectedRef = useRef(false);
+
+  // Searchable patient dropdown states
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
+  const patientDropdownRef = useRef(null);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (patientDropdownRef.current && !patientDropdownRef.current.contains(e.target)) {
+        setIsPatientDropdownOpen(false);
+      }
+    };
+    if (isPatientDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPatientDropdownOpen]);
+
+  // Helper for patient name
+  const getPatientDisplayName = (p) => {
+    if (!p) return '';
+    const combined = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+    return combined || p.full_name || p.name || `مريض #${p.id}`;
+  };
+
+  // Filtered patients for AI studios
+  const filteredAiPatients = useMemo(() => {
+    const pool = patients && patients.length > 0 ? patients : [DEFAULT_DEMO_PATIENT, DEFAULT_DEMO_PATIENT_2];
+    if (!patientSearchQuery.trim()) {
+      return pool;
+    }
+    const q = patientSearchQuery.toLowerCase().trim();
+    return pool.filter((p) => {
+      const fullName = getPatientDisplayName(p).toLowerCase();
+      const phone = (p.phone || p.parent_phone || '').toLowerCase();
+      const folder = (p.folder_number || p.file_number || '').toLowerCase();
+      const idStr = String(p.id || '');
+      const diag = (p.diagnosis_primary || '').toLowerCase();
+      return (
+        fullName.includes(q) ||
+        phone.includes(q) ||
+        folder.includes(q) ||
+        idStr.includes(q) ||
+        diag.includes(q)
+      );
+    });
+  }, [patients, patientSearchQuery]);
+
+  // Sliced patients (max 50) to ensure high-performance rendering (per AGENTS.md rules, in component body)
+  const displayedAiPatients = useMemo(() => {
+    return filteredAiPatients.slice(0, 50);
+  }, [filteredAiPatients]);
 
   const [searchParams] = useSearchParams();
 
@@ -119,22 +183,62 @@ export default function AiTherapyHubView() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [soapOutput, setSoapOutput] = useState(null);
 
-  // Load Patients
+  // Load Patients: sync from propPatients or fetch from API, fallback to demo patients
   useEffect(() => {
+    let isMounted = true;
     const fetchPatients = async () => {
+      if (Array.isArray(propPatients) && propPatients.length > 0) {
+        setPatients(propPatients);
+        return;
+      }
       setLoadingPatients(true);
       try {
         const res = await patientApi.list();
-        const list = res.data || (Array.isArray(res) ? res : []);
-        setPatients(list);
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        if (isMounted) {
+          if (list && list.length > 0) {
+            setPatients(list);
+          } else {
+            setPatients([DEFAULT_DEMO_PATIENT, DEFAULT_DEMO_PATIENT_2]);
+          }
+        }
       } catch (err) {
-        console.error('Error fetching patients:', err);
+        console.error('Error fetching patients for AI hub:', err);
+        if (isMounted) {
+          setPatients([DEFAULT_DEMO_PATIENT, DEFAULT_DEMO_PATIENT_2]);
+        }
       } finally {
-        setLoadingPatients(false);
+        if (isMounted) {
+          setLoadingPatients(false);
+        }
       }
     };
     fetchPatients();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [propPatients]);
+
+  // Auto-select initial patient on mount or when patients load
+  useEffect(() => {
+    if (!initialAutoSelectedRef.current && patients.length > 0) {
+      const pid = searchParams.get('patientId');
+      if (pid) {
+        const found = patients.find((p) => String(p.id) === String(pid));
+        if (found) {
+          setSelectedPatientId(String(found.id));
+          setSelectedPatient(found);
+          initialAutoSelectedRef.current = true;
+          return;
+        }
+      }
+      // If no explicit patientId from URL, select the first available patient so studios have active context
+      const first = patients[0];
+      setSelectedPatientId(String(first.id));
+      setSelectedPatient(first);
+      initialAutoSelectedRef.current = true;
+    }
+  }, [patients, searchParams]);
 
   // Update selected patient details
   useEffect(() => {
@@ -163,6 +267,93 @@ export default function AiTherapyHubView() {
     return () => clearInterval(timer);
   }, [isRecording]);
 
+// Formatted Clinical Report Component for Bilan A4 Markdown & Directionality
+function FormattedClinicalMarkdown({ content, language = 'fr' }) {
+  if (!content) return null;
+  const isLtr = language === 'fr';
+
+  const lines = content.split('\n');
+  const blocks = [];
+  let currentBlock = { type: 'p', title: '', lines: [] };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (
+      trimmed.startsWith('###') ||
+      trimmed.startsWith('##') ||
+      trimmed.startsWith('#') ||
+      /^[1-9]\.\s+[A-ZÀ-ÿ\u0600-\u06FF]/.test(trimmed)
+    ) {
+      if (currentBlock.lines.length > 0 || currentBlock.title) {
+        blocks.push(currentBlock);
+      }
+      const headingText = trimmed.replace(/^#+\s*/, '').replace(/^[1-9]\.\s*/, '');
+      currentBlock = { type: 'section', title: headingText, lines: [] };
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+      currentBlock.lines.push({ type: 'bullet', text: trimmed.replace(/^[-*•]\s*/, '') });
+    } else if (trimmed.length > 0) {
+      currentBlock.lines.push({ type: 'text', text: trimmed });
+    }
+  });
+  if (currentBlock.lines.length > 0 || currentBlock.title) {
+    blocks.push(currentBlock);
+  }
+
+  const renderFormattedText = (text) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={idx} className="font-bold text-white">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
+  return (
+    <div
+      dir={isLtr ? 'ltr' : 'rtl'}
+      className={`space-y-4 text-xs leading-relaxed ${isLtr ? 'text-left font-sans' : 'text-right font-sans'}`}
+    >
+      {blocks.map((block, bIdx) => (
+        <div
+          key={bIdx}
+          className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800/90 space-y-2.5 shadow-sm"
+        >
+          {block.title && (
+            <div className="flex items-center space-x-2 space-x-reverse border-b border-slate-800/80 pb-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+              <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wide">
+                {renderFormattedText(block.title)}
+              </h4>
+            </div>
+          )}
+          <div className="space-y-2 text-slate-300">
+            {block.lines.map((l, lIdx) => {
+              if (l.type === 'bullet') {
+                return (
+                  <div key={lIdx} className="flex items-start space-x-2 space-x-reverse pl-1">
+                    <span className="text-indigo-400 font-bold shrink-0 mt-0.5">•</span>
+                    <p className="flex-1">{renderFormattedText(l.text)}</p>
+                  </div>
+                );
+              }
+              return (
+                <p key={lIdx} className="leading-relaxed">
+                  {renderFormattedText(l.text)}
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
   // 1. Generate Bilan Synthesis
   const handleGenerateBilan = async () => {
     setGenerating(true);
@@ -175,7 +366,8 @@ export default function AiTherapyHubView() {
         audience: bilanAudience,
         clinical_observations: bilanObservations,
       });
-      setBilanOutput(res.data?.content || 'تمت الصياغة بنجاح.');
+      const outputText = res.data?.content || res.data?.synthese || res.content || res.data?.data?.content || 'تمت الصياغة بنجاح.';
+      setBilanOutput(outputText);
       setFeedback({ type: 'success', text: 'تمت صياغة الحصيلة السريرية بنجاح عبر محرك Google Gemini الذكي.' });
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'فشل توليد الحصيلة السريرية.' });
@@ -200,7 +392,7 @@ export default function AiTherapyHubView() {
         therapy_frequency: pepFrequency,
         language: pepLanguage,
       });
-      let parsed = res.data?.content;
+      let parsed = res.data?.pep || res.pep || res.data?.content || res.data?.data?.content;
       if (typeof parsed === 'string') {
         try {
           parsed = JSON.parse(parsed.replace(/```json|```/g, '').trim());
@@ -234,7 +426,8 @@ export default function AiTherapyHubView() {
         target_age: selectedPatient ? selectedPatient.age : 6,
         environment_setting: envSetting,
       });
-      setExerciseOutput(res.data?.content || 'تم توليد المحتوى.');
+      const outputText = res.data?.content || res.content || res.data?.data?.content || (typeof res.data === 'string' ? res.data : 'تم إنشاء التمرين بنجاح.');
+      setExerciseOutput(outputText);
       setFeedback({ type: 'success', text: 'تم إنشاء التمرين العلاجي بالسياق الجزائري بنجاح.' });
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'فشل إنشاء التمرين الجزائري.' });
@@ -393,21 +586,223 @@ export default function AiTherapyHubView() {
             <div className="flex items-center space-x-2 space-x-reverse text-xs font-bold text-slate-300">
               <Users className="w-4 h-4 text-teal-400" />
               <span>المريض المستهدف في كافة الاستوديوهات:</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-teal-300 border border-slate-700 font-mono">
+                {patients.length} مريض
+              </span>
             </div>
 
-            <div className="relative flex-1 max-w-md">
-              <select
-                value={selectedPatientId}
-                onChange={(e) => setSelectedPatientId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-2xl bg-slate-950 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-purple-500 shadow-inner"
+            {/* Searchable Combobox Trigger & Popover */}
+            <div className="relative flex-1 max-w-md" ref={patientDropdownRef}>
+              <div
+                onClick={() => setIsPatientDropdownOpen((prev) => !prev)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-950 border cursor-pointer transition-all shadow-inner group ${
+                  selectedPatient
+                    ? 'border-teal-500/80 bg-teal-950/20 text-white ring-1 ring-teal-500/30'
+                    : isPatientDropdownOpen
+                    ? 'border-purple-500 ring-2 ring-purple-500/20 text-slate-200'
+                    : 'border-slate-700 hover:border-slate-600 text-slate-300'
+                }`}
               >
-                <option value="">-- فضاء عمل عام (بدون ربط بمريض) --</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.first_name} {p.last_name} ({p.age ? `${p.age} سنة` : 'العمر غير محدد'}) {p.diagnosis_primary ? `• ${p.diagnosis_primary}` : ''}
-                  </option>
-                ))}
-              </select>
+                <div className="flex items-center space-x-2 space-x-reverse min-w-0">
+                  {selectedPatient ? (
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-teal-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+                      {(getPatientDisplayName(selectedPatient)[0] || 'م')}
+                    </div>
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+                  )}
+
+                  <div className="truncate text-xs font-bold">
+                    {selectedPatient ? (
+                      <span className="text-teal-200 font-bold">
+                        {getPatientDisplayName(selectedPatient)}
+                        <span className="text-[10px] text-slate-400 font-mono font-normal mr-1.5">
+                          ({selectedPatient.age ? `${selectedPatient.age} سنة` : 'العمر غير محدد'})
+                          {selectedPatient.diagnosis_primary ? ` • ${selectedPatient.diagnosis_primary}` : ''}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-medium">
+                        -- فضاء عمل عام (اضغط للبحث عن مريض) --
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-1.5 space-x-reverse shrink-0 mr-2">
+                  {selectedPatientId && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPatientId('');
+                      }}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition"
+                      title="إلغاء التحديد والعودة لفضاء العمل العام"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isPatientDropdownOpen ? 'rotate-180 text-purple-400' : ''
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Dropdown Popover */}
+              {isPatientDropdownOpen && (
+                <div
+                  className="absolute z-50 mt-2 right-0 left-0 sm:w-[420px] rounded-2xl bg-slate-900/95 border border-slate-700/90 shadow-2xl overflow-hidden p-2.5 space-y-2 animate-in fade-in slide-in-from-top-2 backdrop-blur-xl"
+                  dir="rtl"
+                >
+                  {/* Live Search Input */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-purple-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={patientSearchQuery}
+                      onChange={(e) => setPatientSearchQuery(e.target.value)}
+                      placeholder="ابحث بالاسم، التشخيص، رقم الملف، أو الهاتف..."
+                      className="w-full pl-8 pr-9 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:border-purple-500 focus:outline-none transition-all shadow-inner"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {patientSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setPatientSearchQuery('')}
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Options List */}
+                  <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar pr-0.5">
+                    {/* General Unlinked Workspace Option */}
+                    <div
+                      onClick={() => {
+                        setSelectedPatientId('');
+                        setIsPatientDropdownOpen(false);
+                        setPatientSearchQuery('');
+                      }}
+                      className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between text-xs font-bold ${
+                        !selectedPatientId
+                          ? 'bg-purple-500/15 border border-purple-500/40 text-purple-300'
+                          : 'bg-slate-950/60 hover:bg-slate-800/80 text-slate-300 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5 space-x-reverse">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                            !selectedPatientId ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div>فضاء عمل عام (بدون ربط بمريض)</div>
+                          <div className="text-[10px] text-slate-400 font-normal">
+                            توليد تمارين وحصائل عامة واستشارات ذكاء اصطناعي مفتوحة
+                          </div>
+                        </div>
+                      </div>
+                      {!selectedPatientId && <Check className="w-4 h-4 text-purple-400 stroke-[3]" />}
+                    </div>
+
+                    <div className="h-px bg-slate-800 my-1" />
+
+                    {/* Filtered Patient Cards */}
+                    {displayedAiPatients.length === 0 ? (
+                      <div className="py-5 text-center text-slate-500 text-xs space-y-1">
+                        <p className="font-semibold">لا يوجد مريض مطابق لـ "{patientSearchQuery}"</p>
+                        <p className="text-[10px] text-slate-600">تأكد من كتابة الاسم أو التشخيص أو الهاتف بدقة</p>
+                      </div>
+                    ) : (
+                      <>
+                        {displayedAiPatients.map((p) => {
+                          const isSelected = String(p.id) === String(selectedPatientId);
+                          const fullName = getPatientDisplayName(p);
+                          const folderNum = p.folder_number || p.file_number || `CL-${p.id}`;
+
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => {
+                                setSelectedPatientId(String(p.id));
+                                setIsPatientDropdownOpen(false);
+                                setPatientSearchQuery('');
+                              }}
+                              className={`p-2 rounded-xl cursor-pointer transition-all flex items-center justify-between border ${
+                                isSelected
+                                  ? 'bg-teal-600/20 border-teal-500/50 text-white shadow-sm'
+                                  : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/80 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2.5 space-x-reverse min-w-0">
+                                <div
+                                  className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shrink-0 ${
+                                    isSelected
+                                      ? 'bg-gradient-to-tr from-teal-500 to-purple-600 text-white'
+                                      : 'bg-slate-800 text-slate-400'
+                                  }`}
+                                >
+                                  {(fullName[0] || 'م')}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold truncate flex items-center gap-1">
+                                    <span
+                                      className={
+                                        isSelected ? 'text-teal-300 font-extrabold' : 'text-slate-200'
+                                      }
+                                    >
+                                      {fullName}
+                                    </span>
+                                    {p.age && (
+                                      <span className="text-[10px] text-slate-400 font-mono">
+                                        ({p.age} سنة)
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2 truncate">
+                                    <span>ملف: {folderNum}</span>
+                                    {p.diagnosis_primary && (
+                                      <span className="text-purple-300 font-medium">
+                                        • {p.diagnosis_primary}
+                                      </span>
+                                    )}
+                                    {p.phone && <span>• {p.phone}</span>}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 mr-1.5">
+                                {isSelected ? (
+                                  <div className="w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center text-white">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500 hover:text-teal-400">
+                                    ربط
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {filteredAiPatients.length > 50 && (
+                          <div className="text-[10px] text-slate-500 text-center py-1.5 bg-slate-950/40 border-t border-slate-800/80 font-mono">
+                            يتم عرض أول 50 مريضاً من أصل {filteredAiPatients.length} — استخدم شريط البحث أعلاه للوصول السريع
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -422,7 +817,8 @@ export default function AiTherapyHubView() {
                   {selectedPatient.first_name} {selectedPatient.last_name}
                 </span>
                 <span className="text-[10px] text-teal-300 font-mono">
-                  {selectedPatient.age} سنة • {selectedPatient.phone || 'بدون هاتف'}
+                  {selectedPatient.age ? `${selectedPatient.age} سنة • ` : ''}
+                  {selectedPatient.diagnosis_primary || selectedPatient.phone || 'ملف نشط'}
                 </span>
               </div>
               <button
@@ -498,6 +894,85 @@ export default function AiTherapyHubView() {
 
       {/* 3. Studio Content View Container */}
       <div className="space-y-6">
+        {/* Unified Studio Target Patient Active Banner */}
+        {selectedPatient ? (
+          <div className="rounded-2xl border border-teal-500/40 bg-gradient-to-r from-teal-950/50 via-slate-900/80 to-purple-950/40 p-4 shadow-xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200">
+            <div className="flex items-center space-x-3.5 space-x-reverse min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-purple-600 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md ring-2 ring-teal-400/30">
+                {(getPatientDisplayName(selectedPatient)[0] || 'م')}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-black text-white">
+                    {getPatientDisplayName(selectedPatient)}
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-teal-400" />
+                    المريض المستهدف في هذا الاستوديو
+                  </span>
+                  {selectedPatient.is_demo && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                      نموذج تجريبي
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-300 mt-1 flex items-center gap-3.5 flex-wrap font-mono">
+                  <span>🎂 العمر: <strong className="text-white font-sans">{selectedPatient.age ? `${selectedPatient.age} سنة` : 'غير محدد'}</strong></span>
+                  <span>📁 رقم الملف: <strong className="text-teal-300">{selectedPatient.folder_number || selectedPatient.file_number || `CL-${selectedPatient.id}`}</strong></span>
+                  {selectedPatient.diagnosis_primary && (
+                    <span>🩺 التشخيص: <strong className="text-purple-300 font-sans">{selectedPatient.diagnosis_primary}</strong></span>
+                  )}
+                  {(selectedPatient.phone || selectedPatient.parent_phone) && (
+                    <span>📞 هاتف: <strong className="text-slate-300">{selectedPatient.phone || selectedPatient.parent_phone}</strong></span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPatientDropdownOpen(true);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
+              >
+                <Users className="w-3.5 h-3.5 text-teal-400" />
+                <span>تغيير المريض</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPatientId('')}
+                className="px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-rose-300 text-xs font-medium transition border border-slate-800"
+                title="العمل في فضاء عام بدون ربط بمريض"
+              >
+                فضاء عام
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-md">
+            <div className="flex items-center space-x-2.5 space-x-reverse text-slate-300">
+              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>
+                فضاء عمل ذكاء اصطناعي عام (غير مرتبط بمريض معين). لربط نتائج هذا الاستوديو بملف مريض وحفظها تلقائياً، اختر المريض من القائمة.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPatientDropdownOpen(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-center mr-2 shadow-sm"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>اختيار مريض الآن</span>
+            </button>
+          </div>
+        )}
+
         {/* Sub-Studio 5: Social Stories */}
         {activeStudio === 'social_story' && (
           <SocialStoriesStudio
@@ -850,8 +1325,8 @@ export default function AiTherapyHubView() {
 
                 {/* Output Display */}
                 {activeStudio === 'bilan' && bilanOutput && (
-                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200 leading-relaxed font-mono whitespace-pre-wrap max-h-[460px] overflow-y-auto">
-                    {bilanOutput}
+                  <div className="max-h-[460px] overflow-y-auto pr-1">
+                    <FormattedClinicalMarkdown content={bilanOutput} language={bilanLanguage} />
                   </div>
                 )}
 

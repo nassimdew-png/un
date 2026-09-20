@@ -20,15 +20,22 @@ class AcademicVerification extends Model
         'university_name',
         'faculty',
         'degree_level',
+        'specialty',
+        'academic_year',
+        'clinic_name',
         'student_card_doc_path',
         'status',
+        'admin_notes',
         'discount_code',
         'sandbox_tenant_id',
         'expires_at',
+        'approved_at',
+        'approved_by',
     ];
 
     protected $casts = [
         'expires_at' => 'date',
+        'approved_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -39,5 +46,10 @@ class AcademicVerification extends Model
     public function sandboxTenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'sandbox_tenant_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

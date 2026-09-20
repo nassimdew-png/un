@@ -21,6 +21,13 @@ export default function RelaxationStudio({ selectedPatient, onSaveToPatient }) {
   const [sessionOutput, setSessionOutput] = useState(null);
   const [error, setError] = useState(null);
 
+  // Synchronize state when target patient changes
+  useEffect(() => {
+    if (selectedPatient && selectedPatient.age) {
+      setTargetAge(selectedPatient.age);
+    }
+  }, [selectedPatient]);
+
   // Live Breathing Pacer Visualizer state
   const [isBreathingActive, setIsBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState('شهيق (Inhale)');

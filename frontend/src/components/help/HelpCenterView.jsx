@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HelpCircle,
@@ -27,15 +27,56 @@ import {
   Target,
   QrCode,
   Download,
-  WifiOff
+  WifiOff,
+  Copy,
+  Check,
+  Award,
+  Video,
+  DoorOpen,
+  RefreshCw,
+  Clock,
+  Phone
 } from 'lucide-react';
+import { helpCenterApi } from '../../api';
 
 export default function HelpCenterView() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('quickstart');
-  const [expandedArticles, setExpandedArticles] = useState(new Set(['qs_1', 'psy_1', 'ai_1']));
+  const [expandedArticles, setExpandedArticles] = useState(new Set(['qs_1', 'fd_1', 'cs_1', 'psy_1', 'staff_1']));
   const [expandedFaq, setExpandedFaq] = useState(new Set([0, 1]));
+  const [copiedStepIndex, setCopiedStepIndex] = useState(null);
+
+  const [helpData, setHelpData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Dynamic Help Content from Server with local offline fallback
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadHelpContent = async () => {
+      try {
+        setLoading(true);
+        const res = await helpCenterApi.getContent();
+        if (isMounted && res && res.data) {
+          setHelpData(res.data);
+          if (res.data.categories && res.data.categories.length > 0) {
+            setActiveCategory(res.data.categories[0].id);
+          }
+        }
+      } catch (err) {
+        console.warn('Using offline help content fallback:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadHelpContent();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleArticle = (id) => {
     setExpandedArticles((prev) => {
@@ -55,390 +96,429 @@ export default function HelpCenterView() {
     });
   };
 
-  const categories = [
-    { id: 'quickstart', label: 'البداية السريعة وإعداد العيادة', icon: '🚀' },
-    { id: 'patients_queue', label: 'إدارة المرضى وقاعة الانتظار', icon: '👥' },
-    { id: 'psychometrics', label: 'بنك المقاييس الـ 30+ والحصائل', icon: '📊' },
-    { id: 'ai_suite', label: 'المساعد الذكي وصياغة PEP و SOAP', icon: '🤖' },
-    { id: 'portal_homework', label: 'بوابة الأولياء والواجبات المنزلية', icon: '🔗' },
-    { id: 'billing_sub', label: 'الفوترة واشتراكات BaridiMob', icon: '💳' },
-    { id: 'faq', label: 'الأسئلة الشائعة والأمان', icon: '❓' },
-  ];
-
-  const guideContent = {
-    quickstart: [
-      {
-        id: 'qs_1',
-        title: 'كيفية ضبط الهوية البصرية للعيادة والختم الرقمي (Branding & Letterhead)',
-        summary: 'تخصيص الشعار، الترويسة الرسمية، معلومات الاتصال، والختم الطبي لتظهر تلقائياً في كافة وثائق PDF وحصائل التقييم.',
-        steps: [
-          'توجه إلى القائمة الجانبية واختر [الإعدادات ⚙️] ثم اضغط على تبويب [الهوية البصرية والترويسة].',
-          'قم برفع شعار العيادة (Logo) بصيغة PNG أو JPG بدقة واضحة.',
-          'أدخل اسم العيادة باللغتين العربية والفرنسية، التخصص، العنوان الكامل، الولاية، ورقم الهاتف.',
-          'قم برفع صورة الختم الطبي والرمز التوقيعي للطبيب ليتم إدراجه في التقارير الطبية.',
-          'اضغط على [حفظ التعديلات والمعاينة الحية] لمشاهدة الترويسة المطبوعة على ورقة A4.',
-        ],
-        tip: 'الترويسة والختم تظهر تلقائياً في جميع ملفات PDF (الحصائل السريرية، الوصفات، وصولات الدفع، وأوراق التمارين).',
-      },
-      {
-        id: 'qs_2',
-        title: 'إدارة الطاقم الطبي والأدوار (Staff Management & Permissions)',
-        summary: 'إنشاء حسابات للأطباء المساعدين، الأرطوفونيين، السكرتارية، مع تحديد صلاحيات دقيقة لكل دور.',
-        steps: [
-          'توجه إلى [إدارة الطاقم] في لوحة التحكم.',
-          'انقر على زر [➕ إضافة عضو جديد].',
-          'حدد الدور: (أخصائي أرطوفونيا / أخصائي نفسي / سكرتارية واستقبال / أدمن العيادة).',
-          'أدخل البريد الإلكتروني وكلمة المرور المؤقتة.',
-          'يمكن للأدمن تقييد وصول السكرتارية إلى المواعيد والفوترة فقط دون الاطلاع على التفاصيل النفسية الدقيقة.',
-        ],
-        tip: 'حساب السكرتارية يتيح إدارة قاعة الانتظار وتسجيل وصول المرضى دون كشف الملاحظات السريرية السرية.',
-      },
-    ],
-
-    patients_queue: [
-      {
-        id: 'pat_1',
-        title: 'فتح ملف مريض جديد وشجرة العائلة الجينية (Clinical Genogram)',
-        summary: 'تسجيل السوابق النمائية الكاملة، دراسة التاريخ العائلي والوراثي، وتوثيق السوابق التوليدية والحسية.',
-        steps: [
-          'من قسم [المرضى 👥]، انقر على زر [➕ ملف مريض جديد].',
-          'املأ المعلومات الأساسية (الاسم، اللقب، تاريخ الميلاد، رقم الهاتف الجزائري مع المشغل، والعنوان).',
-          'في تبويب السوابق النمائية، حدد سن المشي المستقل، سن ظهور الكلمة الأولى، والتعرض للشاشات.',
-          'استخدم [شجرة العائلة السريرية (Genogram)] لتحديد صلة القرابة بين الوالدين، السوابق الوراثية لدى الإخوة والأعمام.',
-          'حدد الملف الحسي (فرط الحساسية السمعية، البصرية، والانتقائية الغذائية).',
-          'اضغط [حفظ الملف السريري].',
-        ],
-        tip: 'يمكنك استخدام ميزة [💡 Anamnesis Copilot] لاقتراح أسئلة سريرية استكشافية أثناء المقابلة الأولية.',
-      },
-      {
-        id: 'pat_2',
-        title: 'تشغيل قاعة الانتظار الذكية وشاشة العرض (Smart Waiting Room & TV Screen)',
-        summary: 'تنظيم تدفق المرضى، الاستدعاء الصوتي الآلي، وعرض قائمة الأدوار على شاشة التلفاز في قاعة الاستقبال.',
-        steps: [
-          'لتشغيل شاشة قاعة الانتظار، افتح الرابط العام: /public/tv-queue على جهاز التلفاز أو الشاشة الخارجية.',
-          'عند وصول المريض، تقوم السكرتارية أو المريض بتسجيل الوصول عبر [كشك الاستقبال Kiosk] برقم الهاتف.',
-          'يظهر المريض فوراً في قائمة [Daily Clinical Pulse] مع توقيت الوصول.',
-          'عند جاهزية الطبيب، ينقر على زر [📢 استدعاء المريض] ليصدر تنبيه صوتي وشارة بصرية بالاسم ورقم العيادة.',
-          'ينقر الطبيب على [🚪 دخول الجلسة] لبدء التوثيق السريري وتوقيت مدة الجلسة.',
-        ],
-        tip: 'يدعم النظام العمل في وضع عدم الاتصال (Offline-First) ويحفظ تغييرات قاعة الانتظار محلياً في حال انقطاع الإنترنت.',
-      },
-    ],
-
-    psychometrics: [
-      {
-        id: 'psy_1',
-        title: 'تمرير وتفريغ الاختبارات والمقاييس المقننة الـ 30+',
-        summary: 'دليل إجراء وتصحيح المقاييس الأرطوفونية والنفسية (WISC-V, ELO, ADOS-2, CARS, Vineland-II, NEPSY-II, BDI, إلخ).',
-        steps: [
-          'من ملف المريض، اختر تبويب [🧠 المقاييس والاختبارات] أو توجه إلى [بنك المقاييس السريرية].',
-          'اختر المقياس المطلوب (مثال: ELO للغة الشفهية، أو CARS لتقييم التوحد).',
-          'انقر على [بدء تمرير المقياس (Interactive Test Runner)].',
-          'أدخل استجابات وبنود الفحص، ويقوم النظام آلياً بحساب الدرجات الخام والدرجات المعيارية (Notes Standard / Percentiles) ومقارنتها بالعينات المعيارية.',
-          'يظهر منحنى التحليل النفسي-المتري فورياً مع مقارنة الأداء حسب الفئة العمرية.',
-        ],
-        tip: 'يمكنك تصدير تقرير كل مقياس كملف PDF مستقل يحتوي على الجداول والرسوم البيانية التوضيحية.',
-      },
-      {
-        id: 'psy_2',
-        title: 'توليد الحصيلة السريرية الشاملة المعتمدة (Master Bilan A4 PDF)',
-        summary: 'دمج نتائج كافة المقاييس المنجزة في وثيقة طبية رسمية مقسمة ومعدة للطباعة والتوقيع الرقمي.',
-        steps: [
-          'من ملف المريض، اضغط على زر [📄 توليد الحصيلة السريرية الشاملة (Master Bilan)].',
-          'حدد الاختبارات المنجزة المراد تضمينها في الحصيلة.',
-          'اختر لغة الصياغة: [🇫🇷 Français Médical] أو [🇩🇿 العربية الأكاديمية].',
-          'انقر على زر [✨ صياغة الحصيلة بالذكاء الاصطناعي] لإنشاء المحاور الخمسة تلقائياً.',
-          'قم بمراجعة وتعديل محاور الحصيلة في المحرر المنقسم (Split Editor).',
-          'اضغط على [تصدير وثيقة A4 الرسمية PDF] للطباعة المباشرة مع الترويسة والختم.',
-        ],
-        tip: 'الحصيلة تتضمن تلقائياً: السوابق، التحليل النفسي-المتري، نقاط القوة والضعف، التوجيه التشخيصي، والمشروع العلاجي.',
-      },
-    ],
-
-    ai_suite: [
-      {
-        id: 'ai_1',
-        title: 'مولد المشروع العلاجي الفردي في السياق الجزائري (PEP / IEP Engine)',
-        summary: 'تحويل نتائج التقييم إلى أهداف علاجية إجرائية (SMART) مقسمة على 3 مراحل زمنية مع توليد أنشطة محلية.',
-        steps: [
-          'افتح ملف المريض واختر تبويب [🎯 خطة التكفل والأهداف (PEI / PEP)].',
-          'انقر على [✨ توليد مشروع علاجي (PEP) ذكي].',
-          'يقوم الذكاء الاصطناعي بإنشاء أهداف قريبة المدى (1-3 أشهر)، متوسطة المدى (3-6 أشهر)، ورؤية بعيدة المدى.',
-          'بجانب كل هدف، اضغط على زر [🇩🇿 توليد تمرين جزائري] لإنشاء قصة اجتماعية أو بطاقات تدريب بأمثلة من البيئة الجزائرية (المدرسة، الساحة، حانوت الحومة).',
-          'انقر على [📲 إرسال فوري لبوابة الولي] ليصل التمرين كواجب منزلي تفاعلي للأولياء.',
-        ],
-        tip: 'كافة القصص والبطاقات تستخدم أسماء مألوفة (أنيس، مريم، يوسف) ومواقف من الحياة اليومية الجزائرية.',
-      },
-      {
-        id: 'ai_2',
-        title: 'المساعد الصوتي للتدوين السريع SOAP أثناء الجلسة (Voice SOAP Scribe)',
-        summary: 'تسجيل الملاحظات الشفهية بالمايكروفون (مزيج دراجة/فرنسية/مصطلحات طبية) وتحويلها إلى تقرير SOAP منظم.',
-        steps: [
-          'أثناء الجلسة السريرية، اضغط على زر [🎙️ تدوين صوتي SOAP] من أعلى ملف المريض أو من لوحة التحكم.',
-          'اضغط على [ابدأ التسجيل الصوتي] وتحدث بحرية عن مجريات الجلسة وأداء الطفل.',
-          'انقر على [إيقاف التسجيل] ثم [✨ تحويل الملاحظات إلى تقرير SOAP].',
-          'يقوم النظام بتفريغ الصوت واستخراج الأقسام الأربعة: Subjective (الذاتي)، Objective (الموضوعي)، Assessment (التقييم)، و Plan (الخطة).',
-          'راجع التقرير واضغط [💾 حفظ في الملف السريري] مع خيار إرسال تمرين الخطة كواجب لبوابة الولي.',
-        ],
-        tip: 'يدعم المساعد الصوتي تفريغ الكلام الطبي والمصطلحات الأرطوفونية والنفسية بدقة عالية.',
-      },
-    ],
-
-    portal_homework: [
-      {
-        id: 'por_1',
-        title: 'تفعيل بوابة الأولياء وإرسال رابط الوصول السحري (Magic Token Portal)',
-        summary: 'تمكين الأولياء من متابعة تطور أطفالهم، تأكيد المواعيد، وتحميل التمارين المنزلية دون الحاجة لكلمة سر معقدة.',
-        steps: [
-          'من ملف المريض، اضغط على [🔗 توليد رابط بوابة الولي].',
-          'ينشئ النظام رابطاً آمناً مشفراً برمز سحري (Magic Token) ورقم PIN بسيط مكون من 4 أرقام.',
-          'انقر على [📲 إرسال عبر واتساب / SMS] لإرسال الرابط مباشرة لهاتف الولي.',
-          'عند فتح الرابط، يدخل الولي رقم الهاتف ورمز PIN ليدخل إلى لوحته الخاصة.',
-          'يمكن للولي تأكيد المواعيد القادمة، فتح التمارين والقصص الاجتماعية، وتعليم خانة [تم الإنجاز في البيت ✅].',
-        ],
-        tip: 'كل تحديث يجريه الولي في التمارين المنزلية ينعكس فورياً في لوحة تحكم الأخصائي بالعيادة.',
-      },
-    ],
-
-    billing_sub: [
-      {
-        id: 'bil_1',
-        title: 'إصدار وصولات الدفع وتجديد الاشتراك عبر BaridiMob',
-        summary: 'إدارة الفواتير والاشتراكات السحابية، ورفع وصولات التحويل البنكي أو البريدي مباشرة من لوحة التحكم.',
-        steps: [
-          'لإصدار وصل دفع لمريض: من صفحة [الفوترة 💳]، اضغط على [➕ وصل دفع جديد] وحدد المريض ونوع الجلسة.',
-          'لتجديد اشتراك العيادة: اضغط على شريط الاشتراك أعلى الشاشة أو توجه إلى [إدارة الاشتراك].',
-          'اختر الباقة المناسبة وفترة الاشتراك (شهرية / سنوية).',
-          'قم بالتحويل عبر BaridiMob أو CCP إلى الحساب الموضح في الاستمارة.',
-          'ارفع صورة وصل التحويل واضغط [إرسال طلب التجديد].',
-          'يقوم فريق الدعم بمراجعة الوصل وتفعيل الباقة فورياً مع إصدار الفاتورة الرسمية PDF.',
-        ],
-        tip: 'يمكنك إدخال كود الخصم الترويجي (Coupon) في استمارة التجديد للاستفادة من التخفيضات الخاصة.',
-      },
-    ],
-
-    faq: [
-      {
-        q: 'هل تعمل المنصة في حال انقطاع شبكة الإنترنت (Offline Mode)؟',
-        a: 'نعم! المنصة مبنية بتقنية PWA وتتضمن قاعدة بيانات محلية (IndexedDB). يمكنك تسجيل ملاحظات الجلسات وتحديث حالة قاعة الانتظار بدون إنترنت، وعند عودة الاتصال يقوم النظام بمزامنة كافة البيانات تلقائياً مع السحابة دون فقدان أي معلومة.',
-      },
-      {
-        q: 'كيف يتم حماية وسرية البيانات الطبية للمرضى؟',
-        a: 'كافة البيانات مشفرة ببروتوكول HTTPS/TLS، وتخضع لسياسة عزل صارمة بين العيادات (Multi-Tenant Isolation). كما يتم عمل نسخ احتياطي سحابي يومي مؤتمت ومحمي في سيرفرات معزولة مع إمكانية التدوير لـ 30 يوماً.',
-      },
-      {
-        q: 'كيف يتم احتساب وتجديد رصيد الذكاء الاصطناعي السريري؟',
-        a: 'تحصل كل عيادة على حصة شهرية مجانية من التوكنز (تبدأ من 100,000 رمز شهرياً). يتم استهلاك الرموز عند صياغة الحصائل أو التدوين الصوتي، ويتم تجديد الرصيد تلقائياً بداية كل شهر ميلادي أو عبر طلب زيادة الحصة من لوحة التحكم.',
-      },
-      {
-        q: 'هل يمكن تثبيت المنصة كتطبيق مستقل على الهاتف أو الحاسوب؟',
-        a: 'بالتأكيد! يمكنك النقر على زر [📲 تثبيت التطبيق] الموجود في الشريط العلوي للمتصفح، لتثبيت المنصة كتطبيق مكتبي أو هاتف خفيف وسريع مع أيقونة مستقلة على سطح المكتب.',
-      },
-    ],
+  const handleCopySteps = (article) => {
+    if (!article || !article.steps) return;
+    const text = `📖 ${article.title}\n\n${article.summary || ''}\n\n📌 الخطوات التنفيذية:\n` +
+      article.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') +
+      (article.tip ? `\n\n💡 نصيحة: ${article.tip}` : '');
+    
+    navigator.clipboard.writeText(text);
+    setCopiedStepIndex(article.id);
+    setTimeout(() => setCopiedStepIndex(null), 2500);
   };
 
+  const handleOpenWhatsAppSupport = () => {
+    const phone = helpData?.supportContact?.whatsapp || '+213550000000';
+    const text = encodeURIComponent('السلام عليكم، أحتاج مساعدة أو استفسار بخصوص استخدام منصة PsyPro العيادية.');
+    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
+  };
+
+  const categories = helpData?.categories || [
+    { id: 'quickstart', label: 'البداية السريعة وإعداد العيادة', icon: '🚀' },
+    { id: 'front_desk', label: 'قمرة الاستقبال وقاعة الانتظار', icon: '🛋️' },
+    { id: 'clinical_session', label: 'قمرة الجلسة المباشرة وSOAP', icon: '🩺' },
+    { id: 'psychometrics', label: 'المقاييس الـ 18 والحصائل A4', icon: '📊' },
+    { id: 'specialties', label: 'القمرات التخصصية السريرية', icon: '🏆' },
+    { id: 'teletherapy_portal', label: 'التطبيب عن بعد وبوابة الأولياء', icon: '📹' },
+    { id: 'staff_rbac', label: 'إدارة الكوادر وتخصيص الصلاحيات', icon: '👥' },
+    { id: 'billing_subs', label: 'الفوترة واشتراكات BaridiMob', icon: '💳' },
+    { id: 'faq_security', label: 'الأسئلة الشائعة والنسخ الاحتياطي', icon: '❓' },
+  ];
+
+  const articles = helpData?.articles || [];
+  const faqs = helpData?.faqs || [];
+  const supportContact = helpData?.supportContact || {
+    whatsapp: '+213550000000',
+    whatsappDisplay: '0550 00 00 00',
+    phone: '+213550000000',
+    email: 'support@psypro.tech',
+    telegram: 'https://t.me/psypro_support',
+    workHours: 'السبت - الخميس: 08:00 إلى 18:00',
+    helpDeskNotice: 'فريق الدعم الفني السريري متاح لمساعدتكم في أي وقت عبر WhatsApp أو الهاتف.',
+  };
+
+  const quickActionCards = helpData?.quickActionCards || [
+    {
+      id: 'card_quickstart',
+      title: 'دليل البدء السريع (5 دقائق)',
+      desc: 'خطوات تهيئة العيادة وضبط الشعار والختم الطبي والأسعار.',
+      icon: '🚀',
+      targetCategory: 'quickstart',
+    },
+    {
+      id: 'card_session',
+      title: 'قمرة الجلسة وSOAP',
+      desc: 'دليل تشغيل المسار السريري الـ 4 خطوات والمساعد الصوتي.',
+      icon: '🩺',
+      targetCategory: 'clinical_session',
+    },
+    {
+      id: 'card_bilan',
+      title: 'المقاييس والحصائل A4',
+      desc: 'دليل تمرير الروائز وتوليد الحصيلة السريرية الرسمية Master Bilan.',
+      icon: '📊',
+      targetCategory: 'psychometrics',
+    },
+    {
+      id: 'card_rbac',
+      title: 'الصلاحيات وفريق العمل',
+      desc: 'دليل مصفوفة الصلاحيات الـ 24 وقوالب الأدوار والقاعات والأتعاب.',
+      icon: '👥',
+      targetCategory: 'staff_rbac',
+    },
+  ];
+
+  // Search filtering
+  const q = searchQuery.toLowerCase().trim();
+  const filteredArticles = articles.filter((art) => {
+    if (q) {
+      return (
+        art.title?.toLowerCase().includes(q) ||
+        art.summary?.toLowerCase().includes(q) ||
+        art.badge?.toLowerCase().includes(q) ||
+        (Array.isArray(art.steps) && art.steps.some((s) => s.toLowerCase().includes(q))) ||
+        art.tip?.toLowerCase().includes(q)
+      );
+    }
+    return art.categoryId === activeCategory;
+  });
+
+  const filteredFaqs = faqs.filter((faq) => {
+    if (q) {
+      return faq.question?.toLowerCase().includes(q) || faq.answer?.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   return (
-    <div className="space-y-6 text-right font-sans max-w-7xl mx-auto" dir="rtl">
-      {/* Hero Header */}
-      <div className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 shadow-2xl space-y-4">
+    <div className="space-y-6 font-sans text-right max-w-7xl mx-auto p-4 sm:p-6 lg:p-8" dir="rtl">
+      {/* ========================================================================= */}
+      {/* HEADER HERO BANNER                                                        */}
+      {/* ========================================================================= */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-950 border border-indigo-500/30 shadow-2xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3.5 space-x-reverse">
-            <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-teal-500/20">
-              📚
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2 space-x-reverse flex-wrap gap-y-1">
+              <span className="px-3 py-1 rounded-full text-[11px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{helpData?.header?.badge || 'CLINICAL USER MANUAL & HELP CENTER'}</span>
+              </span>
+              <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                {articles.length} شروحات ومقالات سريرية معتمدة 📚
+              </span>
             </div>
-            <div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <h2 className="text-xl font-black text-white">مركز المساعدة ودليل الاستخدام الشامل للمنصة</h2>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                  PsyPro Guide v3.0
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                دليلك الإرشادي خطوة بخطوة للتحكم الكامل في كافة وظائف المنصة السريرية والأدوات الذكية
-              </p>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">
+              {helpData?.header?.title || 'مركز المساعدة والدليل السريري الشامل'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+              {helpData?.header?.subtitle || 'دليلك المفصل لاحتراف كافة ميزات وقمرات منصة PsyPro الطبية والعيادية وإدارة المرضى والمقاييس وتوليد الحصائل.'}
+            </p>
           </div>
 
-          {/* Quick WhatsApp Support Button */}
-          <a
-            href="https://wa.me/213550000000?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9%20%D9%81%D9%8A%20%D9%85%D9%86%D8%B5%D8%A9%20PsyPro"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition flex items-center space-x-2 space-x-reverse self-start md:self-auto"
-          >
-            <MessageCircle className="w-4 h-4 fill-current" />
-            <span>💬 تواصل مع الدعم الفني عبر واتساب</span>
-          </a>
+          <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={handleOpenWhatsAppSupport}
+              className="px-4 py-2.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-black transition flex items-center gap-2 shadow-lg shadow-emerald-600/10"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              <span>مساعدة فورية عبر WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3.5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1.5"
+              title="طباعة الدليل السريري"
+            >
+              <Printer className="w-4 h-4" />
+              <span>طباعة</span>
+            </button>
+          </div>
         </div>
 
-        {/* Live Search Bar */}
-        <div className="relative pt-2">
+        {/* Global Search Input */}
+        <div className="relative">
+          <Search className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="ابحث عن ميزة، مقياس، أو سؤال (مثال: صياغة الحصيلة، ELO، ترويسة، قاعة الانتظار، BaridiMob)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-5 py-3.5 pr-12 rounded-2xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-teal-500 shadow-inner"
+            placeholder={helpData?.header?.searchPlaceholder || 'ابحث في مقالات الدليل، خطوات الجلسات، المقاييس، أو الأسئلة الشائعة...'}
+            className="w-full bg-slate-950 border border-slate-800 rounded-2xl pr-12 pl-4 py-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
           />
-          <Search className="w-5 h-5 text-slate-400 absolute right-4 top-5.5" />
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex items-center space-x-2 space-x-reverse overflow-x-auto pb-2 text-xs font-bold">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => {
-              setActiveCategory(cat.id);
-              setSearchQuery('');
-            }}
-            className={`px-4 py-2.5 rounded-2xl border transition-all whitespace-nowrap flex items-center space-x-1.5 space-x-reverse ${
-              activeCategory === cat.id && !searchQuery
-                ? 'bg-gradient-to-r from-teal-500 to-indigo-600 text-slate-950 border-teal-400 font-black shadow-lg shadow-teal-500/20'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-850'
-            }`}
-          >
-            <span>{cat.icon}</span>
-            <span>{cat.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Guides Grid / Content View */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Main Guides */}
-        <div className="lg:col-span-2 space-y-4">
-          {activeCategory !== 'faq' &&
-            guideContent[activeCategory]?.map((article) => {
-              const isExpanded = expandedArticles.has(article.id);
-
-              return (
-                <div
-                  key={article.id}
-                  className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 transition-all"
-                >
-                  <div
-                    onClick={() => toggleArticle(article.id)}
-                    className="flex items-start justify-between cursor-pointer group"
-                  >
-                    <div className="space-y-1 pr-1">
-                      <h3 className="text-base font-black text-white group-hover:text-teal-300 transition">
-                        {article.title}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">{article.summary}</p>
-                    </div>
-
-                    <button className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 group-hover:text-white shrink-0 mt-1">
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="space-y-4 pt-3 border-t border-slate-800/80 animate-in fade-in">
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-black text-teal-400 flex items-center space-x-1.5 space-x-reverse">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>خطوات التطبيق العملية:</span>
-                        </h4>
-                        <ol className="space-y-2 text-xs text-slate-300 pr-4 list-decimal marker:text-teal-400 marker:font-bold">
-                          {article.steps.map((step, idx) => (
-                            <li key={idx} className="leading-relaxed">
-                              {step}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-
-                      {article.tip && (
-                        <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-300 flex items-start space-x-2 space-x-reverse">
-                          <span className="text-base shrink-0">💡</span>
-                          <span className="leading-relaxed">{article.tip}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-          {/* FAQ Accordions when FAQ Tab is active */}
-          {activeCategory === 'faq' && (
-            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-              <h3 className="text-base font-black text-white flex items-center space-x-2 space-x-reverse border-b border-slate-800 pb-3">
-                <HelpCircle className="w-5 h-5 text-amber-400" />
-                <span>الأسئلة الشائعة والأمان والنسخ الاحتياطي</span>
-              </h3>
-
-              <div className="space-y-3">
-                {guideContent.faq.map((faq, idx) => {
-                  const isOpen = expandedFaq.has(idx);
-
-                  return (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2"
-                    >
-                      <div
-                        onClick={() => toggleFaq(idx)}
-                        className="flex items-center justify-between cursor-pointer font-bold text-xs text-white hover:text-amber-300 transition"
-                      >
-                        <span className="leading-relaxed">{faq.q}</span>
-                        {isOpen ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
-                      </div>
-
-                      {isOpen && (
-                        <p className="text-xs text-slate-400 leading-relaxed pt-2 border-t border-slate-900">
-                          {faq.a}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold bg-slate-800 px-2 py-0.5 rounded-lg"
+            >
+              مسح البحث ✕
+            </button>
           )}
         </div>
 
-        {/* Right 1 Col: Quick Feature Cards & Shortcuts */}
+        {/* Quick Action Navigation Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80">
+          {quickActionCards.map((card) => (
+            <div
+              key={card.id}
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategory(card.targetCategory);
+              }}
+              className="p-3.5 bg-slate-950/80 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl cursor-pointer transition flex items-start gap-3 select-none"
+            >
+              <span className="text-xl shrink-0 pt-0.5">{card.icon}</span>
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-black text-white">{card.title}</h4>
+                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">{card.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* CATEGORY TABS BAR                                                         */}
+      {/* ========================================================================= */}
+      {!searchQuery && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs">
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat.id;
+            const count = articles.filter((a) => a.categoryId === cat.id).length;
+
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-2.5 rounded-2xl font-bold transition-all flex items-center gap-2 shrink-0 select-none ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+                {count > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Search Filter Header */}
+      {searchQuery && (
+        <div className="p-3 bg-indigo-600/10 border border-indigo-500/30 rounded-2xl flex items-center justify-between text-xs text-indigo-300 font-bold">
+          <span>نتائج البحث عن: "{searchQuery}" ({filteredArticles.length} مقال)</span>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-slate-400 hover:text-white"
+          >
+            عرض الأقسام ✕
+          </button>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MAIN CONTENT: ARTICLES LIST                                               */}
+      {/* ========================================================================= */}
+      {loading ? (
+        <div className="text-center py-16 text-slate-400 flex flex-col items-center gap-3">
+          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
+          <span className="text-xs font-bold">جاري تحميل الدليل والمقالات السريرية...</span>
+        </div>
+      ) : filteredArticles.length === 0 && !searchQuery ? (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-3">
+          <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
+          <h3 className="text-sm font-bold text-white">لا توجد مقالات في هذا القسم حالياً</h3>
+          <p className="text-xs text-slate-400">يمكنك استكشاف الأقسام الأخرى في الشريط العلوي.</p>
+        </div>
+      ) : (
         <div className="space-y-4">
-          {/* Card: Offline PWA Guide */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 space-x-reverse text-emerald-400 font-black text-xs">
-              <WifiOff className="w-4 h-4" />
-              <span>العمل بدون إنترنت (PWA Offline)</span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              يمكنك تشغيل المنصة في حال انقطاع الشبكة بدون أي توقف. كافة الملاحظات والتقييمات يتم تخزينها بأمان محلياً في جهازك وتتم المزامنة تلقائياً بمجرد عودة الاتصال.
-            </p>
-            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 font-bold flex items-center space-x-2 space-x-reverse">
-              <span>📲 تثبيت التطبيق:</span>
-              <span className="text-emerald-400">انقر على زر الشريط العلوي</span>
-            </div>
-          </div>
+          {filteredArticles.map((article) => {
+            const isExpanded = expandedArticles.has(article.id);
+            const isCopied = copiedStepIndex === article.id;
+            const categoryObj = categories.find((c) => c.id === article.categoryId);
 
-          {/* Card: Cloud Backup & Security */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 space-x-reverse text-indigo-400 font-black text-xs">
-              <ShieldCheck className="w-4 h-4" />
-              <span>النسخ الاحتياطي السحابي اليومي (S3/R2)</span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              يتم حفظ نسخة احتياطية مشفرة يومياً عند الساعة 02:00 صباحاً في سحابة Cloudflare R2 المعزولة، مع الاحتفاظ بالأرشيف لمدة 30 يوماً متتالياً.
-            </p>
-          </div>
+            return (
+              <div
+                key={article.id}
+                className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl transition-all hover:border-slate-700"
+              >
+                {/* Article Header & Toggle */}
+                <div
+                  onClick={() => toggleArticle(article.id)}
+                  className="p-5 sm:p-6 cursor-pointer flex items-start justify-between gap-4 select-none bg-slate-900 hover:bg-slate-850 transition"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1">
+                        <span>{categoryObj?.icon || '📖'}</span>
+                        <span>{categoryObj?.label || article.categoryId}</span>
+                      </span>
 
-          {/* Card: Video Simulation & Tips */}
-          <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-indigo-500/20 shadow-xl space-y-3">
-            <div className="flex items-center space-x-2 space-x-reverse text-indigo-300 font-black text-xs">
-              <Sparkles className="w-4 h-4" />
-              <span>نصيحة سريرية متقدمة</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              استخدم زر <strong>[🎙️ تدوين صوتي SOAP]</strong> فور انتهاء الجلسة مباشرة؛ فالتسجيل الصوتي لمدة 45 ثانية يفرغ لك تقريراً طبياً منسقاً يوفر عليك أكثر من 15 دقيقة من الكتابة اليدوية.
-            </p>
+                      {article.badge && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                          {article.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-base font-black text-white">{article.title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{article.summary}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopySteps(article);
+                      }}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1"
+                      title="نسخ خطوات الدليل"
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline">{isCopied ? 'تم النسخ' : 'نسخ'}</span>
+                    </button>
+
+                    <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Article Expandable Body */}
+                {isExpanded && (
+                  <div className="px-5 sm:px-6 pb-6 pt-2 border-t border-slate-800/80 space-y-4 bg-slate-950/40">
+                    {/* Numbered Steps */}
+                    <div className="space-y-2.5">
+                      <h4 className="text-xs font-black text-indigo-400 flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>خطوات التنفيذ والإجراءات السريرية:</span>
+                      </h4>
+
+                      <div className="space-y-2">
+                        {article.steps?.map((step, sIdx) => (
+                          <div key={sIdx} className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-200 leading-relaxed">
+                            <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center shrink-0 text-xs">
+                              {sIdx + 1}
+                            </span>
+                            <span className="pt-0.5">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pro Tip Box */}
+                    {article.tip && (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed flex items-start gap-2.5">
+                        <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">نصيحة سريرية ذهبية: </span>
+                          <span>{article.tip}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SECTION: FREQUENTLY ASKED QUESTIONS (FAQ)                                 */}
+      {/* ========================================================================= */}
+      <div className="pt-6 border-t border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-indigo-400" />
+              <span>الأسئلة الشائعة والأمان والخصوصية (FAQ)</span>
+            </h2>
+            <p className="text-xs text-slate-400">إجابات مباشرة عن التشفير، الصلاحيات، وضع عدم الاتصال، والاشتراكات.</p>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          {filteredFaqs.map((faq, idx) => {
+            const isFaqExpanded = expandedFaq.has(idx);
+
+            return (
+              <div
+                key={idx}
+                onClick={() => toggleFaq(idx)}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 cursor-pointer shadow-md hover:border-slate-700 transition"
+              >
+                <div className="flex items-center justify-between gap-3 select-none">
+                  <h4 className="text-xs sm:text-sm font-black text-white flex items-center gap-2">
+                    <span className="text-indigo-400">❓</span>
+                    <span>{faq.question}</span>
+                  </h4>
+                  <span className="text-slate-400">
+                    {isFaqExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </span>
+                </div>
+
+                {isFaqExpanded && (
+                  <p className="mt-3 pt-3 border-t border-slate-800/80 text-xs text-slate-300 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* FOOTER: SUPPORT CONTACT BOX                                               */}
+      {/* ========================================================================= */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 border border-indigo-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-center md:text-right">
+          <span className="px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>الدعم الفني والعيادي متاح الآن</span>
+          </span>
+          <h3 className="text-lg sm:text-xl font-black text-white">هل لديك استفسار أو تحتاج لمرافقة في الإعداد؟</h3>
+          <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+            {supportContact.helpDeskNotice || 'فريق الدعم الفني السريري متاح لمساعدتكم في أي وقت عبر WhatsApp أو الهاتف.'}
+            <br />
+            <span className="text-slate-400 text-[11px]">⏰ {supportContact.workHours}</span>
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap justify-center shrink-0">
+          <button
+            type="button"
+            onClick={handleOpenWhatsAppSupport}
+            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black transition flex items-center gap-2 shadow-xl shadow-emerald-600/30"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>تواصل عبر WhatsApp ({supportContact.whatsappDisplay})</span>
+          </button>
+
+          {supportContact.telegram && (
+            <a
+              href={supportContact.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-3 rounded-2xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-xs font-bold transition flex items-center gap-1.5"
+            >
+              <Send className="w-4 h-4 text-sky-400" />
+              <span>Telegram</span>
+            </a>
+          )}
         </div>
       </div>
     </div>

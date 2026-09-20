@@ -28,6 +28,8 @@ class User extends Authenticatable
         'two_factor_confirmed_at',
         'specialty',
         'specialty_license_number',
+        'room_number',
+        'commission_percentage',
         'is_active',
         'has_completed_tour',
     ];
@@ -49,6 +51,7 @@ class User extends Authenticatable
             'has_completed_tour' => 'boolean',
             'permissions' => 'array',
             'admin_permissions' => 'array',
+            'commission_percentage' => 'float',
         ];
     }
 

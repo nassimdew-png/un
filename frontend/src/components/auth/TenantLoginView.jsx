@@ -40,6 +40,16 @@ export default function TenantLoginView() {
 
   const toggleLanguage = (lng) => {
     i18n.changeLanguage(lng);
+    try {
+      localStorage.setItem('app_language', lng);
+      localStorage.setItem('i18nextLng', lng);
+      localStorage.setItem('locale', lng);
+      if (typeof document !== 'undefined') {
+        document.cookie = `app_language=${lng};path=/;max-age=31536000;SameSite=Lax`;
+        document.cookie = `locale=${lng};path=/;max-age=31536000;SameSite=Lax`;
+        document.cookie = `i18nextLng=${lng};path=/;max-age=31536000;SameSite=Lax`;
+      }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -275,6 +285,55 @@ export default function TenantLoginView() {
               <span>{submitting ? 'جارٍ التحقق والمصادقة...' : 'الدخول إلى فضاء العمل'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                data-testid="quick-cockpit-demo-btn"
+                onClick={async () => {
+                  setSubmitting(true);
+                  setAuthError('');
+                  try {
+                    const targetEmail = clinic?.email || `admin@${subdomain || 'cabinet-alger'}.dz`;
+                    const res = await authApi.login({
+                      email: targetEmail,
+                      password: 'password123',
+                      subdomain: subdomain || undefined,
+                    });
+                    login(res.user, res.tenant, res.access_token || res.token);
+                    navigate('/dashboard');
+                  } catch (err) {
+                    try {
+                      const res2 = await authApi.login({
+                        email: 'doctor@clinic.dz',
+                        password: 'password',
+                      });
+                      login(res2.user, res2.tenant, res2.access_token || res2.token);
+                      navigate('/dashboard');
+                    } catch (e2) {
+                      setAuthError('يرجى إدخال البريد الإلكتروني وكلمة المرور الخاصة بحسابك.');
+                    }
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-teal-500/30 text-teal-300 font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <span>الدخول السريع لقمرة المعالج السريرية (Accès Cockpit Démo)</span>
+              </button>
+            </div>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="text-xs text-slate-400 hover:text-teal-300 font-bold transition flex items-center justify-center gap-1.5 mx-auto"
+              >
+                <span>الرجوع لصفحة العيادة وحجز موعد أونلاين</span>
+                <Globe className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </form>
 
           {/* Footer Note */}

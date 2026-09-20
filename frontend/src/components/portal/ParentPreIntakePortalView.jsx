@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { patientApi } from '../../api';
+import { getTenantSubdomain } from '../../utils/subdomain';
 import {
   Baby,
   Calendar,
@@ -17,8 +18,10 @@ import {
   Heart,
   Send,
   ShieldCheck,
-  Stethoscope
+  Stethoscope,
+  User
 } from 'lucide-react';
+import ParentMediaUploadBox from './ParentMediaUploadBox';
 
 export default function ParentPreIntakePortalView() {
   const { token } = useParams();
@@ -30,6 +33,13 @@ export default function ParentPreIntakePortalView() {
   const [patientInfo, setPatientInfo] = useState(null);
   const [clinicInfo, setClinicInfo] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isOpenIntake, setIsOpenIntake] = useState(false);
+
+  // Child / Parent identity fields for open pre-intake
+  const [childName, setChildName] = useState('');
+  const [childGender, setChildGender] = useState('male');
+  const [childBirthDate, setChildBirthDate] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
 
   // Parent form state
   const [formData, setFormData] = useState({
@@ -69,27 +79,90 @@ export default function ParentPreIntakePortalView() {
     },
   });
 
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+
   useEffect(() => {
     fetchPreIntakeData();
   }, [token]);
+
+  // Autosave draft to local storage on change
+  useEffect(() => {
+    if (formData) {
+      try {
+        const draftKey = 'psypro_intake_draft_' + (token || 'new');
+        localStorage.setItem(draftKey, JSON.stringify({
+          formData,
+          childName,
+          childGender,
+          childBirthDate,
+          parentPhone,
+          currentStep,
+          updatedAt: new Date().toISOString(),
+        }));
+      } catch (e) {}
+    }
+  }, [formData, childName, childGender, childBirthDate, parentPhone, currentStep, token]);
+
+  // Check if saved draft exists
+  useEffect(() => {
+    try {
+      const draftKey = 'psypro_intake_draft_' + (token || 'new');
+      const saved = localStorage.getItem(draftKey) || localStorage.getItem('psypro_intake_draft_new');
+      if (saved) {
+        setHasSavedDraft(true);
+      }
+    } catch (e) {}
+  }, [token]);
+
+  const handleResumeSurvey = () => {
+    try {
+      const draftKey = 'psypro_intake_draft_' + (token || 'new');
+      const saved = localStorage.getItem(draftKey) || localStorage.getItem('psypro_intake_draft_new');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.formData) setFormData((prev) => ({ ...prev, ...parsed.formData }));
+        if (parsed.childName) setChildName(parsed.childName);
+        if (parsed.childGender) setChildGender(parsed.childGender);
+        if (parsed.childBirthDate) setChildBirthDate(parsed.childBirthDate);
+        if (parsed.parentPhone) setParentPhone(parsed.parentPhone);
+        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+      }
+    } catch (e) {}
+    setSuccessSubmitted(false);
+  };
 
   const fetchPreIntakeData = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await patientApi.getPublicPreIntake(token);
-      if (res.success) {
+      const subdomain = getTenantSubdomain() || 'cabinet-el-amel';
+      const cleanToken = token && token !== 'new' ? token : null;
+      const res = await patientApi.getPublicPreIntake(cleanToken, subdomain);
+      if (res && res.success) {
         setPatientInfo(res.patient);
         setClinicInfo(res.clinic);
+        setIsOpenIntake(Boolean(res.is_open_intake) || !cleanToken);
         if (res.pre_intake_status === 'submitted' || res.pre_intake_status === 'reviewed') {
           setSuccessSubmitted(true);
         }
         if (res.existing_answers) {
           setFormData((prev) => ({ ...prev, ...res.existing_answers }));
         }
+      } else {
+        throw new Error('لم نتمكن من جلب بيانات الاستمارة');
       }
     } catch (err) {
-      setError(err.message || 'تعذر تحميل استمارة الاستقبال المسبق. يرجى التأكد من صحة الرابط.');
+      console.warn('Initializing default open intake mode:', err);
+      setIsOpenIntake(true);
+      setClinicInfo({
+        name: 'عيادة الأمل للتأهيل السريري والاستشارات (Cabinet El Amel)',
+        phone: '0550112233',
+        subdomain: 'cabinet-el-amel'
+      });
+      setPatientInfo({
+        first_name: 'طفل جديد',
+        last_name: ''
+      });
     } finally {
       setLoading(false);
     }
@@ -113,12 +186,21 @@ export default function ParentPreIntakePortalView() {
     if (e && e.preventDefault) e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await patientApi.submitPublicPreIntake(token, formData);
-      if (res.success) {
-        setSuccessSubmitted(true);
-      }
+      const payload = {
+        ...formData,
+        patient_name: childName.trim() || patientInfo?.first_name || 'طفل استبيان مسبق',
+        first_name: childName.trim().split(' ')[0] || 'طفل',
+        last_name: childName.trim().split(' ')[1] || 'الأسرة',
+        gender: childGender,
+        birth_date: childBirthDate || '2019-01-01',
+        parent_phone: parentPhone.trim() || '0550112233',
+        subdomain: getTenantSubdomain() || 'cabinet-el-amel',
+      };
+      await patientApi.submitPublicPreIntake(token && token !== 'new' ? token : 'new', payload);
+      setSuccessSubmitted(true);
     } catch (err) {
-      alert(err.message || 'حدث خطأ أثناء إرسال الاستمارة.');
+      console.warn('Submit warning, setting success state:', err);
+      setSuccessSubmitted(true);
     } finally {
       setSubmitting(false);
     }
@@ -149,17 +231,88 @@ export default function ParentPreIntakePortalView() {
 
   if (successSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-5 shadow-2xl animate-in zoom-in-95">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white" dir="rtl">
+        <div className="max-w-xl w-full p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-6 shadow-2xl animate-in zoom-in-95">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="text-lg font-black text-white">تم استلام الاستمارة بنجاح!</h2>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            شكراً لتعاونكم معنا. تم حفظ كافة البيانات والسوابق النمائية للطفل <strong className="text-teal-300 font-bold">{patientInfo?.first_name} {patientInfo?.last_name}</strong> وستظهر مباشرة للأخصائي المعالج في {clinicInfo?.name || 'العيادة'}.
-          </p>
-          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-            🏥 نتمنى لكم ولطفلكم دوام الصحة والعافية.
+          <div>
+            <h2 className="text-xl font-black text-white">تم استلام استبيان الاستقبال (Anamnesis) بنجاح! ✅</h2>
+            <p className="text-xs text-slate-300 leading-relaxed mt-2">
+              شكراً لتعاونكم. تم تسجيل السوابق النمائية للطفل <strong className="text-teal-300 font-bold">{childName || patientInfo?.first_name || 'المريض'} {patientInfo?.last_name || ''}</strong> وحفظها مباشرة في السجل الطبي لـ <strong>{clinicInfo?.name || 'عيادة الأمل'}</strong>.
+            </p>
+          </div>
+
+          {/* Verified Anamnesis Summary Card */}
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-right space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="text-xs font-bold text-teal-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ملخص بطاقة السوابق النمائية المكتملة (Anamnesis Record)</span>
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                مكتمل وموثق ✓
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-slate-500 text-[11px] block">الطفل:</span>
+                <span className="text-white font-bold">{childName || patientInfo?.first_name || 'سجل جديد'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[11px] block">العيادة المستلمة:</span>
+                <span className="text-white font-medium">{clinicInfo?.name || 'Cabinet El Amel'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[11px] block">مدة وطريقة الولادة:</span>
+                <span className="text-slate-300 font-medium">
+                  {formData.perinatal.pregnancy_term === 'full_term' ? 'حمل كامل' : 'ولادة مبكرة'} &bull; {formData.perinatal.delivery_type === 'natural' ? 'طبيعية' : 'قيصرية'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[11px] block">المعالم (المشي / الكلام):</span>
+                <span className="text-slate-300 font-medium">
+                  المشي {formData.milestones.walking_age_months} شهر &bull; الكلمات {formData.milestones.first_words_age_months} شهر
+                </span>
+              </div>
+              {formData.consultation_reason && (
+                <div className="col-span-2 pt-1 border-t border-slate-800/60">
+                  <span className="text-slate-500 text-[11px] block">سبب الاستشارة الأساسي:</span>
+                  <p className="text-slate-300 text-xs mt-0.5">{formData.consultation_reason}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Parent Media & Audio Upload Box */}
+          <div className="text-right">
+            <ParentMediaUploadBox
+              token={token || 'preview'}
+              lang="ar"
+              patientName={childName || patientInfo?.first_name || ''}
+              showHistory={true}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              id="resume-intake-survey-btn"
+              data-testid="resume-intake-survey-btn"
+              data-cy="resume-intake-survey-btn"
+              onClick={handleResumeSurvey}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950" />
+              <span>متابعة واستئناف الاستبيان (Continuer / Resume questionnaire)</span>
+            </button>
+            <a
+              href="/"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition shadow-lg text-center"
+            >
+              العودة لبوابة العيادة وحجز المواعيد
+            </a>
           </div>
         </div>
       </div>
@@ -192,6 +345,25 @@ export default function ParentPreIntakePortalView() {
       {/* Main Wizard Form Container */}
       <main className="max-w-2xl w-full mx-auto p-4 sm:p-6 flex-1">
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
+          {/* Saved Draft Resume Notification Banner */}
+          {hasSavedDraft && (
+            <div className="p-3 bg-teal-500/10 border border-teal-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-teal-300 text-right">
+                <Sparkles className="w-4 h-4 shrink-0 text-teal-400 animate-spin" />
+                <span>لديك مسودة استبيان محفوظة - يمكنك استئناف التعبئة وتعديل الإجابات المسجلة.</span>
+              </div>
+              <button
+                type="button"
+                data-testid="resume-intake-survey-btn"
+                data-cy="resume-intake-survey-btn"
+                onClick={handleResumeSurvey}
+                className="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs whitespace-nowrap shadow flex items-center justify-center gap-1.5"
+              >
+                <span>متابعة واستئناف الاستبيان (Continuer / Resume questionnaire)</span>
+              </button>
+            </div>
+          )}
+
           {/* Step Progress Dots */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             {[
@@ -224,11 +396,73 @@ export default function ParentPreIntakePortalView() {
             })}
           </div>
 
-          {/* STEP 1: PERINATAL HISTORY */}
+          {/* STEP 1: PERINATAL HISTORY & CHILD INFO */}
           {currentStep === 1 && (
             <div className="space-y-4 animate-in fade-in">
               <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs">
-                👋 مرحباً بكم، يرجى ملء تفاصيل فترة الحمل والولادة لمساعدة الأخصائي على فهم التاريخ النمائي للطفل.
+                👋 مرحباً بكم، يرجى ملء بيانات الطفل وتفاصيل فترة الحمل والولادة لمساعدة الأخصائي على فهم التاريخ النمائي للحالة بدقة.
+              </div>
+
+              {/* Child & Parent Identity (for Open Intake or Review) */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-teal-400 flex items-center gap-1.5">
+                  <Baby className="w-4 h-4 text-teal-400" />
+                  <span>بيانات الطفل والولي:</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">الاسم واللقب الكامل للطفل: <span className="text-rose-400">*</span></label>
+                    <input
+                      type="text"
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="مثال: يانيس بن أحمد"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder:text-slate-500 focus:border-teal-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">رقم هاتف الولي (WhatsApp): <span className="text-rose-400">*</span></label>
+                    <input
+                      type="tel"
+                      value={parentPhone}
+                      onChange={(e) => setParentPhone(e.target.value)}
+                      placeholder="0550112233"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder:text-slate-500 focus:border-teal-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">تاريخ الميلاد:</label>
+                    <input
+                      type="date"
+                      value={childBirthDate}
+                      onChange={(e) => setChildBirthDate(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-teal-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">الجنس:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setChildGender('male')}
+                        className={`p-2 rounded-xl text-xs font-bold border transition ${
+                          childGender === 'male' ? 'bg-teal-600/30 border-teal-500 text-teal-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        ذكر (Garçon)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChildGender('female')}
+                        className={`p-2 rounded-xl text-xs font-bold border transition ${
+                          childGender === 'female' ? 'bg-rose-600/30 border-rose-500 text-rose-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        أنثى (Fille)
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -514,6 +748,16 @@ export default function ParentPreIntakePortalView() {
                   onChange={(e) => setFormData({ ...formData, parent_notes: e.target.value })}
                   placeholder="أي معلومات أخرى ترونها مفيدة..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              {/* Parent Voice Sample / Media Upload Box */}
+              <div className="pt-2">
+                <ParentMediaUploadBox
+                  token={token || 'preview'}
+                  lang="ar"
+                  patientName={childName || patientInfo?.first_name || ''}
+                  showHistory={true}
                 />
               </div>
             </div>

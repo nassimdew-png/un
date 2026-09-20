@@ -70,11 +70,17 @@ export default function PrintableClinicalReport({
       }
     };
 
+    const ensureHttps = (url) => {
+      if (!url || typeof url !== 'string') return url;
+      return url.replace(/^http:\/\//i, 'https://');
+    };
+
     const formatInline = (str) => {
       return str
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 rounded text-xs">$1</code>');
+        .replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 rounded text-xs">$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => `<a href="${ensureHttps(url)}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 underline font-bold">${text}</a>`);
     };
 
     lines.forEach((line, idx) => {
@@ -82,6 +88,26 @@ export default function PrintableClinicalReport({
 
       if (!trimmed) {
         flushList();
+        return;
+      }
+
+      // Images ![Alt](url)
+      const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+      if (imgMatch) {
+        flushList();
+        const altText = imgMatch[1] || 'صورة توضيحية';
+        const srcUrl = ensureHttps(imgMatch[2]);
+        elements.push(
+          <div key={`img-${idx}`} className="my-4 text-center">
+            <img
+              src={srcUrl}
+              alt={altText}
+              className="max-h-80 mx-auto rounded-2xl border border-slate-200 shadow-md object-contain"
+              loading="lazy"
+            />
+            {altText && <span className="block text-xs text-slate-500 mt-1.5 font-bold italic">{altText}</span>}
+          </div>
+        );
         return;
       }
 

@@ -42,6 +42,8 @@ import {
   Smartphone,
   FileSpreadsheet,
   MessageSquare,
+  Camera,
+  TrendingUp,
 } from 'lucide-react';
 import { patientApi, assessmentApi, sessionApi, attachmentApi, appointmentApi, clinicalTestApi, patientBilanApi, therapyHubApi } from '../api';
 import PatientVoiceArchive from './PatientVoiceArchive';
@@ -67,6 +69,11 @@ import DataExportModal from './common/DataExportModal';
 import InteractiveGenogramPedigree from './clinical/InteractiveGenogramPedigree';
 import SensoryBodyMap from './clinical/SensoryBodyMap';
 import PreIntakeReviewModal from './portal/PreIntakeReviewModal';
+import VisionMedicalDocumentIngestionModal from './clinical/VisionMedicalDocumentIngestionModal';
+import DsmDiagnosticAssistantModal from './clinical/DsmDiagnosticAssistantModal';
+import SmartPeiBuilderModal from './clinical/SmartPeiBuilderModal';
+import PatientHomeCareTrackerTab from './patients/PatientHomeCareTrackerTab';
+import FastHomeCareAssignModal from './therapy/FastHomeCareAssignModal';
 
 export default function Patients({ patients = [], loading = false, onRefresh = null, onOpenAddPatient = null, onOpenAddAssessment = null, onOpenAddSession = null, tenant = null, user = null }) {
   const { t } = useTranslation();
@@ -78,6 +85,7 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
   const [patientAssessments, setPatientAssessments] = useState([]);
   const [patientSessions, setPatientSessions] = useState([]);
   const [patientAttachments, setPatientAttachments] = useState([]);
+  const [patientDocuments, setPatientDocuments] = useState([]);
   const [pastBilans, setPastBilans] = useState([]);
   const [patientHomeworkPlans, setPatientHomeworkPlans] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -91,8 +99,25 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
   const [showExportModal, setShowExportModal] = useState(false);
   const [showVoiceSoapModal, setShowVoiceSoapModal] = useState(false);
   const [showPreIntakeModal, setShowPreIntakeModal] = useState(false);
+  const [showVisionIngestModal, setShowVisionIngestModal] = useState(false);
+  const [showDsmModal, setShowDsmModal] = useState(false);
+  const [showSmartPeiModal, setShowSmartPeiModal] = useState(false);
+  const [showFastHomeCareModal, setShowFastHomeCareModal] = useState(false);
 
   const isSecretary = user?.role === 'secretary' || user?.role === 'receptionist';
+
+  const formatOrganicExamStatus = (status) => {
+    if (!status || status === 'not_done') return '⚪ لم يُجرَ الفحص بعد';
+    if (status === 'normal') return '🟢 سليم / طبيعي';
+    if (status === 'conductive_loss') return '🟡 نقص سمع توصيلي (Conductive)';
+    if (status === 'sensorineural_loss') return '🔴 نقص سمع إدراكي عصبي (Sensorineural)';
+    if (status === 'pea_done') return '🔵 فحص الجذع المخي PEA منجز';
+    if (status === 'abnormal') return '🔴 غير طبيعي / شذوذ في التخطيط';
+    if (status === 'epilespy_signs') return '⚠️ نشاط صرعي بؤري / تفريغ غير طبيعي';
+    if (status === 'strabismus') return '🟡 حول (Strabisme)';
+    if (status === 'refractive_error') return '🟡 خلل انكساري (نظارات)';
+    return status;
+  };
 
   const filteredPatients = (Array.isArray(patients) ? patients : []).filter((p) => {
     const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
@@ -107,13 +132,14 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
     setSelectedPatient(patient);
     setLoadingDetails(true);
     try {
-      const [historyRes, assessRes, sessRes, attachRes, bilansRes, plansRes] = await Promise.allSettled([
+      const [historyRes, assessRes, sessRes, attachRes, bilansRes, plansRes, aiRecordsRes] = await Promise.allSettled([
         clinicalTestApi.getAssessmentsHistory(patient.id),
         assessmentApi.list(patient.id),
         sessionApi.list(patient.id),
         attachmentApi.list(patient.id),
         patientBilanApi.listBilans(patient.id),
         therapyHubApi.getPatientPlans(patient.id),
+        patientApi.getAiRecords(patient.id),
       ]);
 
       if (historyRes.status === 'fulfilled' && historyRes.value?.history) {
@@ -126,6 +152,17 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
       if (attachRes.status === 'fulfilled') setPatientAttachments(attachRes.value.data || []);
       if (bilansRes.status === 'fulfilled') setPastBilans(bilansRes.value?.bilans || []);
       if (plansRes.status === 'fulfilled') setPatientHomeworkPlans(plansRes.value?.plans || []);
+
+      if (aiRecordsRes.status === 'fulfilled' && aiRecordsRes.value?.records) {
+        const allRecords = aiRecordsRes.value.records || [];
+        const docs = allRecords.filter(r => 
+          r.tool_type === 'medical_document' || 
+          r.tool_type === 'medical_certificate' || 
+          r.tool_type === 'medical_letter' ||
+          r.payload?.verificationToken
+        );
+        setPatientDocuments(docs);
+      }
     } catch (err) {
       console.error('Error loading patient details:', err);
     } finally {
@@ -392,6 +429,16 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
               <div className="flex items-center space-x-2 space-x-reverse">
                 <button
                   type="button"
+                  onClick={() => setPatientTab('documents')}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 hover:from-amber-600 hover:to-orange-600 text-amber-300 hover:text-white border border-amber-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
+                  title="إصدار واستعراض الشهادات الطبية والتقارير الرسمية المحفوظة للمريض"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>📜 الشهادات والوثائق ({patientDocuments.length})</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setShowMasterBilanModal(true)}
                   className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-teal-500/20 flex items-center space-x-1.5 space-x-reverse transition-all"
                 >
@@ -403,9 +450,10 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                   type="button"
                   onClick={() => setShowPortalModal(true)}
                   className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600 hover:to-teal-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
+                  title="فتح بوابة المريض الذاتية وبطاقة الوصول بالرمز السري PIN"
                 >
                   <Smartphone className="w-3.5 h-3.5" />
-                  <span>📱 استمارة الولي / WhatsApp</span>
+                  <span>📱 بوابة المريض ورمز PIN</span>
                 </button>
 
                 <button
@@ -416,48 +464,83 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                       ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-md shadow-amber-500/20'
                       : 'bg-teal-500/20 text-teal-300 border-teal-500/30 hover:bg-teal-500/30'
                   }`}
+                  title="إنشاء وإرسال رابط استمارة السوابق النمائية للولي عبر واتساب"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>
                     {selectedPatient.pre_intake_status === 'submitted'
                       ? '📩 استمارة الولي واردة !'
-                      : '🔗 استمارة الولي (WhatsApp)'}
+                      : '🔗 إرسال استمارة الولي (WhatsApp)'}
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (startingDirectSession) return;
-                    setStartingDirectSession(true);
-                    try {
-                      const today = new Date().toISOString().split('T')[0];
-                      const res = await appointmentApi.create({
-                        patient_id: selectedPatient.id,
-                        specialist_id: user?.id || null,
-                        appointment_date: today,
-                        start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                        type: 'therapy_session',
-                        status: 'in_progress',
-                        notes: 'جلسة علاجية فورية ومباشرة من ملف المريض',
-                      });
-                      const appointmentId = res.id || res.data?.id || res.appointment?.id;
-                      if (appointmentId) {
-                        setActiveConsultationId(appointmentId);
-                      }
-                    } catch (err) {
-                      console.error('Error starting direct session:', err);
-                      alert(err.message || 'تعذر بدء الجلسة المباشرة');
-                    } finally {
-                      setStartingDirectSession(false);
-                    }
-                  }}
-                  disabled={startingDirectSession}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center space-x-1.5 space-x-reverse transition-all disabled:opacity-50"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>{startingDirectSession ? 'جارٍ البدء...' : '⚡ بدء جلسة لهذا المريض الآن'}</span>
-                </button>
+                {!isSecretary && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowVisionIngestModal(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
+                      title="مسح واستيعاب التقارير والفحوصات الطبية القديمة عبر Vision AI"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>📷 مسح تقرير طبي (Vision)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowDsmModal(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
+                      title="فحص الأعراض ومطابقة معايير DSM-5-TR و ICD-11"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>🧠 فحص DSM-5</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowSmartPeiModal(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-all"
+                      title="مشروع التكفل العلاجي الفردي PEI وكراسات التمارين A4"
+                    >
+                      <Target className="w-3.5 h-3.5" />
+                      <span>📋 مشروع PEI</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (startingDirectSession) return;
+                        setStartingDirectSession(true);
+                        try {
+                          const today = new Date().toISOString().split('T')[0];
+                          const res = await appointmentApi.create({
+                            patient_id: selectedPatient.id,
+                            specialist_id: user?.id || null,
+                            appointment_date: today,
+                            start_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                            type: 'therapy_session',
+                            status: 'in_progress',
+                            notes: 'جلسة علاجية فورية ومباشرة من ملف المريض',
+                          });
+                          const appointmentId = res.id || res.data?.id || res.appointment?.id;
+                          if (appointmentId) {
+                            setActiveConsultationId(appointmentId);
+                          }
+                        } catch (err) {
+                          console.error('Error starting direct session:', err);
+                          alert(err.message || 'تعذر بدء الجلسة المباشرة');
+                        } finally {
+                          setStartingDirectSession(false);
+                        }
+                      }}
+                      disabled={startingDirectSession}
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center space-x-1.5 space-x-reverse transition-all disabled:opacity-50"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>{startingDirectSession ? 'جارٍ البدء...' : '⚡ بدء جلسة لهذا المريض الآن'}</span>
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"
@@ -573,26 +656,31 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
               <button
                 type="button"
-                onClick={() => setPatientTab('flashcards')}
-                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
-                  patientTab === 'flashcards'
-                    ? 'bg-amber-600 text-white shadow-md'
+                onClick={() => setPatientTab('homework')}
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  patientTab === 'homework' || patientTab === 'flashcards'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md font-black'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                🎴 التمارين والواجبات المنزلية
+                <span>🏡 التمارين المنزلية وتفاعل الأولياء</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPatientTab('documents')}
-                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   patientTab === 'documents'
-                    ? 'bg-amber-600 text-white shadow-md'
+                    ? 'bg-amber-600 text-white shadow-md font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                📜 الشهادات والوثائق الطبية
+                <span>📜 الشهادات والوثائق الطبية</span>
+                {patientDocuments.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/30 text-amber-200 border border-amber-400/40">
+                    {patientDocuments.length}
+                  </span>
+                )}
               </button>
 
               <button
@@ -609,14 +697,20 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
 
               <button
                 type="button"
-                onClick={() => setPatientTab('audio_dictation')}
-                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
+                id="ambient-scribe-btn"
+                data-testid="ambient-scribe-btn"
+                data-cy="ambient-scribe-btn"
+                onClick={() => {
+                  setPatientTab('audio_dictation');
+                  setShowVoiceSoapModal(true);
+                }}
+                className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   patientTab === 'audio_dictation'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                🗣️ الإملاء والتفريغ النصي
+                <span>🗣️ تفريغ صوتي ذكي للملاحظات السريرية</span>
               </button>
 
               <button
@@ -671,14 +765,14 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
             {/* Tab Body */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               {/* Role Restricted Banner for Administrative / Secretary accounts */}
-              {isSecretary && ['anamnesis', 'goals', 'therapy', 'behavior', 'assessments', 'sessions'].includes(patientTab) ? (
+              {isSecretary && ['anamnesis', 'genogram', 'sensory_map', 'ai_records', 'goals', 'therapy', 'behavior', 'sessions_history', 'voice_archive', 'audio_dictation', 'progression', 'assessments', 'sessions', 'homework', 'flashcards'].includes(patientTab) ? (
                 <div className="p-8 rounded-3xl bg-slate-950 border border-slate-800 text-center space-y-3 animate-in fade-in">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <h4 className="text-sm font-black text-white">ملف سريري وسجلات طبية محمية (Accès Restreint)</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                    هذا القسم يحتوي على بيانات تشخيصية وتقييمات سريرية خاصة، ومخصص للاطلاع والتعديل من قبل الأخصائيين والأطباء المشرفين فقط وفقاً لسياسات حماية البيانات الطبية.
+                    هذا القسم يحتوي على بيانات تشخيصية وتقييمات سريرية خاصة، ومخصص للاطلاع والتعديل من قبل الأخصائيين والأطباء المشرفين فقط وفقاً لسياسات حماية البيانات الطبية وأخلاقيات المهنة.
                   </p>
                 </div>
               ) : (
@@ -791,11 +885,15 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                       <div className="text-xs space-y-1.5 text-slate-300">
                         <div>
                           <span className="text-slate-500">فحص السمع (Audiogram/PEA):</span>{' '}
-                          <span className="font-bold text-white">{organicExams.hearing?.status === 'normal' ? '🟢 سليم' : organicExams.hearing?.status ? organicExams.hearing.status : 'لم يجرى'}</span>
+                          <span className="font-bold text-white">
+                            {formatOrganicExamStatus(organicExams.hearing?.status)}
+                          </span>
                         </div>
                         <div>
                           <span className="text-slate-500">تخطيط الدماغ (EEG):</span>{' '}
-                          <span className="font-bold text-white">{organicExams.eeg?.status === 'normal' ? '🟢 سليم' : organicExams.eeg?.status ? organicExams.eeg.status : 'لم يجرى'}</span>
+                          <span className="font-bold text-white">
+                            {formatOrganicExamStatus(organicExams.eeg?.status)}
+                          </span>
                         </div>
                         <div>
                           <span className="text-slate-500">جهة التوجيه:</span>{' '}
@@ -935,6 +1033,7 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                   patient={selectedPatient}
                   tenant={tenant}
                   practitioner={user}
+                  onDocumentSaved={() => loadPatientDetails(selectedPatient)}
                 />
               )}
 
@@ -1139,52 +1238,15 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
                 </div>
               )}
 
-              {/* TAB 10: Homework & Therapy Workbook Plans */}
-              {patientTab === 'homework' && (
+              {/* TAB 10: Homework & Parent Practice Tracker */}
+              {(patientTab === 'homework' || patientTab === 'flashcards') && (
                 <div className="space-y-4 animate-in fade-in">
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center space-x-2 space-x-reverse">
-                        <BookOpen className="w-4 h-4 text-emerald-400" />
-                        <span>كراسات التمارين والواجبات المنزلية المعتمدة ({patientHomeworkPlans.length})</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        برامج تدريبية منزلية مخصصة للأولياء مع أوراق عمل عالية الدقة قابلة للطباعة A4
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowHomeworkBuilderModal(true)}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center space-x-1.5 space-x-reverse transition-all"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>➕ إنشاء كراس منزلي جديد (Nouveau Cahier A4)</span>
-                    </button>
-                  </div>
-
-                  {patientHomeworkPlans.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/60 space-y-2">
-                      <p>لا توجد كراسات تمارين مسندة لهذا المريض بعد.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowHomeworkBuilderModal(true)}
-                        className="px-4 py-1.5 rounded-xl bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-600 hover:text-white transition-all"
-                      >
-                        ➕ إنشاء أول كراس تدريب منزلي
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {patientHomeworkPlans.map((plan) => (
-                        <HomeworkPlanCard
-                          key={plan.id}
-                          plan={plan}
-                          onRefresh={() => loadPatientDetails(selectedPatient)}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <PatientHomeCareTrackerTab
+                    patient={selectedPatient}
+                    tenant={tenant}
+                    onOpenAssignModal={() => setShowFastHomeCareModal(true)}
+                    onOpenPortalModal={() => setShowPortalModal(true)}
+                  />
                 </div>
               )}
                 </>
@@ -1261,6 +1323,15 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
         />
       )}
 
+      {/* Voice SOAP Scribe Modal */}
+      {showVoiceSoapModal && selectedPatient && (
+        <VoiceScribeRecorderModal
+          isOpen={showVoiceSoapModal}
+          onClose={() => setShowVoiceSoapModal(false)}
+          patient={selectedPatient}
+        />
+      )}
+
       {/* Granular Patients Data Export Modal */}
       <DataExportModal
         isOpen={showExportModal}
@@ -1277,6 +1348,42 @@ export default function Patients({ patients = [], loading = false, onRefresh = n
           tenant={tenant}
           onApproved={(updated) => {
             setSelectedPatient(updated);
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* Vision AI Medical Document Ingestion Modal */}
+      {showVisionIngestModal && selectedPatient && (
+        <VisionMedicalDocumentIngestionModal
+          isOpen={showVisionIngestModal}
+          patient={selectedPatient}
+          onClose={() => setShowVisionIngestModal(false)}
+          onInjected={() => {
+            if (selectedPatient) loadPatientDetails(selectedPatient);
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* DSM-5-TR & ICD-11 Diagnostic Assistant Modal */}
+      {showDsmModal && selectedPatient && (
+        <DsmDiagnosticAssistantModal
+          isOpen={showDsmModal}
+          patient={selectedPatient}
+          onClose={() => setShowDsmModal(false)}
+        />
+      )}
+
+      {/* Fast Home Care Assignment Modal */}
+      {showFastHomeCareModal && selectedPatient && (
+        <FastHomeCareAssignModal
+          isOpen={showFastHomeCareModal}
+          onClose={() => setShowFastHomeCareModal(false)}
+          patient={selectedPatient}
+          patients={patients}
+          onAssigned={() => {
+            if (selectedPatient) loadPatientDetails(selectedPatient);
             if (onRefresh) onRefresh();
           }}
         />

@@ -31,7 +31,7 @@ export default function AdminTeamTab() {
     try {
       const res = await apiRequest('/super-admin/admin-team');
       if (res.success) {
-        setMembers(res.members || res.data || []);
+        setMembers(res.members || res.team || res.data || []);
       }
     } catch (err) {
       console.error('Failed to load admin team:', err);

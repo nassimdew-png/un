@@ -18,6 +18,8 @@ use App\Models\SaasInvoice;
 use App\Models\DiscountCoupon;
 use App\Models\CouponRedemption;
 use App\Models\GlobalTestConfiguration;
+use App\Models\GlobalExercise;
+use App\Models\TeletherapyRoom;
 use App\Models\ClinicFeatureOverride;
 use App\Models\SystemAnnouncement;
 use App\Models\AiUsageLog;
@@ -28,6 +30,7 @@ use App\Models\AffiliateReferral;
 use App\Models\PlatformIntegration;
 use App\Models\FiscalCompanyProfile;
 use App\Services\DomainManagerService;
+use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +38,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -55,31 +59,12 @@ class SuperAdminController extends Controller
         $totalSessions = TherapySession::count();
 
         // Subscriptions breakdown
-        $activeSubs = ClinicSubscription::where('status', 'active')
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-            })->count();
-        if ($activeSubs === 0 && $totalClinics > 0) {
-            $activeSubs = Tenant::whereIn('status', ['active', 'trial'])->count();
-        }
-
-        $trialingSubs = ClinicSubscription::where('status', 'trialing')
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-            })->count();
-        if ($trialingSubs === 0 && $totalClinics > 0) {
-            $trialingSubs = Tenant::where('status', 'trial')->count();
-        }
-
-        $suspendedSubs = ClinicSubscription::where('status', 'suspended')->count();
-        $expiredSubs = ClinicSubscription::where(function ($q) use ($now) {
-            $q->where('status', 'expired')
-              ->orWhere(function ($q2) use ($now) {
-                  $q2->whereNotIn('status', ['suspended'])
-                     ->whereNotNull('ends_at')
-                     ->where('ends_at', '<', $now);
-              });
+        $activeSubs = Tenant::where('status', 'active')->where('is_quarantined', false)->count();
+        $trialingSubs = Tenant::where('status', 'trial')->where('is_quarantined', false)->count();
+        $suspendedSubs = Tenant::where(function ($q) {
+            $q->where('status', 'suspended')->orWhere('is_quarantined', true);
         })->count();
+        $expiredSubs = Tenant::where('status', 'expired')->count();
 
         // Pending Payment Requests
         $pendingPaymentsCount = SaasPaymentRequest::where('status', 'pending')->count();
@@ -106,43 +91,33 @@ class SuperAdminController extends Controller
         }
         $arrDzd = $mrrDzd * 12;
 
-        // Wilaya Distribution Analytics
-        $allTenants = Tenant::all(['id', 'name', 'address', 'created_at', 'status']);
+        // Wilaya Distribution Analytics (Aligned with GeoClinicMap 58 Wilayas)
+        $allTenants = Tenant::all(['id', 'name', 'address', 'wilaya', 'wilaya_code', 'created_at', 'status']);
         $wilayaCounts = [];
-        $algerianWilayas = [
-            '16 - Alger' => ['Alger', 'الجزائر', 'Bab Ezzouar', 'Hydra', 'El Biar', 'Kouba', 'Cheraga', 'Dely Ibrahim', 'Bir Mourad Rais'],
-            '31 - Oran' => ['Oran', 'وهران', 'Bir El Djir', 'Es Senia', 'Arzew'],
-            '25 - Constantine' => ['Constantine', 'قسنطينة', 'Ali Mendjeli', 'El Khroub'],
-            '19 - Sétif' => ['Setif', 'Sétif', 'سطيف', 'El Eulma'],
-            '09 - Blida' => ['Blida', 'البليدة', 'Boufarik', 'Ouled Yaich'],
-            '23 - Annaba' => ['Annaba', 'عنابة', 'El Bouni'],
-            '13 - Tlemcen' => ['Tlemcen', 'تلمسان', 'Mansourah'],
-            '15 - Tizi Ouzou' => ['Tizi Ouzou', 'تيزي وزو', 'Azazga'],
-            '06 - Béjaïa' => ['Bejaia', 'Béjaïa', 'بجاية', 'Akbou'],
-            '35 - Boumerdès' => ['Boumerdes', 'Boumerdès', 'بومرداس'],
-            '47 - Ghardaïa' => ['Ghardaia', 'Ghardaïa', 'غرداية'],
-            '30 - Ouargla' => ['Ouargla', 'ورقلة', 'Hassi Messaoud'],
-            '05 - Batna' => ['Batna', 'باتنة'],
-            '27 - Mostaganem' => ['Mostaganem', 'مستغانم'],
-            '22 - Sidi Bel Abbès' => ['Sidi Bel Abbes', 'Sidi Bel Abbès', 'سيدي بلعباس'],
-        ];
+        $wilayasMeta = \App\Http\Controllers\Api\SuperAdmin\GeoClinicMapController::$wilayasMeta;
 
         foreach ($allTenants as $t) {
-            $matched = false;
-            $addr = $t->address ?? '';
-            foreach ($algerianWilayas as $wKey => $keywords) {
-                foreach ($keywords as $kw) {
-                    if (stripos($addr, $kw) !== false || stripos($t->name, $kw) !== false) {
-                        $wilayaCounts[$wKey] = ($wilayaCounts[$wKey] ?? 0) + 1;
-                        $matched = true;
-                        break 2;
+            $wCode = $t->wilaya_code ? str_pad((string)$t->wilaya_code, 2, '0', STR_PAD_LEFT) : null;
+            if (!$wCode && !empty($t->wilaya)) {
+                foreach ($wilayasMeta as $code => $meta) {
+                    if (stripos($t->wilaya, $meta['name_ar']) !== false || stripos($t->wilaya, $meta['name_fr']) !== false) {
+                        $wCode = $code;
+                        break;
                     }
                 }
             }
-            if (!$matched) {
-                $wilayaCounts['16 - Alger'] = ($wilayaCounts['16 - Alger'] ?? 0) + 1;
+
+            if ($wCode && isset($wilayasMeta[$wCode])) {
+                $wLabel = "{$wCode} - " . $wilayasMeta[$wCode]['name_fr'];
+            } else {
+                $wLabel = '16 - Alger';
             }
+
+            $wilayaCounts[$wLabel] = ($wilayaCounts[$wLabel] ?? 0) + 1;
         }
+
+        // Sort descending by clinic count
+        arsort($wilayaCounts);
 
         // Monthly Revenue Trend (Last 6 months)
         $revenueTrend = [];
@@ -216,33 +191,12 @@ class SuperAdminController extends Controller
 
         // Subscriptions breakdown
         $now = Carbon::now();
-        $activeSubs = ClinicSubscription::where('status', 'active')
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-            })
-            ->count();
-        if ($activeSubs === 0 && $totalClinics > 0) {
-            $activeSubs = Tenant::whereIn('status', ['active', 'trial'])->count();
-        }
-
-        $trialingSubs = ClinicSubscription::where('status', 'trialing')
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-            })
-            ->count();
-        if ($trialingSubs === 0 && $totalClinics > 0) {
-            $trialingSubs = Tenant::where('status', 'trial')->count();
-        }
-
-        $suspendedSubs = ClinicSubscription::where('status', 'suspended')->count();
-        $expiredSubs = ClinicSubscription::where(function ($q) use ($now) {
-            $q->where('status', 'expired')
-              ->orWhere(function ($q2) use ($now) {
-                  $q2->whereNotIn('status', ['suspended'])
-                     ->whereNotNull('ends_at')
-                     ->where('ends_at', '<', $now);
-              });
+        $activeSubs = Tenant::where('status', 'active')->where('is_quarantined', false)->count();
+        $trialingSubs = Tenant::where('status', 'trial')->where('is_quarantined', false)->count();
+        $suspendedSubs = Tenant::where(function ($q) {
+            $q->where('status', 'suspended')->orWhere('is_quarantined', true);
         })->count();
+        $expiredSubs = Tenant::where('status', 'expired')->count();
 
         // Estimated Monthly Recurring Revenue (MRR in DZD)
         $mrrDzd = 0.0;
@@ -349,11 +303,16 @@ class SuperAdminController extends Controller
                 ->first();
 
             $currentStatus = $subscription ? $subscription->status : ($tenant->status ?? 'active');
+            if ($tenant->status === 'trial' || $tenant->status === 'trialing') {
+                $currentStatus = 'trialing';
+            }
 
             $staffCount = User::where('tenant_id', $tenant->id)->count();
             $patientsCount = Patient::where('tenant_id', $tenant->id)->count();
             $appointmentsCount = Appointment::where('tenant_id', $tenant->id)->count();
             $assessmentsCount = ClinicalAssessment::where('tenant_id', $tenant->id)->count();
+
+            $wilayaName = $tenant->wilaya ?? $tenant->wilaya_id ?? $tenant->address ?? 'الجزائر العاصمة';
 
             return [
                 'id' => $tenant->id,
@@ -361,7 +320,12 @@ class SuperAdminController extends Controller
                 'subdomain' => $tenant->subdomain,
                 'phone' => $tenant->phone,
                 'address' => $tenant->address,
+                'wilaya' => $wilayaName,
+                'wilaya_name' => $wilayaName,
+                'type' => $tenant->type ?? 'multidisciplinary',
+                'type_label' => $tenant->type === 'orthophony' ? 'عيادة أرطوفونيا' : ($tenant->type === 'psychology' ? 'عيادة فحص نفسي' : 'عيادة متعددة التخصصات'),
                 'license_number' => $tenant->license_number,
+                'status' => $currentStatus,
                 'created_at' => $tenant->created_at ? $tenant->created_at->toISOString() : null,
                 'created_at_human' => $tenant->created_at ? $tenant->created_at->format('d/m/Y') : 'N/A',
                 'owner' => $owner ? [
@@ -624,8 +588,10 @@ class SuperAdminController extends Controller
     public function assignPlan(string $clinicId, Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'plan_id' => 'required|exists:subscription_plans,id',
-            'billing_cycle' => 'required|string|in:trial,monthly,yearly',
+            'plan_id' => 'required',
+            'billing_cycle' => 'required|string|in:trial,monthly,yearly,lifetime',
+            'amount_dzd' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|string',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date',
             'payment_reference' => 'nullable|string',
@@ -633,7 +599,9 @@ class SuperAdminController extends Controller
         ]);
 
         $tenant = Tenant::findOrFail($clinicId);
-        $plan = SubscriptionPlan::findOrFail($validated['plan_id']);
+        $plan = SubscriptionPlan::where('id', $validated['plan_id'])
+            ->orWhere('slug', $validated['plan_id'])
+            ->firstOrFail();
 
         $startsAt = !empty($validated['starts_at']) ? Carbon::parse($validated['starts_at']) : Carbon::now();
         
@@ -642,10 +610,18 @@ class SuperAdminController extends Controller
         } else {
             $endsAt = $validated['billing_cycle'] === 'yearly'
                 ? $startsAt->copy()->addYear()
-                : ($validated['billing_cycle'] === 'monthly' ? $startsAt->copy()->addMonth() : $startsAt->copy()->addDays(14));
+                : ($validated['billing_cycle'] === 'monthly' 
+                    ? $startsAt->copy()->addMonth() 
+                    : ($validated['billing_cycle'] === 'lifetime' 
+                        ? $startsAt->copy()->addYears(10) 
+                        : $startsAt->copy()->addDays(14)));
         }
 
         $status = $validated['billing_cycle'] === 'trial' ? 'trialing' : 'active';
+
+        $amountDzd = isset($validated['amount_dzd']) && is_numeric($validated['amount_dzd'])
+            ? (float) $validated['amount_dzd']
+            : ($validated['billing_cycle'] === 'yearly' ? (float) ($plan->price_yearly ?? 0) : (float) ($plan->price_monthly ?? 0));
 
         $subscription = ClinicSubscription::updateOrCreate(
             ['clinic_id' => $clinicId],
@@ -656,18 +632,117 @@ class SuperAdminController extends Controller
                 'ends_at' => $endsAt,
                 'status' => $status,
                 'payment_reference' => $validated['payment_reference'] ?? null,
-                'notes' => $validated['notes'] ?? 'Attribution manuelle par le Super Administrateur.',
+                'notes' => $validated['notes'] ?? 'تجديد / ترقية الباقة بواسطة المشرف العام.',
             ]
         );
 
+        $tenant->plan_id = (string) $plan->id;
         $tenant->status = 'active';
         $tenant->subscription_ends_at = $endsAt;
+        $tenant->grace_period_ends_at = null;
         $tenant->save();
+
+        // Create official SaaS invoice if amount is recorded
+        if ($amountDzd > 0) {
+            $invoiceNumber = 'INV-SAAS-' . date('Y') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            SaasInvoice::create([
+                'invoice_number' => $invoiceNumber,
+                'clinic_id' => $tenant->id,
+                'subscription_plan_id' => $plan->id,
+                'amount_dzd' => $amountDzd,
+                'billing_cycle' => $validated['billing_cycle'] === 'yearly' ? 'yearly' : 'monthly',
+                'period_start' => $startsAt,
+                'period_end' => $endsAt,
+                'payment_method' => $validated['payment_method'] ?? 'baridimob',
+            ]);
+        }
+
+        AuditLogger::log(
+            'subscription.assign_plan',
+            "قام المشرف العام بتجديد/ترقية اشتراك عيادة ({$tenant->name}) إلى باقة ({$plan->name_ar}) بمبلغ {$amountDzd} د.ج حتى " . $endsAt->format('d/m/Y'),
+            'info',
+            'Tenant',
+            $tenant->id,
+            [
+                'plan_id' => $plan->id,
+                'amount_dzd' => $amountDzd,
+                'ends_at' => $endsAt->toISOString(),
+            ]
+        );
 
         return response()->json([
             'success' => true,
-            'message' => "تم ربط باقة ({$plan->name_ar}) بالعيادة بنجاح حتى تاريخ " . $endsAt->format('d/m/Y'),
+            'message' => "تم تجديد وترقية باقة ({$plan->name_ar}) للعيادة بمبلغ " . number_format($amountDzd) . " د.ج حتى تاريخ " . $endsAt->format('d/m/Y'),
             'subscription' => $subscription->load('plan'),
+        ]);
+    }
+
+    /**
+     * Resets the primary administrator password for a clinic.
+     * POST /api/super-admin/clinics/{id}/reset-password
+     */
+    public function resetClinicPassword($id, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => 'required|string|min:6',
+        ]);
+
+        $tenant = Tenant::find($id)
+            ?: Tenant::where('id', $id)->first()
+            ?: Tenant::where('subdomain', $id)->first()
+            ?: Tenant::where('name', $id)->first();
+
+        if (!$tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العيادة المطلوبة غير موجودة في النظام.',
+            ], 404);
+        }
+
+        // Find primary practitioner / owner / admin
+        $targetUser = User::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereIn('role', ['admin_owner', 'clinic_admin', 'superadmin', 'practitioner', 'specialist', 'orthophonist', 'psychologist', 'admin', 'doctor'])
+            ->first() ?? User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->first();
+
+        if (!$targetUser) {
+            $targetUser = User::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'مسؤول عيادة ' . $tenant->name,
+                'email' => 'admin@' . ($tenant->subdomain ?: 'clinic') . '.psypro.tech',
+                'role' => 'admin_owner',
+                'is_active' => true,
+                'password' => Hash::make($validated['password']),
+            ]);
+        } else {
+            $targetUser->password = Hash::make($validated['password']);
+            $targetUser->save();
+        }
+
+        // Forensic Security Audit Log
+        \App\Services\AuditLogger::log(
+            'clinic.password_reset',
+            "قام المشرف العام بتعيين كلمة سر جديدة لمسؤول عيادة: ({$tenant->name}) - المستخدم: {$targetUser->email}",
+            'warning',
+            'Tenant',
+            (string) $tenant->id,
+            [
+                'target_user_id' => $targetUser->id,
+                'target_user_email' => $targetUser->email,
+                'clinic_name' => $tenant->name,
+                'subdomain' => $tenant->subdomain,
+            ],
+            (string) $tenant->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم تحديث كلمة المرور لمسؤول عيادة ({$tenant->name}) بنجاح! الحساب: {$targetUser->email}",
+            'user' => [
+                'id' => $targetUser->id,
+                'name' => $targetUser->name,
+                'email' => $targetUser->email,
+            ],
         ]);
     }
 
@@ -730,6 +805,41 @@ class SuperAdminController extends Controller
         $subdomain = $tenant->subdomain ?: 'app';
         $redirectUrl = 'https://psypro.tech/dashboard?impersonate_token=' . $token . '&tenant=' . $subdomain;
 
+        // Resolve SuperAdmin actor context
+        $superAdminUser = Auth::guard('sanctum')->user() 
+            ?: Auth::user() 
+            ?: $request->user()
+            ?: User::withoutGlobalScopes()->where('role', 'superadmin')->orWhere('is_super_admin', true)->first();
+
+        $superAdminEmail = $superAdminUser?->email ?: 'superadmin@clinic-saas.dz';
+        $superAdminName = $superAdminUser?->name ?: 'المشرف العام (SuperAdmin)';
+
+        // Log impersonation event in Audit Logs directly under the target clinic tenant
+        $auditLogEntry = \App\Services\AuditLogger::log(
+            'auth.impersonation_start',
+            "قام المشرف العام ({$superAdminEmail}) ببدء جلسة انتحال صفة (Impersonation) للدخول إلى مساحة عمل عيادة: [{$tenant->name}]",
+            'warning',
+            'Tenant',
+            (string) $tenant->id,
+            [
+                'superadmin_id' => $superAdminUser?->id,
+                'superadmin_email' => $superAdminEmail,
+                'superadmin_name' => $superAdminName,
+                'target_user_id' => $targetUser->id,
+                'target_user_name' => $targetUser->name,
+                'target_user_email' => $targetUser->email,
+                'subdomain' => $subdomain,
+                'started_at' => now()->toIso8601String(),
+            ],
+            (string) $tenant->id,
+            $superAdminUser
+        );
+
+        // Immediate persistence flush guarantee
+        if ($auditLogEntry && method_exists($auditLogEntry, 'save')) {
+            $auditLogEntry->save();
+        }
+
         return response()->json([
             'status' => 'success',
             'success' => true,
@@ -746,14 +856,102 @@ class SuperAdminController extends Controller
     }
 
     /**
+     * Terminate an impersonation session and log the event into the clinic's audit trail.
+     */
+    public function stopImpersonation(Request $request): JsonResponse
+    {
+        $user = Auth::guard('sanctum')->user() ?: Auth::user() ?: $request->user();
+        $tenantId = $request->input('tenant_id') 
+            ?? ($user?->tenant_id ?? ($user?->clinic_id ?? null));
+
+        // Revoke active impersonation token
+        if ($user && method_exists($user, 'currentAccessToken') && $user->currentAccessToken()) {
+            if (str_contains($user->currentAccessToken()->name, 'impersonat')) {
+                $user->currentAccessToken()->delete();
+            }
+        }
+
+        $superAdminUser = User::withoutGlobalScopes()->where('role', 'superadmin')->orWhere('is_super_admin', true)->first();
+        $superAdminEmail = $superAdminUser?->email ?: 'superadmin@clinic-saas.dz';
+
+        if ($tenantId) {
+            $tenant = Tenant::find($tenantId);
+            $tenantName = $tenant ? $tenant->name : "العيادة #{$tenantId}";
+
+            $endAuditLog = \App\Services\AuditLogger::log(
+                'auth.impersonation_end',
+                "قام المشرف العام ({$superAdminEmail}) بإنهاء جلسة انتحال الصفة (Impersonation) ومغادرة مساحة عمل عيادة: [{$tenantName}]",
+                'info',
+                'Tenant',
+                (string) $tenantId,
+                [
+                    'tenant_id' => $tenantId,
+                    'tenant_name' => $tenantName,
+                    'superadmin_email' => $superAdminEmail,
+                    'stopped_at' => now()->toIso8601String(),
+                ],
+                (string) $tenantId,
+                $superAdminUser ?: $user
+            );
+
+            if ($endAuditLog && method_exists($endAuditLog, 'save')) {
+                $endAuditLog->save();
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'success' => true,
+            'message' => 'تم إنهاء جلسة الدعم الفني وتوثيق المغادرة بنجاح.',
+        ]);
+    }
+
+    /**
      * Lists available subscription plans.
      */
     public function getPlans(): JsonResponse
     {
-        $plans = SubscriptionPlan::withCount('subscriptions')->get();
+        $plans = SubscriptionPlan::all()->map(function ($plan) {
+            $clinicsCount = Tenant::where(function ($q) use ($plan) {
+                $q->where('plan_id', (string)$plan->id)
+                  ->orWhere('plan_id', $plan->slug)
+                  ->orWhere('plan_id', $plan->id);
+                if ($plan->slug === 'multi_pro') {
+                    $q->orWhere('plan_id', 'pro');
+                }
+            })->count();
+
+            $activeCount = Tenant::where(function ($q) use ($plan) {
+                $q->where('plan_id', (string)$plan->id)
+                  ->orWhere('plan_id', $plan->slug)
+                  ->orWhere('plan_id', $plan->id);
+                if ($plan->slug === 'multi_pro') {
+                    $q->orWhere('plan_id', 'pro');
+                }
+            })->where('status', 'active')->count();
+
+            $planArr = $plan->toArray();
+            $planArr['clinics_count'] = $clinicsCount;
+            $planArr['active_subscribers_count'] = $activeCount;
+            $planArr['subscribers_count'] = $clinicsCount;
+            $planArr['price_monthly'] = $plan->price_dzd_monthly ?: $plan->price_monthly;
+            $planArr['price_yearly'] = $plan->price_dzd_yearly ?: $plan->price_yearly;
+
+            return $planArr;
+        });
+
+        $totalActive = Tenant::where('status', 'active')->count();
+        $totalTrial = Tenant::where('status', 'trial')->orWhere('status', 'trialing')->count();
+
         return response()->json([
             'success' => true,
             'plans' => $plans,
+            'stats' => [
+                'total_plans' => count($plans),
+                'active_subscribers' => $totalActive,
+                'trialing_subscribers' => $totalTrial,
+                'total_clinics_on_plans' => Tenant::count(),
+            ],
         ]);
     }
 
@@ -1060,11 +1258,15 @@ class SuperAdminController extends Controller
                 'billing_cycle' => $inv->billing_cycle,
                 'billing_cycle_label' => $inv->billing_cycle_label_ar,
                 'amount_dzd' => (float)$inv->amount_dzd,
+                'total_amount_dzd' => (float)$inv->amount_dzd,
+                'total_amount' => (float)$inv->amount_dzd,
                 'amount_formatted' => number_format($inv->amount_dzd, 2) . ' DZD',
+                'status' => 'paid',
                 'period_start' => $inv->period_start ? $inv->period_start->format('d/m/Y') : '--',
                 'period_end' => $inv->period_end ? $inv->period_end->format('d/m/Y') : '--',
                 'payment_method' => strtoupper($inv->payment_method),
                 'pdf_url' => $inv->pdf_url,
+                'issued_at' => $inv->created_at ? $inv->created_at->format('Y-m-d') : null,
                 'created_at_human' => $inv->created_at ? $inv->created_at->format('d/m/Y H:i') : '--',
             ];
         });
@@ -1118,17 +1320,21 @@ class SuperAdminController extends Controller
                                 'name_ar' => $item['title_ar'] ?? $code,
                                 'name_fr' => $item['title_fr'] ?? $code,
                                 'category' => $item['category'] ?? 'orthophonie',
-                                'minimum_plan_required' => 'starter',
+                                'minimum_plan_required' => $item['minimum_plan_required'] ?? 'solo_starter',
                                 'is_globally_enabled' => true,
                                 'description' => $item['description'] ?? null,
                                 'norms_payload' => [
                                     'age_range' => $item['age_range'] ?? '',
                                     'duration' => $item['duration'] ?? '',
-                                    'source' => $item['source'] ?? 'CREAPSY 🇩🇿',
+                                    'source' => $item['source'] ?? 'معيار جامعي وعيادي مقنن 🇩🇿',
                                     'dimensions' => $item['dimensions'] ?? [],
                                     'cutoff' => $item['cutoff'] ?? '',
                                     'color' => $item['color'] ?? 'from-indigo-500 to-purple-600',
                                     'icon' => $item['icon'] ?? 'Brain',
+                                    'is_gold_standard' => (bool) ($item['is_gold_standard'] ?? $item['isGoldStandard'] ?? in_array($code, ['PHQ-9', 'GAD-7', 'WISC-V', 'CARS-2', 'BDI-II', 'HAM-D', 'HAM-A', 'DASS-21', 'M-CHAT', 'ASRS-V1.1', 'ASRS'])),
+                                    'has_red_alert' => (bool) ($item['has_red_alert'] ?? $item['hasRedAlert'] ?? in_array($code, ['PHQ-9', 'BDI-II', 'HAM-D'])),
+                                    'clinician_only' => (bool) ($item['clinician_only'] ?? $item['clinicianOnly'] ?? in_array($code, ['HAM-D', 'HAM-A', 'CARS-2', 'Y-BOCS', 'M-CHAT', 'WISC-V', 'DO80'])),
+                                    'self_administered' => (bool) ($item['self_administered'] ?? $item['selfAdministered'] ?? !in_array($code, ['HAM-D', 'HAM-A', 'CARS-2', 'Y-BOCS', 'M-CHAT', 'WISC-V', 'DO80'])),
                                 ],
                             ]
                         );
@@ -1145,9 +1351,13 @@ class SuperAdminController extends Controller
 
         if (!empty($category) && $category !== 'all') {
             if ($category === 'orthophonie') {
-                $query->where('category', 'orthophonie');
+                $query->whereIn('category', ['orthophonie', 'orthophony', 'speech']);
             } elseif ($category === 'psychologie') {
                 $query->whereIn('category', ['psychologie', 'psychology']);
+            } elseif ($category === 'psychiatry') {
+                $query->whereIn('category', ['psychiatry', 'psychiatrie', 'mental_health', 'pedopsychiatry', 'sleep']);
+            } elseif ($category === 'neuropsychology') {
+                $query->whereIn('category', ['neuropsychology', 'neuropsychologie', 'cognition', 'neuro']);
             } elseif ($category === 'autisme') {
                 $query->whereIn('category', ['autisme', 'autism']);
             } elseif ($category === 'intelligence') {
@@ -1155,7 +1365,7 @@ class SuperAdminController extends Controller
             } elseif ($category === 'tdah_apprentissage') {
                 $query->whereIn('category', ['tdah_apprentissage', 'adhd', 'learning']);
             } elseif ($category === 'psychomotricite') {
-                $query->where('category', 'psychomotricite');
+                $query->whereIn('category', ['psychomotricite', 'psychomotricity']);
             } else {
                 $query->where('category', $category);
             }
@@ -1182,12 +1392,14 @@ class SuperAdminController extends Controller
             'total_tests' => GlobalTestConfiguration::count(),
             'enabled_tests' => GlobalTestConfiguration::where('is_globally_enabled', true)->count(),
             'disabled_tests' => GlobalTestConfiguration::where('is_globally_enabled', false)->count(),
-            'orthophonie_tests' => GlobalTestConfiguration::where('category', 'orthophonie')->count(),
+            'orthophonie_tests' => GlobalTestConfiguration::whereIn('category', ['orthophonie', 'orthophony', 'speech'])->count(),
             'psychologie_tests' => GlobalTestConfiguration::whereIn('category', ['psychologie', 'psychology'])->count(),
+            'psychiatry_tests' => GlobalTestConfiguration::whereIn('category', ['psychiatry', 'psychiatrie', 'mental_health', 'pedopsychiatry', 'sleep'])->count(),
+            'neuropsychology_tests' => GlobalTestConfiguration::whereIn('category', ['neuropsychology', 'neuropsychologie', 'cognition', 'neuro'])->count(),
             'autisme_tests' => GlobalTestConfiguration::whereIn('category', ['autisme', 'autism'])->count(),
             'intelligence_tests' => GlobalTestConfiguration::whereIn('category', ['intelligence', 'wisc'])->count(),
             'tdah_tests' => GlobalTestConfiguration::whereIn('category', ['tdah_apprentissage', 'adhd', 'learning'])->count(),
-            'psychomotricite_tests' => GlobalTestConfiguration::where('category', 'psychomotricite')->count(),
+            'psychomotricite_tests' => GlobalTestConfiguration::whereIn('category', ['psychomotricite', 'psychomotricity'])->count(),
         ];
 
         return response()->json([
@@ -1339,17 +1551,21 @@ class SuperAdminController extends Controller
                     'name_ar' => $item['title_ar'] ?? $code,
                     'name_fr' => $item['title_fr'] ?? $code,
                     'category' => $item['category'] ?? 'orthophonie',
-                    'minimum_plan_required' => 'starter',
+                    'minimum_plan_required' => $item['minimum_plan_required'] ?? 'solo_starter',
                     'is_globally_enabled' => true,
                     'description' => $item['description'] ?? null,
                     'norms_payload' => [
                         'age_range' => $item['age_range'] ?? '',
                         'duration' => $item['duration'] ?? '',
-                        'source' => $item['source'] ?? 'CREAPSY 🇩🇿',
+                        'source' => $item['source'] ?? 'معيار جامعي وعيادي مقنن 🇩🇿',
                         'dimensions' => $item['dimensions'] ?? [],
                         'cutoff' => $item['cutoff'] ?? '',
                         'color' => $item['color'] ?? 'from-indigo-500 to-purple-600',
                         'icon' => $item['icon'] ?? 'Brain',
+                        'is_gold_standard' => (bool) ($item['is_gold_standard'] ?? $item['isGoldStandard'] ?? in_array($code, ['PHQ-9', 'GAD-7', 'WISC-V', 'CARS-2', 'BDI-II', 'HAM-D', 'HAM-A', 'DASS-21', 'M-CHAT', 'ASRS-V1.1', 'ASRS'])),
+                        'has_red_alert' => (bool) ($item['has_red_alert'] ?? $item['hasRedAlert'] ?? in_array($code, ['PHQ-9', 'BDI-II', 'HAM-D'])),
+                        'clinician_only' => (bool) ($item['clinician_only'] ?? $item['clinicianOnly'] ?? in_array($code, ['HAM-D', 'HAM-A', 'CARS-2', 'Y-BOCS', 'M-CHAT', 'WISC-V', 'DO80'])),
+                        'self_administered' => (bool) ($item['self_administered'] ?? $item['selfAdministered'] ?? !in_array($code, ['HAM-D', 'HAM-A', 'CARS-2', 'Y-BOCS', 'M-CHAT', 'WISC-V', 'DO80'])),
                     ],
                 ]
             );
@@ -2625,13 +2841,14 @@ class SuperAdminController extends Controller
      */
     public function getAdminTeam(): JsonResponse
     {
-        $admins = User::where(function ($q) {
-            $q->where('is_super_admin', true)
-              ->orWhereIn('role', ['superadmin', 'super_admin']);
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'admin_role')) {
-                $q->orWhereNotNull('admin_role');
-            }
-        })->orderBy('created_at', 'asc')->get();
+        $admins = User::whereNull('tenant_id')
+            ->where(function ($q) {
+                $q->where('is_super_admin', true)
+                  ->orWhereIn('role', ['superadmin', 'super_admin']);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'admin_role')) {
+                    $q->orWhereNotNull('admin_role');
+                }
+            })->orderBy('created_at', 'asc')->get();
 
         $team = $admins->map(function ($admin) {
             return [
@@ -2658,6 +2875,7 @@ class SuperAdminController extends Controller
         return response()->json([
             'success' => true,
             'team' => $team,
+            'members' => $team,
             'roles_definition' => [
                 'super_owner' => 'المدير العام الأعلى (Super Owner) - وصول غير مقيد لكافة وحدات النظام والخادم',
                 'finance_officer' => 'المسؤول المالي والمحاسبي (Finance Officer) - إدارة الفواتير، الخطط، والتقارير الجبائية',
@@ -3761,6 +3979,496 @@ class SuperAdminController extends Controller
             'message' => $enabled 
                 ? 'تم تفعيل الجولة الإرشادية لهذه العيادة بنجاح.' 
                 : 'تم تعطيل الجولة الإرشادية لهذه العيادة.',
+        ]);
+    }
+
+    // =========================================================================
+    // GLOBAL EXERCISES & THERAPEUTIC WORKSHEETS MANAGEMENT (بنك التمارين والكراسات)
+    // =========================================================================
+
+    /**
+     * Lists all clinical exercises and therapeutic worksheets.
+     */
+    public function getGlobalExercises(Request $request): JsonResponse
+    {
+        // Auto-seed default catalog if empty or fewer than 6 exercises exist
+        if (Schema::hasTable('global_exercises') && GlobalExercise::count() < 6) {
+            $jsonPath = database_path('data/clinical_exercises_catalog.json');
+            if (file_exists($jsonPath)) {
+                $catalogData = json_decode(file_get_contents($jsonPath), true);
+                if (is_array($catalogData)) {
+                    foreach ($catalogData as $item) {
+                        $code = strtoupper(trim($item['exercise_code'] ?? ''));
+                        if (empty($code)) continue;
+                        GlobalExercise::updateOrCreate(
+                            ['exercise_code' => $code],
+                            [
+                                'specialty' => $item['specialty'] ?? 'orthophony',
+                                'specialty_label' => $item['specialty_label'] ?? null,
+                                'title_ar' => $item['title_ar'] ?? $code,
+                                'title_fr' => $item['title_fr'] ?? null,
+                                'category' => $item['category'] ?? 'articulation',
+                                'category_label' => $item['category_label'] ?? null,
+                                'target_group' => $item['target_group'] ?? null,
+                                'difficulty' => $item['difficulty'] ?? 'متوسط',
+                                'estimated_duration' => $item['estimated_duration'] ?? '10 - 15 دقيقة',
+                                'badge' => $item['badge'] ?? null,
+                                'summary' => $item['summary'] ?? null,
+                                'instructions' => $item['instructions'] ?? [],
+                                'worksheet_content' => $item['worksheet_content'] ?? [],
+                                'homework_tips' => $item['homework_tips'] ?? null,
+                                'is_globally_enabled' => (bool) ($item['is_globally_enabled'] ?? true),
+                                'minimum_plan_required' => $item['minimum_plan_required'] ?? 'starter',
+                            ]
+                        );
+                    }
+                }
+            }
+        }
+
+        $specialty = $request->query('specialty', '');
+        $category = $request->query('category', '');
+        $search = $request->query('search', '');
+        $status = $request->query('status', '');
+
+        $query = GlobalExercise::query()->orderBy('specialty')->orderBy('exercise_code');
+
+        if (!empty($specialty) && $specialty !== 'all') {
+            $query->where('specialty', $specialty);
+        }
+
+        if (!empty($category) && $category !== 'all') {
+            $query->where('category', $category);
+        }
+
+        if ($status === 'active') {
+            $query->where('is_globally_enabled', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_globally_enabled', false);
+        }
+
+        if (!empty($search)) {
+            $s = trim($search);
+            $query->where(function ($q) use ($s) {
+                $q->where('title_ar', 'like', "%{$s}%")
+                  ->orWhere('title_fr', 'like', "%{$s}%")
+                  ->orWhere('exercise_code', 'like', "%{$s}%")
+                  ->orWhere('summary', 'like', "%{$s}%")
+                  ->orWhere('category_label', 'like', "%{$s}%");
+            });
+        }
+
+        $exercises = $query->get();
+
+        $stats = [
+            'total' => GlobalExercise::count(),
+            'orthophony' => GlobalExercise::where('specialty', 'orthophony')->count(),
+            'psychology' => GlobalExercise::where('specialty', 'psychology')->count(),
+            'psychomotricite' => GlobalExercise::where('specialty', 'psychomotricite')->count(),
+            'active' => GlobalExercise::where('is_globally_enabled', true)->count(),
+            'disabled' => GlobalExercise::where('is_globally_enabled', false)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'exercises' => $exercises,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Creates a new clinical exercise in the global bank.
+     */
+    public function createExercise(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'exercise_code' => 'required|string|max:64',
+            'specialty' => 'required|string|in:orthophony,psychology,psychomotricite',
+            'specialty_label' => 'nullable|string|max:100',
+            'title_ar' => 'required|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
+            'category' => 'required|string|max:64',
+            'category_label' => 'nullable|string|max:100',
+            'target_group' => 'nullable|string|max:150',
+            'difficulty' => 'nullable|string|max:50',
+            'estimated_duration' => 'nullable|string|max:50',
+            'badge' => 'nullable|string|max:100',
+            'summary' => 'nullable|string',
+            'instructions' => 'nullable|array',
+            'worksheet_content' => 'nullable|array',
+            'homework_tips' => 'nullable|string',
+            'is_globally_enabled' => 'nullable|boolean',
+            'minimum_plan_required' => 'nullable|string',
+        ]);
+
+        $validated['exercise_code'] = strtoupper(trim($validated['exercise_code']));
+        if (GlobalExercise::where('exercise_code', $validated['exercise_code'])->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'رمز التمرين موجود مسبقاً، يُرجى إدخال رمز فريد.',
+            ], 422);
+        }
+
+        $specialtyLabels = [
+            'orthophony' => 'الأرطوفونيا والتخاطب',
+            'psychology' => 'علم النفس العيادي',
+            'psychomotricite' => 'التأهيل النفسي الحركي',
+        ];
+        if (empty($validated['specialty_label'])) {
+            $validated['specialty_label'] = $specialtyLabels[$validated['specialty']] ?? 'تأهيل سريري';
+        }
+
+        $validated['is_globally_enabled'] = $validated['is_globally_enabled'] ?? true;
+        $validated['minimum_plan_required'] = $validated['minimum_plan_required'] ?? 'starter';
+
+        $exercise = GlobalExercise::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "تمت إضافة التمرين/الكراس العلاجي [{$exercise->title_ar}] بنجاح.",
+            'exercise' => $exercise,
+        ], 201);
+    }
+
+    /**
+     * Updates an existing clinical exercise.
+     */
+    public function updateExercise(string $id, Request $request): JsonResponse
+    {
+        $exercise = GlobalExercise::where('id', $id)
+            ->orWhere('exercise_code', $id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'exercise_code' => 'sometimes|string|max:64',
+            'specialty' => 'sometimes|string|in:orthophony,psychology,psychomotricite',
+            'specialty_label' => 'nullable|string|max:100',
+            'title_ar' => 'sometimes|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
+            'category' => 'sometimes|string|max:64',
+            'category_label' => 'nullable|string|max:100',
+            'target_group' => 'nullable|string|max:150',
+            'difficulty' => 'nullable|string|max:50',
+            'estimated_duration' => 'nullable|string|max:50',
+            'badge' => 'nullable|string|max:100',
+            'summary' => 'nullable|string',
+            'instructions' => 'nullable|array',
+            'worksheet_content' => 'nullable|array',
+            'homework_tips' => 'nullable|string',
+            'is_globally_enabled' => 'sometimes|boolean',
+            'minimum_plan_required' => 'nullable|string',
+        ]);
+
+        if (isset($validated['exercise_code'])) {
+            $validated['exercise_code'] = strtoupper(trim($validated['exercise_code']));
+            if ($validated['exercise_code'] !== $exercise->exercise_code) {
+                if (GlobalExercise::where('exercise_code', $validated['exercise_code'])->where('id', '!=', $exercise->id)->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'رمز التمرين موجود مسبقاً، يُرجى إدخال رمز فريد.',
+                    ], 422);
+                }
+            }
+        }
+
+        $exercise->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم تحديث بيانات التمرين [{$exercise->title_ar}] بنجاح.",
+            'exercise' => $exercise,
+        ]);
+    }
+
+    /**
+     * Deletes a clinical exercise from the global catalog.
+     */
+    public function deleteExercise(string $id): JsonResponse
+    {
+        $exercise = GlobalExercise::where('id', $id)
+            ->orWhere('exercise_code', $id)
+            ->firstOrFail();
+
+        $title = $exercise->title_ar;
+        $code = $exercise->exercise_code;
+        $exercise->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم حذف التمرين [{$code} - {$title}] من البنك المركزي بنجاح.",
+        ]);
+    }
+
+    /**
+     * Toggles an exercise between active and disabled.
+     */
+    public function toggleExerciseStatus(string $id): JsonResponse
+    {
+        $exercise = GlobalExercise::where('id', $id)
+            ->orWhere('exercise_code', $id)
+            ->firstOrFail();
+
+        $exercise->is_globally_enabled = !$exercise->is_globally_enabled;
+        $exercise->save();
+
+        $statusText = $exercise->is_globally_enabled ? 'تفعيل' : 'تعطيل';
+        return response()->json([
+            'success' => true,
+            'message' => "تم {$statusText} التمرين [{$exercise->title_ar}] بنجاح.",
+            'is_globally_enabled' => $exercise->is_globally_enabled,
+            'exercise' => $exercise,
+        ]);
+    }
+
+    // =========================================================================
+    // TELETHERAPY & TELEMEDICINE GOVERNANCE (SUPER ADMIN)
+    // =========================================================================
+
+    /**
+     * Teletherapy Super Admin: Global overview, KPIs, active live sessions, and infrastructure settings.
+     */
+    public function getTeletherapyOverview(): JsonResponse
+    {
+        $now = Carbon::now();
+        $totalRooms = TeletherapyRoom::count();
+        $activeRooms = TeletherapyRoom::where('status', 'active')
+            ->where(function ($q) use ($now) {
+                $q->whereNull('ended_at')
+                  ->orWhere('updated_at', '>=', $now->copy()->subHours(2));
+            })->count();
+
+        $completedRooms = TeletherapyRoom::whereIn('status', ['closed', 'completed'])->count();
+        $totalSeconds = (int) TeletherapyRoom::sum('duration_seconds');
+        $totalMinutes = round($totalSeconds / 60, 1);
+        $totalHours = round($totalSeconds / 3600, 1);
+
+        $participatingTenants = TeletherapyRoom::whereNotNull('tenant_id')
+            ->distinct('tenant_id')
+            ->count('tenant_id');
+
+        // Active live rooms right now
+        $liveRooms = TeletherapyRoom::with([
+            'patient:id,first_name,last_name,phone',
+            'specialist:id,name,email'
+        ])
+        ->where('status', 'active')
+        ->orderByDesc('updated_at')
+        ->limit(20)
+        ->get()
+        ->map(function ($room) {
+            $patientName = $room->patient ? trim(($room->patient->first_name ?? '') . ' ' . ($room->patient->last_name ?? '')) : 'مريض غير محدد';
+            return [
+                'id' => $room->id,
+                'room_code' => $room->room_code,
+                'tenant_id' => $room->tenant_id,
+                'specialty' => $room->specialty,
+                'status' => $room->status,
+                'patient_name' => $patientName ?: 'مريض غير محدد',
+                'patient_phone' => $room->patient?->phone,
+                'specialist_name' => $room->specialist?->name ?? 'الأخصائي',
+                'duration_seconds' => $room->duration_seconds,
+                'access_pin' => $room->access_pin,
+                'started_at' => $room->started_at,
+                'updated_at' => $room->updated_at,
+            ];
+        });
+
+        // Recent completed sessions
+        $recentSessions = TeletherapyRoom::with([
+            'patient:id,first_name,last_name,phone',
+            'specialist:id,name'
+        ])
+        ->orderByDesc('id')
+        ->limit(25)
+        ->get()
+        ->map(function ($room) {
+            $patientName = $room->patient ? trim(($room->patient->first_name ?? '') . ' ' . ($room->patient->last_name ?? '')) : 'مريض غير محدد';
+            return [
+                'id' => $room->id,
+                'room_code' => $room->room_code,
+                'tenant_id' => $room->tenant_id,
+                'specialty' => $room->specialty,
+                'status' => $room->status,
+                'patient_name' => $patientName ?: 'مريض غير محدد',
+                'patient_phone' => $room->patient?->phone,
+                'specialist_name' => $room->specialist?->name ?? 'الأخصائي',
+                'duration_seconds' => $room->duration_seconds,
+                'has_soap' => !empty($room->soap_snapshot),
+                'has_canvas' => !empty($room->canvas_snapshot),
+                'started_at' => $room->started_at,
+                'ended_at' => $room->ended_at,
+            ];
+        });
+
+        // Stored settings
+        $settingsRaw = SystemSetting::get('teletherapy_platform_settings');
+        $settings = $settingsRaw ? json_decode($settingsRaw, true) : null;
+        if (!$settings) {
+            $settings = [
+                'enabled' => true,
+                'webrtc_provider' => 'p2p_mesh',
+                'stun_server_primary' => 'stun:stun.l.google.com:19302',
+                'stun_server_secondary' => 'stun:global.stun.twilio.com:3478',
+                'turn_server' => '',
+                'turn_username' => '',
+                'turn_credential' => '',
+                'max_session_minutes' => 60,
+                'allow_canvas' => true,
+                'allow_tests_passation' => true,
+                'allow_screen_share' => true,
+                'allow_cbt_protocols' => true,
+                'allow_recording' => false,
+                'eco_bandwidth_mode' => true,
+                'allowed_plans' => ['starter', 'pro', 'enterprise', 'clinic_unlimited'],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'kpis' => [
+                'total_rooms' => $totalRooms,
+                'active_rooms' => $activeRooms,
+                'completed_rooms' => $completedRooms,
+                'total_minutes' => $totalMinutes,
+                'total_hours' => $totalHours,
+                'participating_clinics' => $participatingTenants,
+            ],
+            'live_rooms' => $liveRooms,
+            'recent_sessions' => $recentSessions,
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Teletherapy Super Admin: Filtered paginated list of all rooms.
+     */
+    public function getTeletherapyRooms(Request $request): JsonResponse
+    {
+        $query = TeletherapyRoom::with([
+            'patient:id,first_name,last_name,phone',
+            'specialist:id,name,email'
+        ]);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('specialty')) {
+            $query->where('specialty', $request->specialty);
+        }
+
+        if ($request->filled('tenant_id')) {
+            $query->where('tenant_id', $request->tenant_id);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('room_code', 'LIKE', "%{$s}%")
+                  ->orWhere('tenant_id', 'LIKE', "%{$s}%")
+                  ->orWhereHas('patient', function ($pq) use ($s) {
+                      $pq->where('first_name', 'LIKE', "%{$s}%")
+                         ->orWhere('last_name', 'LIKE', "%{$s}%")
+                         ->orWhere('phone', 'LIKE', "%{$s}%");
+                  });
+            });
+        }
+
+        $rooms = $query->orderByDesc('id')->paginate($request->integer('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $rooms->items(),
+            'pagination' => [
+                'current_page' => $rooms->currentPage(),
+                'last_page' => $rooms->lastPage(),
+                'total' => $rooms->total(),
+                'per_page' => $rooms->perPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Teletherapy Super Admin: Force-terminate an active room.
+     */
+    public function terminateTeletherapyRoom(string $roomCode): JsonResponse
+    {
+        $room = TeletherapyRoom::where('room_code', $roomCode)->first();
+        if (!$room) {
+            return response()->json(['success' => false, 'message' => 'الغرفة غير موجودة'], 404);
+        }
+
+        $room->status = 'closed';
+        $room->ended_at = Carbon::now();
+        $room->signaling_state = null;
+        $room->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم إنهاء غرفة التطبيب عن بعد [{$roomCode}] إجبارياً وتحرير الموارد.",
+            'room' => $room,
+        ]);
+    }
+
+    /**
+     * Teletherapy Super Admin: Delete room log.
+     */
+    public function deleteTeletherapyRoom(string $roomCode): JsonResponse
+    {
+        $room = TeletherapyRoom::where('room_code', $roomCode)->first();
+        if ($room) {
+            $room->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم حذف سجل غرفة التطبيب عن بعد [{$roomCode}] بنجاح.",
+        ]);
+    }
+
+    /**
+     * Teletherapy Super Admin: Get global settings.
+     */
+    public function getTeletherapySettings(): JsonResponse
+    {
+        $raw = SystemSetting::get('teletherapy_platform_settings');
+        $settings = $raw ? json_decode($raw, true) : [
+            'enabled' => true,
+            'webrtc_provider' => 'p2p_mesh',
+            'stun_server_primary' => 'stun:stun.l.google.com:19302',
+            'stun_server_secondary' => 'stun:global.stun.twilio.com:3478',
+            'turn_server' => '',
+            'turn_username' => '',
+            'turn_credential' => '',
+            'max_session_minutes' => 60,
+            'allow_canvas' => true,
+            'allow_tests_passation' => true,
+            'allow_screen_share' => true,
+            'allow_cbt_protocols' => true,
+            'allow_recording' => false,
+            'eco_bandwidth_mode' => true,
+            'allowed_plans' => ['starter', 'pro', 'enterprise', 'clinic_unlimited'],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Teletherapy Super Admin: Update global settings.
+     */
+    public function updateTeletherapySettings(Request $request): JsonResponse
+    {
+        $raw = $request->getContent();
+        $data = json_decode($raw, true) ?: ($request->json()->all() ?: $request->all());
+        SystemSetting::set('teletherapy_platform_settings', json_encode($data), 'teletherapy');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ إعدادات وحوكمة التطبيب عن بعد بنجاح.',
+            'settings' => $data,
         ]);
     }
 }

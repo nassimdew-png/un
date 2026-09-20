@@ -4,9 +4,9 @@ namespace App\Services;
 
 class DomainManagerService
 {
-    public const PRIMARY_DOMAIN = 'psypro.tech';
-    public const CNAME_TARGET = 'cname.psypro.tech';
-    public const SERVER_PUBLIC_IP = '145.223.116.54';
+    public const PRIMARY_DOMAIN = 'psysnap.com';
+    public const CNAME_TARGET = 'cname.psysnap.com';
+    public const SERVER_PUBLIC_IP = '197.140.142.48';
 
     /**
      * Check if DNS for a domain resolves to server IP or CNAME target.
@@ -19,7 +19,7 @@ class DomainManagerService
         $cnameRecords = @dns_get_record($domain, DNS_CNAME);
         if (!empty($cnameRecords)) {
             foreach ($cnameRecords as $rec) {
-                if (isset($rec['target']) && (str_contains($rec['target'], 'psypro.tech') || str_contains($rec['target'], '145.223.116.54'))) {
+                if (isset($rec['target']) && (str_contains($rec['target'], 'psysnap.com') || str_contains($rec['target'], 'psypro.tech') || str_contains($rec['target'], '197.140.142.48') || str_contains($rec['target'], '145.223.116.54'))) {
                     return true;
                 }
             }
@@ -28,7 +28,7 @@ class DomainManagerService
         $aRecords = @dns_get_record($domain, DNS_A);
         if (!empty($aRecords)) {
             foreach ($aRecords as $rec) {
-                if (isset($rec['ip']) && $rec['ip'] === '145.223.116.54') {
+                if (isset($rec['ip']) && ($rec['ip'] === '197.140.142.48' || $rec['ip'] === '145.223.116.54')) {
                     return true;
                 }
             }

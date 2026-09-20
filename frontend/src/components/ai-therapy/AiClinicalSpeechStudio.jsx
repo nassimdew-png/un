@@ -194,6 +194,7 @@ export default function AiClinicalSpeechStudio({ selectedPatient, onSaveToPatien
       }
     } catch (err) {
       console.warn('Audio cloud transcribe error:', err);
+      setError(err.message || 'تعذر تفريغ المقطع الصوتي.');
     } finally {
       setIsTranscribing(false);
     }

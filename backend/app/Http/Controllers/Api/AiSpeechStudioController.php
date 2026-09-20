@@ -84,8 +84,24 @@ class AiSpeechStudioController extends Controller
         $systemInstruction = <<<SYS
 أنت مساعد تفريغ سريري متخصص في علم النفس، الأرطوفونيا، والطب النفسي للأطفال والبالغين (Clinical Speech & Dictation Transcriber).
 المهمة: تفريغ المقطع الصوتي المرفق بدقة عالية مع ضبط المصطلحات الطبية والأرطوفونية والدارجة الجزائرية/العربية/الفرنسية.
-قسّم المخرجات بصيغة JSON التالية بدقة:
+
+🚨 قاعدة النزاهة والأمان السريري الصارمة (CRITICAL SPEECH INTEGRITY GUARDRAIL):
+1. تحقق أولاً وبدقة تامة مما إذا كان المقطع الصوتي يحتوي بالفعل على كلام بشري منطوق ومفهوم.
+2. إذا كان الصوت عبارة عن صمت، أو نغمة أحادية (مثل نغمة 440Hz الجيبية)، أو موسيقى بدون كلام، أو ضوضاء خلفية فقط، أو لا يحتوي على أي كلام بشري مسموع، فيجب عليك إرجاع JSON التالي تماماً دون اختلاق أي تفريغ أو حوارات وهمية:
 {
+  "has_speech": false,
+  "transcript": "",
+  "speakers": [],
+  "summary": "لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع.",
+  "key_clinical_findings": [],
+  "detected_language": "none",
+  "error": "لم يتم رصد أي صوت أو كلام بشري مسموع في التسجيل الصوتي المرفوع. يرجى التأكد من الميكروفون ونقاء الصوت ثم إعادة التسجيل."
+}
+3. ممنوع منعاً باتاً اختلاق حوارات علاجية أو أسماء أو أعراض سريرية وهمية إذا لم يكن هناك كلام بشري منطوق في التسجيل.
+
+إذا كان هناك كلام بشري حقيقي، قسّم المخرجات بصيغة JSON التالية بدقة:
+{
+  "has_speech": true,
   "transcript": "النص الكامل والمفصل للتسجيل الصوتي مع علامات الترقيم...",
   "speakers": [
     { "speaker": "المعالج/الطبيب", "text": "..." },
@@ -103,6 +119,7 @@ SYS;
         $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
         $transcriptionData = null;
         $errorMsg = '';
+        $noSpeechDetected = false;
 
         foreach ($models as $model) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
@@ -119,7 +136,7 @@ SYS;
                                 ]
                             ],
                             [
-                                'text' => "قم بتفريغ وتحليل هذا التسجيل السريري بالكامل واستخراج التفريغ الدقيق والملاحظات بصيغة JSON."
+                                'text' => "افحص المقطع الصوتي وتحقق أولاً من وجود كلام بشري مسموع، ثم قم بالتفريغ السريري الدقيق بصيغة JSON."
                             ]
                         ]
                     ]
@@ -142,7 +159,15 @@ SYS;
                     $json = $response->json();
                     $rawText = $json['candidates'][0]['content']['parts'][0]['text'] ?? '';
                     $decoded = json_decode(trim($rawText), true);
-                    if ($decoded && !empty($decoded['transcript'])) {
+
+                    // Check for strict no-speech detection
+                    if ($decoded && isset($decoded['has_speech']) && $decoded['has_speech'] === false) {
+                        $noSpeechDetected = true;
+                        $errorMsg = $decoded['error'] ?? 'لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع.';
+                        break;
+                    }
+
+                    if ($decoded && !empty($decoded['transcript']) && trim($decoded['transcript']) !== '') {
                         $transcriptionData = $decoded;
                         break;
                     }
@@ -154,13 +179,22 @@ SYS;
             }
         }
 
-        if (!$transcriptionData) {
+        if ($noSpeechDetected) {
+            return response()->json([
+                'success' => false,
+                'has_speech' => false,
+                'message' => $errorMsg ?: 'لم يتم رصد أي كلام بشري مسموع في التسجيل الصوتي المرفوع. يرجى التأكد من الميكروفون ونقاء الصوت ثم إعادة التسجيل.',
+            ], 422);
+        }
+
+        if (!$transcriptionData || empty($transcriptionData['transcript'])) {
             Log::error("Speech Transcription Failed: " . $errorMsg);
             return response()->json([
                 'success' => false,
-                'message' => 'تعذر تفريغ التسجيل الصوتي. يرجى التأكد من وضوح الصوت وإعادة المحاولة.',
+                'has_speech' => false,
+                'message' => 'تعذر تفريغ التسجيل الصوتي لعدم وضوح الإشارات الصوتية أو غياب الكلام المسموع. يرجى التحقق من نقاء التسجيل وإعادة المحاولة.',
                 'error_detail' => $errorMsg,
-            ], 500);
+            ], 422);
         }
 
         return response()->json([

@@ -141,6 +141,14 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
       return;
     }
 
+    const birthDate = new Date(formData.birth_date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (birthDate > today) {
+      setError('تاريخ الميلاد غير صالح: لا يمكن تسجيل تاريخ ميلاد في المستقبل.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -405,6 +413,8 @@ export default function PatientModal({ isOpen, onClose, onSuccess, tenant }) {
                   <input
                     type="date"
                     required
+                    max={new Date().toISOString().split('T')[0]}
+                    min="1900-01-01"
                     value={formData.birth_date}
                     onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none"

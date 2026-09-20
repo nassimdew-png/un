@@ -56,14 +56,14 @@ export default function SaasInvoicesTab({ invoices = [], loading = false, onRefr
                     <td className="p-4 text-slate-400 font-mono">
                       {inv.issued_at ? new Date(inv.issued_at).toLocaleDateString('ar-DZ') : new Date().toLocaleDateString('ar-DZ')}
                     </td>
-                    <td className="p-4 font-mono font-black text-emerald-400">
-                      {Number(inv.total_amount_dzd || inv.total_amount || 0).toLocaleString()} دج
+                    <td className="p-4 font-mono font-black text-emerald-400" dir="ltr">
+                      {Number(inv.amount_dzd || inv.total_amount_dzd || inv.amount || inv.total_amount || 0).toLocaleString()} DZD
                     </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
                         inv.status === 'paid' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                       }`}>
-                        {inv.status === 'paid' ? 'مدفوعة' : 'غير مدفوعة'}
+                        {inv.status === 'paid' ? 'مدفوعة ✓' : 'قيد المعالجة'}
                       </span>
                     </td>
                     <td className="p-4 text-center">

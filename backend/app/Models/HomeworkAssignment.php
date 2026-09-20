@@ -20,8 +20,12 @@ class HomeworkAssignment extends Model
         'instructions',
         'category',
         'attachment_path',
+        'audio_path',
         'due_date',
         'is_completed',
+        'difficulty_rating',
+        'attention_rating',
+        'duration_minutes',
         'parent_feedback',
         'completed_at',
     ];
@@ -29,6 +33,7 @@ class HomeworkAssignment extends Model
     protected $casts = [
         'due_date' => 'date',
         'is_completed' => 'boolean',
+        'duration_minutes' => 'integer',
         'completed_at' => 'datetime',
     ];
 

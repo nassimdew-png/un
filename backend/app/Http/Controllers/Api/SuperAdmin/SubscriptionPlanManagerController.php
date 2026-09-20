@@ -17,8 +17,7 @@ class SubscriptionPlanManagerController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $plans = SubscriptionPlan::withCount('clinics')
-                ->orderBy('sort_order', 'asc')
+            $plans = SubscriptionPlan::orderBy('sort_order', 'asc')
                 ->orderBy('id', 'asc')
                 ->get()
                 ->map(function ($plan) {
@@ -31,15 +30,42 @@ class SubscriptionPlanManagerController extends Controller
                     if (empty($plan->max_staff) && !empty($plan->max_clinicians)) {
                         $plan->max_staff = (int)$plan->max_clinicians;
                     }
+                    $plan->discount_percentage = (float)($plan->discount_percentage ?? 0);
+                    $plan->is_discount_active = (bool)($plan->is_discount_active ?? false);
+                    $plan->discounted_price_monthly = (float)$plan->discounted_price_monthly;
+                    $plan->discounted_price_yearly = (float)$plan->discounted_price_yearly;
+
+                    // Compute matching clinics across ID, slug, and legacy plan names
+                    $slug = strtolower($plan->slug ?? '');
+                    $count = Tenant::where(function ($q) use ($plan, $slug) {
+                        $q->where('plan_id', (string)$plan->id)
+                          ->orWhere('plan_id', $plan->slug)
+                          ->orWhere('custom_plan_name', $plan->name_ar)
+                          ->orWhere('custom_plan_name', $plan->name_fr);
+
+                        if ($slug === 'solo' || str_contains($slug, 'starter') || str_contains($slug, 'solo')) {
+                            $q->orWhere('plan_id', 'starter')->orWhere('plan_id', 'solo');
+                        } elseif ($slug === 'multi' || str_contains($slug, 'pro') || str_contains($slug, 'multi')) {
+                            $q->orWhere('plan_id', 'pro')->orWhere('plan_id', 'multi')->orWhere('custom_plan_name', 'باقة Pro');
+                        } elseif ($slug === 'enterprise' || str_contains($slug, 'dz')) {
+                            $q->orWhere('plan_id', 'enterprise')->orWhere('custom_plan_name', 'باقة المؤسسات');
+                        }
+                    })->count();
+
+                    $plan->clinics_count = $count;
                     return $plan;
                 });
 
             // Calculate total active subscribed clinics across all plans
-            $totalSubscribedClinics = Tenant::whereNotNull('plan_id')->count();
+            $totalSubscribedClinics = Tenant::where(function ($q) {
+                $q->whereNotNull('plan_id')
+                  ->orWhereNotNull('custom_plan_name');
+            })->count();
 
             return response()->json([
                 'success' => true,
                 'plans' => $plans,
+                'features_catalog' => SubscriptionPlan::getFeaturesCatalog(),
                 'stats' => [
                     'total_plans' => $plans->count(),
                     'active_plans' => $plans->where('is_active', true)->count(),
@@ -66,9 +92,14 @@ class SubscriptionPlanManagerController extends Controller
             'name_fr' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:100|unique:subscription_plans,slug',
             'description' => 'nullable|string',
+            'features' => 'nullable|array',
             'price_monthly' => 'required|numeric|min:0',
             'price_yearly' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:10',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'discount_badge' => 'nullable|string|max:120',
+            'is_discount_active' => 'nullable|boolean',
+            'discount_ends_at' => 'nullable|date',
             'trial_days' => 'nullable|integer|min:0',
             'max_patients' => 'nullable|integer',
             'max_staff' => 'nullable|integer',
@@ -92,14 +123,25 @@ class SubscriptionPlanManagerController extends Controller
             }
         }
 
+        $features = $request->input('features');
+        if (empty($features) || !is_array($features)) {
+            $tier = (str_contains($slug, 'enterprise') || str_contains($slug, 'vip')) ? 'enterprise' : ((str_contains($slug, 'starter') || str_contains($slug, 'solo')) ? 'starter' : 'pro');
+            $features = SubscriptionPlan::getDefaultFeatureMap($tier);
+        }
+
         $plan = SubscriptionPlan::create([
             'name_ar' => $request->input('name_ar'),
             'name_fr' => $request->input('name_fr'),
             'slug' => $slug,
             'description' => $request->input('description'),
+            'features' => $features,
             'price_monthly' => (float)$request->input('price_monthly', 0),
             'price_yearly' => (float)$request->input('price_yearly', 0),
             'currency' => $request->input('currency', 'DZD'),
+            'discount_percentage' => (float)$request->input('discount_percentage', 0),
+            'discount_badge' => $request->input('discount_badge'),
+            'is_discount_active' => filter_var($request->input('is_discount_active'), FILTER_VALIDATE_BOOLEAN),
+            'discount_ends_at' => $request->input('discount_ends_at'),
             'trial_days' => (int)$request->input('trial_days', 14),
             'max_patients' => (int)$request->input('max_patients', 500),
             'max_staff' => (int)$request->input('max_staff', 5),
@@ -134,9 +176,14 @@ class SubscriptionPlanManagerController extends Controller
             'name_fr' => 'nullable|string|max:255',
             'slug' => "nullable|string|max:100|unique:subscription_plans,slug,{$id}",
             'description' => 'nullable|string',
+            'features' => 'nullable|array',
             'price_monthly' => 'required|numeric|min:0',
             'price_yearly' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:10',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'discount_badge' => 'nullable|string|max:120',
+            'is_discount_active' => 'nullable|boolean',
+            'discount_ends_at' => 'nullable|date',
             'trial_days' => 'nullable|integer|min:0',
             'max_patients' => 'nullable|integer',
             'max_staff' => 'nullable|integer',
@@ -152,7 +199,7 @@ class SubscriptionPlanManagerController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $plan->update([
+        $updateData = [
             'name_ar' => $request->input('name_ar'),
             'name_fr' => $request->input('name_fr'),
             'slug' => $request->input('slug') ?: $plan->slug,
@@ -160,6 +207,10 @@ class SubscriptionPlanManagerController extends Controller
             'price_monthly' => (float)$request->input('price_monthly', 0),
             'price_yearly' => (float)$request->input('price_yearly', 0),
             'currency' => $request->input('currency', 'DZD'),
+            'discount_percentage' => (float)$request->input('discount_percentage', 0),
+            'discount_badge' => $request->input('discount_badge'),
+            'is_discount_active' => filter_var($request->input('is_discount_active'), FILTER_VALIDATE_BOOLEAN),
+            'discount_ends_at' => $request->input('discount_ends_at'),
             'trial_days' => (int)$request->input('trial_days', 14),
             'max_patients' => (int)$request->input('max_patients', 500),
             'max_staff' => (int)$request->input('max_staff', 5),
@@ -173,7 +224,13 @@ class SubscriptionPlanManagerController extends Controller
             'is_featured' => filter_var($request->input('is_featured'), FILTER_VALIDATE_BOOLEAN),
             'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN),
             'sort_order' => (int)$request->input('sort_order', 0),
-        ]);
+        ];
+
+        if ($request->has('features') && is_array($request->input('features'))) {
+            $updateData['features'] = $request->input('features');
+        }
+
+        $plan->update($updateData);
 
         return response()->json([
             'success' => true,
@@ -243,6 +300,10 @@ class SubscriptionPlanManagerController extends Controller
                     if (empty($plan->max_staff) && !empty($plan->max_clinicians)) {
                         $plan->max_staff = (int)$plan->max_clinicians;
                     }
+                    $plan->discount_percentage = (float)($plan->discount_percentage ?? 0);
+                    $plan->is_discount_active = (bool)($plan->is_discount_active ?? false);
+                    $plan->discounted_price_monthly = (float)$plan->discounted_price_monthly;
+                    $plan->discounted_price_yearly = (float)$plan->discounted_price_yearly;
                     return $plan;
                 });
 

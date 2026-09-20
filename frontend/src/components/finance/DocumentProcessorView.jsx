@@ -214,7 +214,7 @@ export default function DocumentProcessorView() {
           {/* Quick Metrics Badge */}
           <div className="grid grid-cols-2 gap-3 shrink-0">
             <div className="bg-slate-950/80 border border-amber-500/20 rounded-2xl p-3.5 text-center">
-              <span className="text-[10px] text-slate-400 font-bold block">إجمالي النفقات المدققة</span>
+              <span className="text-[10px] text-slate-400 font-bold block">إجمالي المصروفات والنفقات (مصروفات)</span>
               <span className="text-sm font-black text-amber-300 font-mono">
                 {stats.total_expenses?.toLocaleString()} دج
               </span>
@@ -245,11 +245,11 @@ export default function DocumentProcessorView() {
           type="button"
           onClick={() => setActiveTab('ocr')}
           className={`px-5 py-2.5 rounded-2xl transition flex items-center space-x-2 space-x-reverse ${
-            activeTab === 'ocr' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20 font-black' : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            activeTab === 'ocr' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 font-black' : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>مسح ومطابقة الفواتير (OCR)</span>
+          <span>مطابقة وصولات CCP والفواتير الخزينية (OCR & Rapprochement)</span>
         </button>
 
         <button
@@ -270,28 +270,51 @@ export default function DocumentProcessorView() {
           
           {/* Upload Dropzone */}
           <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-            <h3 className="text-sm font-black text-white flex items-center space-x-2 space-x-reverse">
-              <UploadCloud className="w-5 h-5 text-amber-400" />
-              <span>رفع صورة الفاتورة أو وصل المصاريف (PDF / Images)</span>
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 className="text-sm font-black text-white flex items-center space-x-2 space-x-reverse">
+                <UploadCloud className="w-5 h-5 text-emerald-400" />
+                <span>إرفاق وصل CCP، إشعار BaridiMob، أو فاتورة المصاريف (PDF / Images)</span>
+              </h3>
 
-            <div className="border-2 border-dashed border-slate-700 hover:border-amber-500/60 rounded-3xl p-8 text-center bg-slate-950/60 transition cursor-pointer relative group">
+              {/* Document Category Selector */}
+              <div className="flex items-center space-x-2 space-x-reverse text-xs">
+                <span className="text-slate-400 font-bold">نوع السند:</span>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none"
+                >
+                  <option value="ccp_slip">وصل تحويل بريدي (Bordereau CCP)</option>
+                  <option value="baridimob">إشعار BaridiMob</option>
+                  <option value="medical_supplies">مستلزمات طبية وتجهيزات</option>
+                  <option value="rent">إيجار المقر</option>
+                  <option value="utilities">كهرباء / ماء / إنترنت</option>
+                  <option value="salary">أتعاب ورواتب</option>
+                  <option value="other">أخرى</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 rounded-3xl p-8 text-center bg-slate-950/60 transition cursor-pointer relative group">
               <input
                 type="file"
+                id="ccp-slip-input"
+                data-testid="ccp-slip-input"
+                name="slip_file"
                 accept="image/*,application/pdf"
                 onChange={handleFileChange}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
               <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition">
                   <UploadCloud className="w-7 h-7" />
                 </div>
                 <div>
                   <span className="text-xs font-bold text-white block">
-                    {selectedFile ? selectedFile.name : 'اسحب وأفلت الفاتورة هنا، أو انقر للاختيار من جهازك'}
+                    {selectedFile ? selectedFile.name : 'اسحب وأفلت وصل CCP أو الفاتورة هنا، أو انقر للاختيار من جهازك'}
                   </span>
                   <span className="text-[10px] text-slate-500 font-mono mt-1 block">
-                    يدعم PNG, JPG, WebP, PDF (حتى 15 ميجابايت)
+                    يدعم PNG, JPG, WebP, PDF (حتى 15 ميجابايت) • يتم التحليل السحابي والمطابقة فورياً
                   </span>
                 </div>
               </div>
@@ -303,17 +326,17 @@ export default function DocumentProcessorView() {
                   type="button"
                   onClick={handleUploadAndProcess}
                   disabled={isProcessing}
-                  className="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs transition flex items-center space-x-2 space-x-reverse shadow-lg shadow-amber-600/25 disabled:opacity-50"
+                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center space-x-2 space-x-reverse shadow-lg shadow-emerald-600/25 disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>جارٍ تحليل الوثيقة واستخراج البنود بالـ Vision AI...</span>
+                      <span>جارٍ تحليل وصل CCP واستخراج البنود بالـ Vision AI...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>⚡ استخراج البيانات المحاسبية</span>
+                      <span>⚡ قراءة وتحليل بيانات الوصل ومطابقته</span>
                     </>
                   )}
                 </button>
@@ -457,12 +480,14 @@ export default function DocumentProcessorView() {
                   <div className="flex justify-end pt-3">
                     <button
                       type="button"
+                      id="confirm-reconciliation-btn"
+                      data-testid="confirm-reconciliation-btn"
                       onClick={handleReconcile}
                       disabled={isSaving}
-                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center space-x-1.5 space-x-reverse shadow-md disabled:opacity-50"
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center space-x-1.5 space-x-reverse shadow-md disabled:opacity-50"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>{isSaving ? 'جارٍ الاعتماد...' : '💾 اعتماد ومطابقة في السجل المحاسبي'}</span>
+                      <span>{isSaving ? 'جارٍ الاعتماد...' : '💾 تأكيد واعتماد المطابقة في الخزينة'}</span>
                     </button>
                   </div>
                 </div>

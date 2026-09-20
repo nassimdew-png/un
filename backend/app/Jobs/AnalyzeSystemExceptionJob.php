@@ -66,8 +66,12 @@ class AnalyzeSystemExceptionJob implements ShouldQueue
             }
         }
 
+        $cleanMessage = Str::limit($this->message, 65000);
+        $cleanFile = Str::limit($this->file, 250);
+        $cleanClass = Str::limit($this->exceptionClass, 250);
+
         // Check if an existing diagnostic record exists for this exact file & line
-        $existing = SystemErrorDiagnostic::where('file', $this->file)
+        $existing = SystemErrorDiagnostic::where('file', $cleanFile)
             ->where('line', $this->line)
             ->where('status', 'pending')
             ->first();
@@ -76,7 +80,7 @@ class AnalyzeSystemExceptionJob implements ShouldQueue
             $existing->increment('occurrences_count');
             $existing->update([
                 'last_seen_at' => now(),
-                'message' => $this->message,
+                'message' => $cleanMessage,
             ]);
             return;
         }
@@ -100,9 +104,9 @@ PROMPT;
 
         $userPrompt = <<<USERPROMPT
 تقرير استثناء الخادم المباشر (Error 500):
-- نوع الاستثناء: {$this->exceptionClass}
-- رسالة الخطأ: {$this->message}
-- الملف المصدر: {$this->file} (السطر: {$this->line})
+- نوع الاستثناء: {$cleanClass}
+- رسالة الخطأ: {$cleanMessage}
+- الملف المصدر: {$cleanFile} (السطر: {$this->line})
 
 مقتطف الكود المحيط بالخطأ:
 ```php
@@ -144,9 +148,9 @@ USERPROMPT;
             $suggestedCode = $parsed['suggested_code'] ?? null;
 
             SystemErrorDiagnostic::create([
-                'exception_class' => $this->exceptionClass,
-                'message' => $this->message,
-                'file' => $this->file,
+                'exception_class' => $cleanClass,
+                'message' => $cleanMessage,
+                'file' => $cleanFile,
                 'line' => $this->line,
                 'stack_trace' => $this->stackTrace,
                 'code_context' => $codeContext,
@@ -159,16 +163,16 @@ USERPROMPT;
                 'last_seen_at' => now(),
             ]);
 
-            Log::info("AI Auto-Diagnostic successfully created for exception [{$this->exceptionClass}] at {$this->file}:{$this->line}");
+            Log::info("AI Auto-Diagnostic successfully created for exception [{$cleanClass}] at {$cleanFile}:{$this->line}");
 
         } catch (\Throwable $e) {
             Log::error("AnalyzeSystemExceptionJob failed: " . $e->getMessage());
 
             // Still save error record even if AI generation failed
             SystemErrorDiagnostic::create([
-                'exception_class' => $this->exceptionClass,
-                'message' => $this->message,
-                'file' => $this->file,
+                'exception_class' => $cleanClass,
+                'message' => $cleanMessage,
+                'file' => $cleanFile,
                 'line' => $this->line,
                 'stack_trace' => $this->stackTrace,
                 'code_context' => $codeContext,

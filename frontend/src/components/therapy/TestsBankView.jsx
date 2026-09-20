@@ -33,6 +33,10 @@ import {
   FileText
 } from 'lucide-react';
 import { CLINICAL_TESTS_CATALOG, CLINICAL_PROTOCOLS_CATALOG } from './ClinicalCatalogData';
+import InteractiveTestPassationModal from './InteractiveTestPassationModal';
+import SendTestAssignmentModal from './SendTestAssignmentModal';
+import SearchablePatientSelect from '../common/SearchablePatientSelect';
+import { whatsappApi } from '../../api';
 
 // Helper function to interpret clinical test scores
 function getScoreInterpretation(test, rawScore) {
@@ -75,15 +79,142 @@ function getScoreInterpretation(test, rawScore) {
     return { label: 'اكتئاب حاد / شديد (Severe Depression)', level: 'critical', color: 'red', advice: 'تدخل نفسي وطبي متخصص فوراً ومتابعة الأفكار الانتحارية.' };
   }
 
-  // 5. GAD-7 (General Anxiety)
+  // 5. GAD-7 (General Anxiety Disorder - المعيار الذهبي)
   if (code.includes('GAD')) {
-    if (num <= 4) return { label: 'قلق طبيعي / طفيف (Minimal)', level: 'normal', color: 'emerald', advice: 'لا توجد مؤشرات سريرية للقلق المرضي.' };
-    if (num <= 9) return { label: 'قلق خفيف (Mild Anxiety)', level: 'mild', color: 'blue', advice: 'تمارين الاسترخاء والتنفس البطني ومراقبة المنبهات.' };
-    if (num <= 14) return { label: 'قلق متوسط (Moderate Anxiety)', level: 'moderate', color: 'orange', advice: 'تطبيق بروتوكول التخلص من القلق المعمم واستراتيجيات اليقظة.' };
-    return { label: 'قلق حاد (Severe Anxiety)', level: 'critical', color: 'red', advice: 'تدخل عيادي متخصص لخفض الاستثارة الجسدية والأفكار القلقية.' };
+    if (num <= 4) return { label: 'قلق ضئيل / طبيعي (Minimal)', level: 'normal', color: 'emerald', advice: 'ضمن الحدود الطبيعية' };
+    if (num <= 9) return { label: 'قلق خفيف (Mild)', level: 'mild', color: 'blue', advice: 'مراقبة الحالة مع تقنيات استرخاء' };
+    if (num <= 14) return { label: 'قلق متوسط (Moderate)', level: 'moderate', color: 'amber', advice: 'عتبة التحقق السريري وطلب التدخل' };
+    return { label: 'قلق شديد (Severe)', level: 'critical', color: 'red', advice: 'يستدعي خطة علاج معرفي سلوكي مباشرة' };
   }
 
-  // 6. Generic Fallback based on typical scale benchmarks
+  // 6. PHQ-9 (Patient Health Questionnaire - المعيار الذهبي للاكتئاب)
+  if (code.includes('PHQ')) {
+    if (num <= 4) return { label: 'لا يوجد / اكتئاب ضئيل', level: 'normal', color: 'emerald', advice: 'مراقبة روتينية' };
+    if (num <= 9) return { label: 'اكتئاب خفيف (Mild)', level: 'mild', color: 'blue', advice: 'تثقيف نفسي وإعادة التقييم لاحقاً' };
+    if (num <= 14) return { label: 'اكتئاب متوسط (Moderate)', level: 'moderate', color: 'amber', advice: 'خطة علاجية (جلسات نفسية / استشارة)' };
+    if (num <= 19) return { label: 'اكتئاب شديد نسبياً (Moderately Severe)', level: 'severe', color: 'orange', advice: 'علاج نفسي نشط ومكثف' };
+    return { label: 'اكتئاب شديد (Severe)', level: 'critical', color: 'red', advice: 'تدخل علاجي فوري ومكثف' };
+  }
+
+  // PCL-5 (PTSD Checklist for DSM-5)
+  if (code.includes('PCL')) {
+    if (num <= 20) return { label: 'أعراض دون العتبة (Minimal / Below Cutoff)', level: 'normal', color: 'emerald', advice: 'لا توجد مؤشرات كافية على كرب ما بعد الصدمة.' };
+    if (num <= 32) return { label: 'أعراض صدمة خفيفة إلى متوسطة (Mild to Moderate)', level: 'moderate', color: 'amber', advice: 'يوصى بالمتابعة والدعم النفسي وتطبيق تقنيات تثبيت الاستقرار الانفعالي.' };
+    return { label: 'مؤشر سريري دال على كرب ما بعد الصدمة (Probable PTSD - عتبة >= 33)', level: 'critical', color: 'red', advice: 'عتبة تشخيصية دالة على PTSD؛ يستدعي بروتوكول العلاج المعرفي الموجه للصدمات (TF-CBT) أو تقنية (EMDR).' };
+  }
+
+  // HAM-D (Hamilton Depression Rating Scale - Clinician-rated)
+  if (code.includes('HAM-D') || code.includes('HAMD')) {
+    if (num <= 7) return { label: 'طبيعي / هجوع (Remission / Normal)', level: 'normal', color: 'emerald', advice: 'المزاج مستقر وخالٍ من مؤشرات الاكتئاب السريري.' };
+    if (num <= 13) return { label: 'اكتئاب خفيف (Mild Depression)', level: 'mild', color: 'blue', advice: 'يوصى بالدعم النفسي والمتابعة والمراقبة النشطة.' };
+    if (num <= 18) return { label: 'اكتئاب متوسط دال (Moderate Depression)', level: 'moderate', color: 'amber', advice: 'يستدعي جلسات علاج معرفي سلوكي (CBT) وبرنامج تنشيط سلوكي.' };
+    if (num <= 22) return { label: 'اكتئاب شديد (Severe Depression)', level: 'severe', color: 'orange', advice: 'علاج عيادي مكثف مع تقييم الحاجة للعلاج الدوائي.' };
+    return { label: 'اكتئاب حاد وشديد جداً (Very Severe Depression)', level: 'critical', color: 'red', advice: 'تدخل عيادي وطبي عاجل ومكثف مع تفعيل بروتوكول سلامة المريض.' };
+  }
+
+  // HAM-A (Hamilton Anxiety Rating Scale - Clinician-rated)
+  if (code.includes('HAM-A') || code.includes('HAMA') || code.includes('HAM')) {
+    if (num < 17) return { label: 'قلق خفيف / طبيعي (Mild Anxiety)', level: 'normal', color: 'emerald', advice: 'أعراض ضمن الحدود المحتملة.' };
+    if (num <= 24) return { label: 'قلق متوسط دال (Mild to Moderate)', level: 'moderate', color: 'amber', advice: 'يوصى ببرنامج تدريبي لخفض الاستثارة الجسدية.' };
+    if (num <= 30) return { label: 'قلق معتدل إلى شديد (Moderate to Severe)', level: 'severe', color: 'orange', advice: 'تدخل عيادي منتظم وجلسات استرخاء عضلي وتعديل معرفي.' };
+    return { label: 'قلق حاد وشديد جداً (Very Severe Anxiety)', level: 'critical', color: 'red', advice: 'يتطلب علاجاً مكثفاً ومتابعة طبية ونفسية مشتركة.' };
+  }
+
+  // DASS-21 (Depression Anxiety Stress Scales)
+  if (code.includes('DASS')) {
+    if (num <= 14) return { label: 'طبيعي / متوازن (Normal Range)', level: 'normal', color: 'emerald', advice: 'أداء وجداني مستقر ضمن الطبيعي.' };
+    if (num <= 25) return { label: 'أعراض خفيفة (Mild Severity)', level: 'mild', color: 'blue', advice: 'مؤشرات خفيفة على الانفعال أو الحزن العابر.' };
+    if (num <= 38) return { label: 'أعراض متوسطة دالة (Moderate Severity)', level: 'moderate', color: 'amber', advice: 'تستدعي متابعة عيادية وتطبيق استراتيجيات تخفيف الضغوط.' };
+    if (num <= 48) return { label: 'أعراض شديدة (Severe)', level: 'severe', color: 'orange', advice: 'تستدعي تدخلاً معرفياً سلوكياً منظماً.' };
+    return { label: 'أعراض شديدة جداً (Extremely Severe)', level: 'critical', color: 'red', advice: 'تدخل سريري عاجل ومكثف.' };
+  }
+
+  // SPIN (Social Phobia Inventory)
+  if (code.includes('SPIN')) {
+    if (num < 19) return { label: 'دون العتبة السريرية / طبيعي (No Social Phobia)', level: 'normal', color: 'emerald', advice: 'مستوى قلق اجتماعي ضمن المعدل الطبيعي.' };
+    if (num <= 30) return { label: 'رهاب اجتماعي خفيف (Mild - عتبة >= 19)', level: 'mild', color: 'blue', advice: 'عتبة سريرية دالة؛ يوصى بتمارين التوكيد والمواجهة التدريجية.' };
+    if (num <= 40) return { label: 'رهاب اجتماعي متوسط (Moderate)', level: 'moderate', color: 'amber', advice: 'يستدعي تدخلاً معرفياً سلوكياً (CBT) وإعادة الهيكلة المعرفية.' };
+    if (num <= 50) return { label: 'رهاب اجتماعي شديد (Severe)', level: 'severe', color: 'orange', advice: 'بروتوكول تعريض حي ومحاكاة مواقف مع ضبط الاستجابات.' };
+    return { label: 'رهاب اجتماعي شديد جداً ومعيق (Very Severe)', level: 'critical', color: 'red', advice: 'علاج نفسي مكثف ومتابعة طبية ونفسية مشتركة لتجنب العزلة.' };
+  }
+
+  // PDSS-SR (Panic Disorder Severity Scale)
+  if (code.includes('PDSS')) {
+    if (num <= 3) return { label: 'طبيعي / في حده الأدنى (Normal / Minimal)', level: 'normal', color: 'emerald', advice: 'أعراض هلع طفيفة جداً أو غائبة.' };
+    if (num <= 7) return { label: 'اضطراب هلع خفيف (Mild Panic Disorder)', level: 'mild', color: 'blue', advice: 'يوصى بتمارين التنفس والتحكم في فرط التهوية.' };
+    if (num <= 10) return { label: 'اضطراب هلع متوسط (Moderate - عتبة >= 8)', level: 'moderate', color: 'amber', advice: 'عتبة تشخيصية دالة؛ يستوجب جلسات علاج معرفي سلوكي للهلع.' };
+    if (num <= 15) return { label: 'اضطراب هلع شديد (Severe)', level: 'severe', color: 'orange', advice: 'تعريض باطني (Interoceptive Exposure) وإلغاء سلوكيات الأمان.' };
+    return { label: 'اضطراب هلع شديد جداً ومعيق (Extreme)', level: 'critical', color: 'red', advice: 'تدخل عيادي فوري لمنع التحول إلى رهاب ساح كامل.' };
+  }
+
+  // ISI (Insomnia Severity Index)
+  if (code.includes('ISI') || code.includes('INSOMNIA')) {
+    if (num <= 7) return { label: 'لا يوجد أرق دال سريرياً (No Insomnia)', level: 'normal', color: 'emerald', advice: 'نمط نوم صحي وطبيعي.' };
+    if (num <= 14) return { label: 'أرق دون العتبة / خفيف (Subthreshold)', level: 'mild', color: 'blue', advice: 'يوصى بتطبيق قواعد النظافة الصحية للنوم (Sleep Hygiene).' };
+    if (num <= 21) return { label: 'أرق سريري متوسط الشدة (Moderate Insomnia)', level: 'moderate', color: 'amber', advice: 'عتبة سريرية؛ يوصى ببروتوكول العلاج المعرفي السلوكي للأرق (CBT-I).' };
+    return { label: 'أرق سريري شديد وحاد (Severe Insomnia)', level: 'critical', color: 'red', advice: 'أرق معيق جداً يستدعي تقييماً طبياً وتدخلاً سلوكياً ودوائياً.' };
+  }
+
+  // ASRS (Adult ADHD Self-Report Scale)
+  if (code.includes('ASRS')) {
+    if (num <= 24) return { label: 'ضمن الحدود الطبيعية (Non-ADHD)', level: 'normal', color: 'emerald', advice: 'أداء انتباهي وتنفيذي متوازن لا يشير إلى TDAH.' };
+    if (num <= 35) return { label: 'أعراض تشتت وفرط حركة خفيفة إلى متوسطة (Borderline)', level: 'moderate', color: 'amber', advice: 'يوصى بتدريب مهارات الإدارة والتنظيم السلوكي.' };
+    return { label: 'مؤشر إيجابي دال على TDAH للبالغين (Positive Screen)', level: 'critical', color: 'red', advice: 'نتيجة دالة سريرياً تستدعي تقييماً تشخيصياً نيوروبسيكولوجياً شاملاً.' };
+  }
+
+  // AQ-10 (Autism Spectrum Quotient)
+  if (code.includes('AQ-10') || code.includes('AQ10')) {
+    if (num < 6) return { label: 'دون العتبة السريرية / سمات منخفضة (Below Cutoff)', level: 'normal', color: 'emerald', advice: 'الدرجة دون عتبة الخطورة لطيف التوحد وفق معايير NICE.' };
+    return { label: 'مؤشر إيجابي دال على سمات التوحد (NICE Cutoff >= 6)', level: 'critical', color: 'red', advice: 'عتبة تشخيصية إيجابية؛ توصي إرشادات NICE بإحالة المفحوص لتقييم نمائي شامل.' };
+  }
+
+  // PSS-10 (Perceived Stress Scale)
+  if (code.includes('PSS')) {
+    if (num <= 13) return { label: 'مستوى ضغوط منخفض / تكيف ممتاز (Low Stress)', level: 'normal', color: 'emerald', advice: 'مستوى ضغوط منخفض وقدرة جيدة على التكيف والسيطرة.' };
+    if (num <= 26) return { label: 'مستوى ضغوط معتدل (Moderate Stress)', level: 'moderate', color: 'amber', advice: 'يوصى بتطبيق ممارسات التفريغ الانفعالي وتنظيم الوقت.' };
+    return { label: 'مستوى ضغوط مرتفع وحاد (High Perceived Stress)', level: 'critical', color: 'red', advice: 'مستوى ضغط نفسي مرتفع يستدعي تدخلاً لتخفيف الإجهاد وحماية الصحة النفسية.' };
+  }
+
+  // RSES (Rosenberg Self-Esteem Scale)
+  if (code.includes('RSES') || code.includes('ROSENBERG')) {
+    if (num < 15) return { label: 'تقدير ذات منخفض دال (Low Self-Esteem)', level: 'critical', color: 'red', advice: 'مؤشر على هشاشة تقدير الذات وجلد النفس؛ يستدعي تعزيز تقبل الذات.' };
+    if (num <= 25) return { label: 'تقدير ذات طبيعي ومتوازن (Normal Self-Esteem)', level: 'normal', color: 'emerald', advice: 'تقدير صحي ومتوازن للذات والقدرات الشخصية.' };
+    return { label: 'تقدير ذات مرتفع وقوي (High Self-Esteem)', level: 'normal', color: 'indigo', advice: 'ثقة عالية وإيجابية بالذات.' };
+  }
+
+  // M-CHAT (Autism in Toddlers)
+  if (code.includes('M-CHAT') || code.includes('MCHAT')) {
+    if (num <= 2) return { label: 'خطورة منخفضة (Low Risk: 0-2)', level: 'normal', color: 'emerald', advice: 'الطفل في مسار نمائي طبيعي، لا توجد حاجة لمتابعة إضافية.' };
+    if (num <= 7) return { label: 'خطورة متوسطة (Medium Risk: 3-7)', level: 'moderate', color: 'amber', advice: 'يوصى بإجراء مقابلة المتابعة التفصيلية (M-CHAT Follow-Up).' };
+    return { label: 'خطورة مرتفعة (High Risk: 8-20)', level: 'critical', color: 'red', advice: 'مؤشرات واضحة لسمات طيف التوحد؛ إحالة عاجلة لتقييم نمائي وتشخيصي شامل.' };
+  }
+
+  // 7. Y-BOCS (Yale-Brown OCD)
+  if (code.includes('Y-BOCS') || code.includes('YBOCS')) {
+    if (num <= 7) return { label: 'دون العتبة المرضية (Subclinical)', level: 'normal', color: 'emerald', advice: 'أفكار طبيعية عابرة لا تستدعي علاجاً.' };
+    if (num <= 15) return { label: 'وسواس قهري خفيف (Mild OCD)', level: 'mild', color: 'blue', advice: 'تدريبات الوعي المعرفي وإيقاف الفكرة التلقائية.' };
+    if (num <= 23) return { label: 'وسواس قهري متوسط (Moderate OCD)', level: 'moderate', color: 'amber', advice: 'تطبيق بروتوكول التعريض ومنع الاستجابة (ERP).' };
+    if (num <= 31) return { label: 'وسواس قهري شديد (Severe OCD)', level: 'severe', color: 'orange', advice: 'خطة علاجية مكثفة بالعيادة ومتابعة دوائية محتملة.' };
+    return { label: 'وسواس حاد ومعيق جداً (Extreme OCD)', level: 'critical', color: 'red', advice: 'إشراف طبي نفسي وسلوكي مكثف لكسر الطقوس القهرية.' };
+  }
+
+  // 8. STAI (State-Trait Anxiety)
+  if (code.includes('STAI')) {
+    if (num <= 35) return { label: 'قلق منخفض جداً (Very Low Anxiety)', level: 'normal', color: 'emerald', advice: 'استقرار انفعالي ممتاز.' };
+    if (num <= 45) return { label: 'قلق معتدل طبيعي (Moderate / Average)', level: 'normal', color: 'emerald', advice: 'ضمن الحدود الطبيعية المتوقعة.' };
+    if (num <= 55) return { label: 'قلق مرتفع دال (High Anxiety)', level: 'moderate', color: 'orange', advice: 'يوصى بتقنيات الاسترخاء والتنفس اليقظ.' };
+    return { label: 'قلق حاد وشديد جداً (Severe Anxiety)', level: 'critical', color: 'red', advice: 'تدخل معرفي سلوكي لتعديل التشوهات المعرفية وخفض التوتر.' };
+  }
+
+  // 9. GRBASI (Voice Dysphonia)
+  if (code.includes('GRBASI')) {
+    if (num === 0) return { label: 'صوت طبيعي سليم (Normal Voice)', level: 'normal', color: 'emerald', advice: 'وظيفة تصويتية سليمة وإغلاق حنجري محكم.' };
+    if (num <= 3) return { label: 'خلل صوتي خفيف (Mild Dysphonia)', level: 'mild', color: 'blue', advice: 'إرشادات النظافة الصوتية وشرب الماء وتجنب الصراخ.' };
+    if (num <= 8) return { label: 'خلل صوتي متوسط (Moderate Dysphonia)', level: 'moderate', color: 'orange', advice: 'تمارين الاسترخاء الحنجري وتنسيق التنفس الصوتي.' };
+    return { label: 'بحة صوتية شديدة (Severe Dysphonia)', level: 'critical', color: 'red', advice: 'فحص منظار الحنجرة ORL وتأهيل أرطوفوني متخصص مكثف.' };
+  }
+
+  // 10. Generic Fallback based on typical scale benchmarks
   if (num < 20) return { label: 'درجة منخفضة (Low Range)', level: 'mild', color: 'blue', advice: 'تفسير استرشادي: يُنصح بمقارنة النتيجة بكتيب الدليل المعياري.' };
   if (num <= 50) return { label: 'درجة متوسطة (Average Range)', level: 'normal', color: 'emerald', advice: 'ضمن المدى الملاحظ عادة في العينات المعيارية المقارنة.' };
   return { label: 'درجة مرتفعة (High Range / Alert)', level: 'moderate', color: 'orange', advice: 'تشير إلى وجود علامات واضحة تستلزم تدخلاً علاجياً مخصصاً.' };
@@ -105,6 +236,12 @@ export default function TestsBankView({ patients = [], tenant }) {
 
   // Quick Protocol Card Modal
   const [protocolModalItem, setProtocolModalItem] = useState(null);
+
+  // Digital Passation Modal (Interactive sheet, spider radar, AI clinical summary)
+  const [passationModalTest, setPassationModalTest] = useState(null);
+
+  // Send Remote / QR / Tablet Assignment Modal
+  const [sendAssignmentTest, setSendAssignmentTest] = useState(null);
 
   // Interactive Scoring Calculator inside modal
   const [modalRawScore, setModalRawScore] = useState('');
@@ -221,28 +358,74 @@ export default function TestsBankView({ patients = [], tenant }) {
   };
 
   // Generate formatted WhatsApp message for parents
-  const generateWhatsAppLink = (protocol) => {
+  const [sendingProtocolWa, setSendingProtocolWa] = useState(false);
+  const [protocolWaSuccess, setProtocolWaSuccess] = useState(false);
+
+  const getProtocolWhatsAppMessage = (protocol) => {
     const selectedPatient = patients.find(p => String(p.id) === String(targetPatientId)) || patients[0];
-    const patientName = selectedPatient?.name ? `الطفل(ة): ${selectedPatient.name}` : 'المريض الكريم';
-    const patientPhone = selectedPatient?.phone ? selectedPatient.phone.replace(/[^0-9]/g, '') : '';
+    const patientName = selectedPatient?.name || (selectedPatient?.first_name ? `${selectedPatient.first_name} ${selectedPatient.last_name || ''}`.trim() : 'المريض الكريم');
     
     let text = `🏥 *العيادة النفسية والأرطوفونية - خطة التدريب المنزلي*\n`;
     text += `👤 *${patientName}*\n`;
-    text += `📌 *البرنامج العلاجي:* ${protocol.title}\n`;
-    text += `🎯 *الهدف المستهدف:* ${protocol.target}\n`;
-    text += `⏱️ *التكرار الموصى به:* ${protocol.frequency}\n`;
+    text += `📌 *البرنامج العلاجي:* ${protocol.title_ar || protocol.title}\n`;
+    text += `🎯 *الهدف المستهدف:* ${protocol.target || 'تعزيز المهارات السريرية'}\n`;
+    text += `⏱️ *التكرار الموصى به:* ${protocol.frequency || 'يومياً'}\n`;
     if (protocol.materials) {
       text += `🎒 *الوسائل المطلوبة:* ${protocol.materials}\n`;
     }
     text += `\n📝 *خطوات التطبيق في المنزل:*\n`;
-    protocol.steps.forEach((step, idx) => {
-      text += `${idx + 1}. ${step}\n`;
-    });
+    if (Array.isArray(protocol.steps)) {
+      protocol.steps.forEach((step, idx) => {
+        text += `${idx + 1}. ${step}\n`;
+      });
+    }
     text += `\n💡 *ملاحظة الأخصائي:* يرجى تطبيق الخطوات بهدوء وتشجيع الطفل، وتسجيل أي تقدم لمناقشته في الجلسة القادمة.\n`;
     text += `_مع تحيات الأخصائي المشرف_ ✨`;
+    return text;
+  };
 
+  const generateWhatsAppLink = (protocol) => {
+    const selectedPatient = patients.find(p => String(p.id) === String(targetPatientId)) || patients[0];
+    const patientPhone = selectedPatient?.phone ? selectedPatient.phone.replace(/[^0-9]/g, '') : '';
+    const text = getProtocolWhatsAppMessage(protocol);
     const encoded = encodeURIComponent(text);
     return patientPhone ? `https://wa.me/${patientPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  };
+
+  const handleSendProtocolCloudWhatsApp = async (protocol) => {
+    const selectedPatient = patients.find(p => String(p.id) === String(targetPatientId)) || patients[0];
+    const rawPhone = (selectedPatient?.phone || '').replace(/\D/g, '');
+    const cleanPhone = rawPhone.startsWith('0') ? `213${rawPhone.substring(1)}` : rawPhone;
+    const msg = getProtocolWhatsAppMessage(protocol);
+
+    if (!cleanPhone) {
+      const encoded = encodeURIComponent(msg);
+      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+      return;
+    }
+
+    setSendingProtocolWa(true);
+    try {
+      const res = await whatsappApi.sendMessage({
+        phone: cleanPhone,
+        message: msg,
+        patient_id: selectedPatient?.id,
+        service_type: 'protocol_instructions',
+      });
+      if (res?.success) {
+        setProtocolWaSuccess(true);
+        alert('✅ تم إرسال برنامج التمرين المنزلي إلى واتساب المريض بنجاح!');
+        setTimeout(() => setProtocolWaSuccess(false), 6000);
+      } else {
+        throw new Error(res?.message || 'فشل الإرسال السحابي');
+      }
+    } catch (err) {
+      console.warn('Protocol WhatsApp Cloud API failed, opening manual link:', err);
+      const encoded = encodeURIComponent(msg);
+      window.open(`https://wa.me/${cleanPhone}?text=${encoded}`, '_blank');
+    } finally {
+      setSendingProtocolWa(false);
+    }
   };
 
   const currentInterpretation = useMemo(() => {
@@ -265,7 +448,7 @@ export default function TestsBankView({ patients = [], tenant }) {
                 <span>CLINICAL TESTS & PROTOCOLS BANK</span>
               </span>
               <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                +90 رائز مقنن (CREAPSY / الجامعات 🇩🇿) + 16 بروتوكول علاجي 🌟
+                +90 رائز مقنن (المخابر السريرية والجامعات 🇩🇿) + 16 بروتوكول علاجي 🌟
               </span>
               <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                 المعيار الجزائري والعربي 🇩🇿
@@ -456,22 +639,53 @@ export default function TestsBankView({ patients = [], tenant }) {
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-4 border-t border-slate-800 flex items-center gap-2">
+                <div className="pt-3 border-t border-slate-800 space-y-2">
                   <button
-                    onClick={() => handleOpenProtocolModal(test)}
-                    className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center space-x-1 space-x-reverse"
+                    onClick={() => setPassationModalTest(test)}
+                    className={`w-full py-2.5 rounded-xl text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg group/btn active:scale-[0.99] ${
+                      /MMPI|WISC|WAIS|WPPSI|STROOP|REY|ZAREKI|RORSCHACH|TAT|NEMI|EDEI|COLUMB/i.test(test.code || '')
+                        ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/30'
+                        : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-indigo-600/30'
+                    }`}
                   >
-                    <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>تفاصيل وحاسبة</span>
+                    {/MMPI|WISC|WAIS|WPPSI|STROOP|REY|ZAREKI|RORSCHACH|TAT|NEMI|EDEI|COLUMB/i.test(test.code || '') ? (
+                      <>
+                        <Award className="w-4 h-4 text-amber-300 animate-bounce" />
+                        <span>مصحح إكلينيكي متقدم (Digital Scorer) 🎯</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-300 animate-pulse" />
+                        <span>تمرير رقمي ورادار سريري (Passation) ⚡</span>
+                      </>
+                    )}
                   </button>
 
                   <button
-                    onClick={() => handleOpenAssignModal(test)}
-                    className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center space-x-1 space-x-reverse shadow-md shadow-indigo-600/20"
+                    onClick={() => setSendAssignmentTest(test)}
+                    className="w-full py-2 rounded-xl bg-purple-600/15 hover:bg-purple-600/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition flex items-center justify-center gap-1.5"
                   >
-                    <User className="w-3.5 h-3.5" />
-                    <span>تخصيص لمريض</span>
+                    <Smartphone className="w-3.5 h-3.5 text-purple-400" />
+                    <span>📲 إرسال للمريض / وضع التابلت / QR</span>
                   </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenProtocolModal(test)}
+                      className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center justify-center gap-1"
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>دليل ومعايير</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenAssignModal(test)}
+                      className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center justify-center gap-1"
+                    >
+                      <User className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>تخصيص لمريض</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -605,26 +819,16 @@ export default function TestsBankView({ patients = [], tenant }) {
               </div>
             ) : (
               <form onSubmit={handleConfirmAssign} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">اختر المريض / الطفل:</label>
-                  {patients.length === 0 ? (
-                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-amber-400">
-                      ⚠️ لا يوجد مرضى مسجلين حالياً. يرجى إضافة مريض أولاً من قسم ملفات المرضى.
-                    </div>
-                  ) : (
-                    <select
-                      value={targetPatientId}
-                      onChange={(e) => setTargetPatientId(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    >
-                      {patients.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} - {p.age ? `${p.age} سنة` : ''} ({p.phone || 'بدون هاتف'})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                <SearchablePatientSelect
+                  patients={patients}
+                  selectedPatientId={targetPatientId}
+                  onSelectPatient={(pId) => setTargetPatientId(pId)}
+                  label="اختر ملف المريض / الطفل المستهدف:"
+                  placeholder="ابحث بالاسم، اللقب، رقم الهاتف، أو رقم الملف..."
+                  accentColor="indigo"
+                  maxHeight="max-h-48"
+                  required
+                />
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">ملاحظات وتوجيهات للأخصائي أو ولي الأمر:</label>
@@ -802,33 +1006,61 @@ export default function TestsBankView({ patients = [], tenant }) {
                       <span>إرسال برنامج التمرين المنزلي للأولياء</span>
                     </div>
                     <div className="text-[11px] text-slate-400">
-                      يتم توليد رسالة واتساب منسقة خطوة بخطوة موجهة للأب أو الأم.
+                      يتم توليد وإرسال خطوات التدريب مباشرة عبر واتساب.
                     </div>
                   </div>
-                  <a
-                    href={generateWhatsAppLink(protocolModalItem)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30 shrink-0"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>فتح في واتساب 📲</span>
-                  </a>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      disabled={sendingProtocolWa}
+                      onClick={() => handleSendProtocolCloudWhatsApp(protocolModalItem)}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-lg ${
+                        protocolWaSuccess
+                          ? 'bg-emerald-700 text-emerald-100 shadow-emerald-700/30'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                      }`}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{sendingProtocolWa ? 'جارٍ الإرسال...' : protocolWaSuccess ? '✓ تم الإرسال للعميل' : 'إرسال فوري (Cloud API) ⚡'}</span>
+                    </button>
+                    <a
+                      href={generateWhatsAppLink(protocolModalItem)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-700"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>يدوي</span>
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3 pt-4 border-t border-slate-800">
+            <div className="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-800">
+              {protocolModalItem.code && (
+                <button
+                  onClick={() => {
+                    const it = protocolModalItem;
+                    setProtocolModalItem(null);
+                    setPassationModalTest(it);
+                  }}
+                  className="flex-1 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-black transition flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/30"
+                >
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>بدء ورقة التمرير الرقمي الفورية ⚡</span>
+                </button>
+              )}
               <button
                 onClick={() => {
                   const it = protocolModalItem;
                   setProtocolModalItem(null);
                   handleOpenAssignModal(it);
                 }}
-                className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/30"
+                className="py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5"
               >
-                <User className="w-4 h-4" />
-                <span>تخصيص لملف مريض</span>
+                <User className="w-4 h-4 text-emerald-400" />
+                <span>تخصيص لمريض</span>
               </button>
               <button
                 onClick={() => setProtocolModalItem(null)}
@@ -839,6 +1071,28 @@ export default function TestsBankView({ patients = [], tenant }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* INTERACTIVE DIGITAL PASSATION & LIVE RADAR MODAL */}
+      {passationModalTest && (
+        <InteractiveTestPassationModal
+          test={passationModalTest}
+          patients={patients}
+          onClose={() => setPassationModalTest(null)}
+          onSaved={() => {
+            // Triggered when saved
+          }}
+        />
+      )}
+
+      {/* REMOTE / QR / TABLET ASSIGNMENT MODAL */}
+      {sendAssignmentTest && (
+        <SendTestAssignmentModal
+          test={sendAssignmentTest}
+          patients={patients}
+          tenant={tenant}
+          onClose={() => setSendAssignmentTest(null)}
+        />
       )}
     </div>
   );

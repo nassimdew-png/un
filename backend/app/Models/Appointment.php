@@ -18,6 +18,8 @@ class Appointment extends Model
         'specialist_id',
         'appointment_date',
         'status',
+        'called_at',
+        'call_counter',
         'type',
         'notes',
     ];
@@ -26,6 +28,8 @@ class Appointment extends Model
     {
         return [
             'appointment_date' => 'datetime',
+            'called_at' => 'datetime',
+            'call_counter' => 'integer',
         ];
     }
 
@@ -37,6 +41,11 @@ class Appointment extends Model
     public function specialist(): BelongsTo
     {
         return $this->belongsTo(User::class, 'specialist_id');
+    }
+
+    public function practitioner(): BelongsTo
+    {
+        return $this->specialist();
     }
 
     public function invoice(): HasOne

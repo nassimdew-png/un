@@ -39,5 +39,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('polling', function (Request $request) {
             return Limit::none();
         });
+
+        // Touchscreen Kiosk interactive check-in rate limiter (60 attempts per minute per IP)
+        RateLimiter::for('kiosk', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 }

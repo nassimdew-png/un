@@ -1,0 +1,527 @@
+TENANTS:
+Tenant ID: 018cf2e0-171d-43cf-9543-2d1efe02c894 | Name: عيادة الأرطوفونيا والتخاطب - عين صالح (169) | Subdomain: in-salah-orthophony-169-t57s
+Tenant ID: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Name: Cabinet Orthophonie Alger | Subdomain: elbiar-ortho
+Tenant ID: 01a01ce6-d8fd-7201-9c4e-98332ad7cc5c | Name: Clinique Psychologie Oran | Subdomain: oran-psy
+Tenant ID: 01a01ce6-d9cd-7312-b6d5-ae902bdc1cd1 | Name: Centre Pluridisciplinaire Constantine | Subdomain: constantine-sante
+Tenant ID: 01a01cf3-aac8-73c7-b215-5f78cb559063 | Name: Cabinet Orthophonie Annaba | Subdomain: annaba-ortho
+Tenant ID: 01a020ce-2413-7221-80dd-bf752892a80e | Name: Cabinet Test Wahran | Subdomain: test-wahran-1787256775
+Tenant ID: 01a039b3-510d-7375-af9e-56f9d91d94c8 | Name: Centre Espoir Psychologie Oran | Subdomain: centre-espoir-psychologie-oran
+Tenant ID: 01a039ca-305d-700f-b954-95b1881b8814 | Name: Cabinet Test Auto-Onboarding ym1gj | Subdomain: cabinet-test-auto-onboarding-ym1gj
+Tenant ID: 01a039f7-d392-7022-9af4-42bbd0af3a91 | Name: Clinque zaraapschologie | Subdomain: clinque-zaraapschologie
+Tenant ID: 01a03a10-f505-71e3-b2be-83232535cad1 | Name: عيادة طفل صغير | Subdomain: comfg
+Tenant ID: 02992f35-10c5-4f3a-9427-c997f901bd53 | Name: عيادة الصحة النفسية والدعم المعرفي - البيض (206) | Subdomain: el-bayadh-psychology-206-c6ro
+Tenant ID: 04789c77-8cc0-48bd-9e12-e8a2272e1ed6 | Name: عيادة الأرطوفونيا والتخاطب - تيميمون (49) | Subdomain: timimoun-orthophony-49-fjzp
+Tenant ID: 05661291-1ce4-4d94-ad97-20a1bb0736a0 | Name: المركز الطبي متعدد التخصصات والتأهيل - تيارت (72) | Subdomain: tiaret-multidisciplinary-72-j6wr
+Tenant ID: 0574182a-f18f-4aa0-8f6a-2bc80169c93c | Name: عيادة الأرطوفونيا والتخاطب - برج بوعريريج (34) | Subdomain: bordj-bou-arreridj-orthophony-34-t05z
+Tenant ID: 0799d89c-afe7-4523-9888-a5f6924ec9f8 | Name: المركز الطبي متعدد التخصصات والتأهيل - قسنطينة (141) | Subdomain: constantine-multidisciplinary-141-1oqo
+Tenant ID: 07bc7e0d-2341-4904-ada5-e3df62925cf3 | Name: عيادة الصحة النفسية والدعم المعرفي - قسنطينة (83) | Subdomain: constantine-psychology-83-boge
+Tenant ID: 093af154-3e39-4cb6-932d-70a7c2c53905 | Name: عيادة الأرطوفونيا والتخاطب - الشلف (118) | Subdomain: chlef-orthophony-118-5epe
+Tenant ID: 09bd2965-914b-4129-892a-5eda0d751c5f | Name: عيادة الأرطوفونيا والتخاطب - تندوف (37) | Subdomain: tindouf-orthophony-37-kgsb
+Tenant ID: 09f9386f-34f2-44bb-8a7b-0f0679daa501 | Name: المركز الطبي متعدد التخصصات والتأهيل - الوادي (213) | Subdomain: el-oued-multidisciplinary-213-9vnl
+Tenant ID: 0b42d843-61b7-4f07-92cb-e2c01f6e62e2 | Name: المركز الطبي متعدد التخصصات والتأهيل - الأغواط (177) | Subdomain: laghouat-multidisciplinary-177-ztap
+Tenant ID: 0b6623d9-f578-492f-9398-526a97f2a0cd | Name: المركز الطبي متعدد التخصصات والتأهيل - إليزي (33) | Subdomain: illizi-multidisciplinary-33-fdwf
+Tenant ID: 0ba92b25-c507-45e1-b7c8-c5e87e7866ce | Name: المركز الطبي متعدد التخصصات والتأهيل - تيسمسيلت (96) | Subdomain: tissemsilt-multidisciplinary-96-krxg
+Tenant ID: 0bb16edb-5873-425e-a427-7a03ffc4faf7 | Name: عيادة الصحة النفسية والدعم المعرفي - سكيكدة (137) | Subdomain: skikda-psychology-137-zohc
+Tenant ID: 0bc574ef-21c1-475d-9927-457dfbf2947a | Name: المركز الطبي متعدد التخصصات والتأهيل - عنابة (81) | Subdomain: annaba-multidisciplinary-81-wazu
+Tenant ID: 0c445414-7b7f-4bac-aea1-2f44f6605b62 | Name: عيادة الصحة النفسية والدعم المعرفي - تندوف (95) | Subdomain: tindouf-psychology-95-fwcy
+Tenant ID: 0c77eac5-e001-4364-bc6a-713bf82aa22b | Name: عيادة الصحة النفسية والدعم المعرفي - أم البواقي (62) | Subdomain: oum-el-bouaghi-psychology-62-74pr
+Tenant ID: 0caf0ee0-c853-4fa5-b494-92de9af22608 | Name: المركز الطبي متعدد التخصصات والتأهيل - تلمسان (129) | Subdomain: tlemcen-multidisciplinary-129-mn0o
+Tenant ID: 0d96335f-2117-46db-93ec-9dec3a2fb00a | Name: qq | Subdomain: qqq
+Tenant ID: 11e71ce8-2f36-4afa-9d80-ec4a8bb616b4 | Name: المركز الطبي متعدد التخصصات والتأهيل - مستغانم (201) | Subdomain: mostaganem-multidisciplinary-201-9myg
+Tenant ID: 12d8963a-a923-4f13-8c3a-d7dd0fb5a24e | Name: عيادة الصحة النفسية والدعم المعرفي - غرداية (221) | Subdomain: ghardaia-psychology-221-pnrv
+Tenant ID: 1335324c-35dd-458f-8969-b88b095a9e2e | Name: عيادة الأرطوفونيا والتخاطب - سطيف (19) | Subdomain: setif-orthophony-19-miex
+Tenant ID: 143d16d7-70e1-4c0b-9a28-b4a0b29bc30f | Name: عيادة جديدة | Subdomain: aayad-gdyd
+Tenant ID: 1582272f-27cb-4095-a143-5400c3d79691 | Name: المركز الطبي متعدد التخصصات والتأهيل - خنشلة (156) | Subdomain: khenchela-multidisciplinary-156-7rzj
+Tenant ID: 195af5e5-6f72-4fb0-8775-347918b63078 | Name: عيادة الأرطوفونيا والتخاطب - تيزي وزو (73) | Subdomain: tizi-ouzou-orthophony-73-fcrx
+Tenant ID: 1b229cfd-dc96-4850-871d-f2f1016355ac | Name: عيادة الصحة النفسية والدعم المعرفي - الجزائر (74) | Subdomain: alger-psychology-74-bmls
+Tenant ID: 1bf5a898-b9a2-4128-b2cf-a6f9d24cde9a | Name: عيادة الصحة النفسية والدعم المعرفي - تقرت (113) | Subdomain: touggourt-psychology-113-bwzv
+Tenant ID: 1cdd4f44-d779-4049-ad20-934ea0f1f8e2 | Name: عيادة الأرطوفونيا والتخاطب - تمنراست (127) | Subdomain: tamanrasset-orthophony-127-iiqt
+Tenant ID: 1d2b8d04-120c-44f4-8649-46386e416546 | Name: المركز الطبي متعدد التخصصات والتأهيل - عين تموشنت (162) | Subdomain: ain-temouchent-multidisciplinary-162-myl1
+Tenant ID: 1d6538b2-97c9-4ec5-8667-1f605e541b7d | Name: عيادة الأرطوفونيا والتخاطب - تيميمون (223) | Subdomain: timimoun-orthophony-223-snun
+Tenant ID: 1e1726ad-0e43-4e85-a8b4-93cd2268310f | Name: عيادة الأرطوفونيا والتخاطب - المسيلة (202) | Subdomain: msila-orthophony-202-7zdb
+Tenant ID: 1ea74d08-8a50-4a47-b4bb-5dd9bd6a9586 | Name: المركز الطبي متعدد التخصصات والتأهيل - غليزان (48) | Subdomain: relizane-multidisciplinary-48-1x9s
+Tenant ID: 1f5b6122-cda4-4b59-8f67-8dbe83accf3a | Name: عيادة الصحة النفسية والدعم المعرفي - تلمسان (71) | Subdomain: tlemcen-psychology-71-xqcs
+Tenant ID: 21022d5f-7662-4900-ae1d-8daa83de273e | Name: المركز الطبي متعدد التخصصات والتأهيل - جيجل (192) | Subdomain: jijel-multidisciplinary-192-ft1j
+Tenant ID: 234cbdce-15de-4a40-9460-e708802ea481 | Name: عيادة الصحة النفسية والدعم المعرفي - تمنراست (185) | Subdomain: tamanrasset-psychology-185-vnas
+Tenant ID: 2394fdf8-0662-4110-8b35-9362129263a9 | Name: عيادة الأرطوفونيا والتخاطب - تندوف (211) | Subdomain: tindouf-orthophony-211-4l2u
+Tenant ID: 254a7036-3204-4281-baff-045daf3506ed | Name: عيادة الصحة النفسية والدعم المعرفي - البيض (32) | Subdomain: el-bayadh-psychology-32-nbuq
+Tenant ID: 2556c058-13a2-46e6-b64a-8d5ab4dbdec0 | Name: عيادة الصحة النفسية والدعم المعرفي - تيبازة (158) | Subdomain: tipaza-psychology-158-oob4
+Tenant ID: 27c7ee14-08fc-4dd8-abf3-f3c18f155dfc | Name: عيادة الأرطوفونيا والتخاطب - أدرار (1) | Subdomain: adrar-orthophony-1-yg3j
+Tenant ID: 2800082b-bc93-446c-9548-536b49d008de | Name: عيادة الأرطوفونيا والتخاطب - المغير (115) | Subdomain: el-mghair-orthophony-115-tu6n
+Tenant ID: 28af62e5-39c8-40a3-8d4c-d91d83400741 | Name: عيادة الأرطوفونيا والتخاطب - الجزائر (190) | Subdomain: alger-orthophony-190-viir
+Tenant ID: 29f22c85-a09c-497b-9059-7c9cdb4eacd1 | Name: عيادة الصحة النفسية والدعم المعرفي - سوق أهراس (41) | Subdomain: souk-ahras-psychology-41-iylm
+Tenant ID: 2a063176-a61e-4897-a387-e56072a76c46 | Name: عيادة الأرطوفونيا والتخاطب - وهران (205) | Subdomain: oran-orthophony-205-ob1u
+Tenant ID: 2ee28e24-6735-4fdb-926a-ac2a9505da98 | Name: عيادة الصحة النفسية والدعم المعرفي - سعيدة (194) | Subdomain: saida-psychology-194-dewz
+Tenant ID: 2f6e3952-bc23-44fe-b245-540038f8808c | Name: عيادة الصحة النفسية والدعم المعرفي - معسكر (203) | Subdomain: mascara-psychology-203-rejw
+Tenant ID: 2fd4ac6e-5daa-4a8f-9394-6052694538cd | Name: عيادة الصحة النفسية والدعم المعرفي - أدرار (233) | Subdomain: adrar-psychology-233-pbgo
+Tenant ID: 30117e34-2fc6-450d-841a-3c799ee0f438 | Name: عيادة الأرطوفونيا والتخاطب - عنابة (139) | Subdomain: annaba-orthophony-139-1mhf
+Tenant ID: 30354b4b-9dbf-4567-9201-e71ad7bb52d7 | Name: المركز الطبي متعدد التخصصات والتأهيل - بشار (66) | Subdomain: bechar-multidisciplinary-66-gvy2
+Tenant ID: 307ac982-136d-4fd5-b5d7-fe90e5782e1f | Name: عيادة الصحة النفسية والدعم المعرفي - عنابة (197) | Subdomain: annaba-psychology-197-o5hs
+Tenant ID: 318dbecf-49ef-44ec-b42f-9cc81173ba4b | Name: المركز الطبي متعدد التخصصات والتأهيل - المغير (57) | Subdomain: el-mghair-multidisciplinary-57-oxxs
+Tenant ID: 31ec0065-8017-430a-a83c-f4238de6ad8a | Name: عيادة الصحة النفسية والدعم المعرفي - المدية (26) | Subdomain: medea-psychology-26-wjjb
+Tenant ID: 32e6bc40-be3a-4c0c-b747-fc7278b4757a | Name: عيادة الأرطوفونيا والتخاطب - جيجل (76) | Subdomain: jijel-orthophony-76-bvbj
+Tenant ID: 33a45147-1f21-4131-80ab-6d7aa3a0f3fb | Name: عيادة الصحة النفسية والدعم المعرفي - المغير (173) | Subdomain: el-mghair-psychology-173-ha3t
+Tenant ID: 3505bdc0-9077-45d2-8202-c8ef65351c5f | Name: عيادة الأرطوفونيا والتخاطب - خنشلة (40) | Subdomain: khenchela-orthophony-40-zsfy
+Tenant ID: 361b4b3e-36c3-483c-9d40-a46ab7da8230 | Name: عيادة الأرطوفونيا والتخاطب - عين تموشنت (46) | Subdomain: ain-temouchent-orthophony-46-sapq
+Tenant ID: 36290d76-777d-4b65-b078-854c49ce2b91 | Name: عيادة الأرطوفونيا والتخاطب - ميلة (43) | Subdomain: mila-orthophony-43-y3vt
+Tenant ID: 3a3ed4ac-2747-4ed5-9299-c95a7facfb2f | Name: عيادة الأرطوفونيا والتخاطب - البليدة (67) | Subdomain: blida-orthophony-67-zzcx
+Tenant ID: 3d40a391-d30a-4fac-90eb-0e62f2796860 | Name: المركز الطبي متعدد التخصصات والتأهيل - ورقلة (30) | Subdomain: ouargla-multidisciplinary-30-q97d
+Tenant ID: 3ed57cec-b146-44ef-ab2c-c3a8d8539d9a | Name: عيادة الصحة النفسية والدعم المعرفي - إليزي (149) | Subdomain: illizi-psychology-149-nlry
+Tenant ID: 3fad646f-92b6-4630-8202-5c92e118171c | Name: عيادة الأرطوفونيا والتخاطب - غرداية (163) | Subdomain: ghardaia-orthophony-163-zugq
+Tenant ID: 404d1aaf-4157-4d8a-9b00-5eb247eccce3 | Name: عيادة الأرطوفونيا والتخاطب - البويرة (10) | Subdomain: bouira-orthophony-10-tzqv
+Tenant ID: 4294ee5a-b075-4e7c-b5b8-cefb734b76ec | Name: عيادة الصحة النفسية والدعم المعرفي - قالمة (140) | Subdomain: guelma-psychology-140-7p2b
+Tenant ID: 455e5035-c91a-4d85-8e52-81888ebf542e | Name: المركز الطبي متعدد التخصصات والتأهيل - البليدة (183) | Subdomain: blida-multidisciplinary-183-w9zt
+Tenant ID: 474ad16f-d47a-4ae0-90b9-fbdd56675845 | Name: عيادة الأرطوفونيا والتخاطب - قسنطينة (199) | Subdomain: constantine-orthophony-199-jkd6
+Tenant ID: 4755cf57-98bc-4f8b-ba78-96f61abf981f | Name: عيادة الأرطوفونيا والتخاطب - عين قزام (112) | Subdomain: in-guezzam-orthophony-112-lpcf
+Tenant ID: 47b5444d-c348-4aa0-b357-7672316f2501 | Name: عيادة الأرطوفونيا والتخاطب - الطارف (94) | Subdomain: el-tarf-orthophony-94-go8g
+Tenant ID: 49ab1f9f-e6fd-467f-a5a4-751c547e1f9e | Name: عيادة الأرطوفونيا والتخاطب - تلمسان (13) | Subdomain: tlemcen-orthophony-13-545k
+Tenant ID: 4c04bfa8-2107-47d9-a188-1592784b6f50 | Name: عيادة الأرطوفونيا والتخاطب - الوادي (97) | Subdomain: el-oued-orthophony-97-mbdd
+Tenant ID: 4c0e139a-5be6-49fd-b993-ef595955973e | Name: عيادة الأرطوفونيا والتخاطب - سكيكدة (79) | Subdomain: skikda-orthophony-79-xcg2
+Tenant ID: 4c24a361-20d7-42cf-836c-39f57e1a5231 | Name: عيادة الصحة النفسية والدعم المعرفي - الشلف (176) | Subdomain: chlef-psychology-176-knfb
+Tenant ID: 4ceaaa06-e152-49e7-8ac6-a408e511d9d1 | Name: المركز الطبي متعدد التخصصات والتأهيل - سيدي بلعباس (138) | Subdomain: sidi-bel-abbes-multidisciplinary-138-hzvi
+Tenant ID: 4d9cc1f3-8290-4806-91de-2110d67fa8b9 | Name: المركز الطبي متعدد التخصصات والتأهيل - برج باجي مختار (108) | Subdomain: bordj-badji-mokhtar-multidisciplinary-108-k4n5
+Tenant ID: 4dcecfe0-2a8c-41fb-bb36-f852cf1dc0b1 | Name: المركز الطبي متعدد التخصصات والتأهيل - تمنراست (69) | Subdomain: tamanrasset-multidisciplinary-69-hbna
+Tenant ID: 4e279f1d-35a8-40a8-a438-b169550f6a5b | Name: عيادة الأرطوفونيا والتخاطب - تيارت (130) | Subdomain: tiaret-orthophony-130-ciqb
+Tenant ID: 4e2fd09e-532e-417e-a607-d554c5af069c | Name: عيادة الأرطوفونيا والتخاطب - المنيعة (232) | Subdomain: el-meniaa-orthophony-232-7nks
+Tenant ID: 504ac454-524e-4ce4-bb47-6afa56eecd26 | Name: عيادة الأرطوفونيا والتخاطب - الجزائر (16) | Subdomain: alger-orthophony-16-yb2q
+Tenant ID: 50e0d936-34fb-49eb-8d7d-f9d90fbe010f | Name: المركز الطبي متعدد التخصصات والتأهيل - باتنة (237) | Subdomain: batna-multidisciplinary-237-itzx
+Tenant ID: 52cc652a-9291-4cc6-ab42-a7b7bfe138f4 | Name: المركز الطبي متعدد التخصصات والتأهيل - بني عباس (168) | Subdomain: beni-abbes-multidisciplinary-168-7yxb
+Tenant ID: 53af89ca-ac18-4f22-8d38-1fb47a173b75 | Name: عيادة الأرطوفونيا والتخاطب - بني عباس (226) | Subdomain: beni-abbes-orthophony-226-jvah
+Tenant ID: 54b4476d-7392-4681-8514-0b44d225257c | Name: المركز الطبي متعدد التخصصات والتأهيل - الشلف (234) | Subdomain: chlef-multidisciplinary-234-3iyy
+Tenant ID: 5682d461-cbe1-4321-8cbb-3d7e7cfd9093 | Name: عيادة الأرطوفونيا والتخاطب - تقرت (55) | Subdomain: touggourt-orthophony-55-4vwl
+Tenant ID: 56b34354-8e40-42e3-8774-e8bf6c33fe1e | Name: عيادة الأرطوفونيا والتخاطب - بشار (124) | Subdomain: bechar-orthophony-124-wcda
+Tenant ID: 56be3abd-d61e-49ae-9e92-541ccee2a7f0 | Name: المركز الطبي متعدد التخصصات والتأهيل - ميلة (159) | Subdomain: mila-multidisciplinary-159-vikb
+Tenant ID: 56e9186a-468f-460b-b85f-91f6efdb6d01 | Name: المركز الطبي متعدد التخصصات والتأهيل - تقرت (171) | Subdomain: touggourt-multidisciplinary-171-92u4
+Tenant ID: 58457cba-bbf3-4067-b20c-56927ccafaab | Name: عيادة الأرطوفونيا والتخاطب - أولاد جلال (109) | Subdomain: ouled-djellal-orthophony-109-gdly
+Tenant ID: 587d4ae4-bca1-413f-a8fe-4443f7f1bfc7 | Name: nassim | Subdomain: nassim
+Tenant ID: 5b3f6538-ee2c-4fa4-a16e-1eb2d62bb1dc | Name: عيادة الصحة النفسية والدعم المعرفي - غرداية (47) | Subdomain: ghardaia-psychology-47-p1ka
+Tenant ID: 5b518438-409d-4bab-99ad-bfe200ee5003 | Name: عيادة الصحة النفسية والدعم المعرفي - الأغواط (119) | Subdomain: laghouat-psychology-119-n0te
+Tenant ID: 5c29bae3-129b-4f2b-ab7d-2773371a969c | Name: المركز الطبي متعدد التخصصات والتأهيل - الوادي (39) | Subdomain: el-oued-multidisciplinary-39-ncqp
+Tenant ID: 5d105fe6-c336-4c61-8131-1a946cd686ab | Name: عيادة الصحة النفسية والدعم المعرفي - بشار (8) | Subdomain: bechar-psychology-8-zjkq
+Tenant ID: 5d74eb3a-3850-4cb7-9a66-b9d93d2223a0 | Name: المركز الطبي متعدد التخصصات والتأهيل - بجاية (6) | Subdomain: bejaia-multidisciplinary-6-l827
+Tenant ID: 5db35eb5-3556-419e-a2e3-faeef0aba0de | Name: المركز الطبي متعدد التخصصات والتأهيل - المنيعة (174) | Subdomain: el-meniaa-multidisciplinary-174-jsw9
+Tenant ID: 5eca9b3c-cc95-4322-ac72-058963281a8e | Name: المركز الطبي متعدد التخصصات والتأهيل - إليزي (207) | Subdomain: illizi-multidisciplinary-207-yeqz
+Tenant ID: 5f446082-6ad0-4265-8149-b54f0a8d368a | Name: عيادة الأرطوفونيا والتخاطب - أم البواقي (4) | Subdomain: oum-el-bouaghi-orthophony-4-sfau
+Tenant ID: 5fd9070f-8fa1-41a0-a0f7-0240ac2c4da7 | Name: 1 | Subdomain: clinique-0im3f
+Tenant ID: 601aad50-c4b1-4646-8b9f-9cae546809ac | Name: المركز الطبي متعدد التخصصات والتأهيل - غليزان (222) | Subdomain: relizane-multidisciplinary-222-pswg
+Tenant ID: 60678972-4833-4d66-9cdb-a572ff4889b5 | Name: المركز الطبي متعدد التخصصات والتأهيل - تيزي وزو (15) | Subdomain: tizi-ouzou-multidisciplinary-15-2wfv
+Tenant ID: 615ff8a7-0b3a-4476-bdac-377765d189fc | Name: عيادة الأرطوفونيا والتخاطب - تيبازة (100) | Subdomain: tipaza-orthophony-100-3bzc
+Tenant ID: 61e103e9-3b6d-4bec-8038-ba919612c02c | Name: عيادة الأرطوفونيا والتخاطب - تقرت (229) | Subdomain: touggourt-orthophony-229-91ih
+Tenant ID: 62902032-0045-482f-8e08-a1639e8f0b6f | Name: عيادة الصحة النفسية والدعم المعرفي - أم البواقي (236) | Subdomain: oum-el-bouaghi-psychology-236-g1dm
+Tenant ID: 652622a5-b15b-4d1c-922c-11eb3aa0ac48 | Name: عيادة الصحة النفسية والدعم المعرفي - سطيف (77) | Subdomain: setif-psychology-77-btp0
+Tenant ID: 65387cff-33a7-4302-9b18-a16c1f4db859 | Name: عيادة الصحة النفسية والدعم المعرفي - تيزي وزو (131) | Subdomain: tizi-ouzou-psychology-131-hnoh
+Tenant ID: 69c5bf50-8e3f-442e-ba6b-d59bad4fb68a | Name: المركز الطبي متعدد التخصصات والتأهيل - باتنة (63) | Subdomain: batna-multidisciplinary-63-ekpg
+Tenant ID: 6a0bf567-86f8-4125-84a3-d2965326196f | Name: عيادة الصحة النفسية والدعم المعرفي - الوادي (155) | Subdomain: el-oued-psychology-155-bq2n
+Tenant ID: 6a67d07e-00ee-4f2b-a2c8-85387241b6cf | Name: عيادة الصحة النفسية والدعم المعرفي - بجاية (122) | Subdomain: bejaia-psychology-122-nxnl
+Tenant ID: 6af91d5a-04e9-45a8-84be-c89a69c97888 | Name: عيادة الصحة النفسية والدعم المعرفي - النعامة (161) | Subdomain: naama-psychology-161-nqhy
+Tenant ID: 6cad7b97-431b-4169-a6e4-39fde3ef0ff5 | Name: عيادة الصحة النفسية والدعم المعرفي - عين صالح (227) | Subdomain: in-salah-psychology-227-lyn8
+Tenant ID: 6cf2b42f-067d-4d68-83de-8f753784088b | Name: عيادة الأرطوفونيا والتخاطب - تبسة (70) | Subdomain: tebessa-orthophony-70-5zqu
+Tenant ID: 6e58374b-7e8b-4932-bae8-f4e0a27f831b | Name: المركز الطبي متعدد التخصصات والتأهيل - أم البواقي (120) | Subdomain: oum-el-bouaghi-multidisciplinary-120-hlox
+Tenant ID: 6e792d85-759d-4dc0-9b0f-836d88f37ec4 | Name: عيادة الأرطوفونيا والتخاطب - بومرداس (151) | Subdomain: boumerdes-orthophony-151-bgvn
+Tenant ID: 6f238c8b-0101-474e-911c-ce7beb5f752e | Name: عيادة الصحة النفسية والدعم المعرفي - معسكر (29) | Subdomain: mascara-psychology-29-qzh2
+Tenant ID: 6f5f1b32-563d-4e4f-b574-efc59c687307 | Name: المركز الطبي متعدد التخصصات والتأهيل - أولاد جلال (225) | Subdomain: ouled-djellal-multidisciplinary-225-oqwe
+Tenant ID: 706c8a09-a1d1-4baa-95f5-b357542b853d | Name: المركز الطبي متعدد التخصصات والتأهيل - تبسة (186) | Subdomain: tebessa-multidisciplinary-186-vkcf
+Tenant ID: 723f970f-db30-43f9-890e-2d179036117f | Name: المركز الطبي متعدد التخصصات والتأهيل - عين قزام (54) | Subdomain: in-guezzam-multidisciplinary-54-bgru
+Tenant ID: 73e03b54-6395-4a97-92e0-1cc7e18ea620 | Name: عيادة الأرطوفونيا والتخاطب - خنشلة (214) | Subdomain: khenchela-orthophony-214-abjr
+Tenant ID: 73e1b7af-7776-4d47-b33d-eb460e506ad5 | Name: عيادة الأرطوفونيا والتخاطب - المنيعة (58) | Subdomain: el-meniaa-orthophony-58-qsnf
+Tenant ID: 74551be1-efd3-45cf-8115-5737bc1177cd | Name: المركز الطبي متعدد التخصصات والتأهيل - الجلفة (75) | Subdomain: djelfa-multidisciplinary-75-9jgc
+Tenant ID: 7548ea2c-7fea-4a0f-b347-964e6db84320 | Name: المركز الطبي متعدد التخصصات والتأهيل - البيض (90) | Subdomain: el-bayadh-multidisciplinary-90-x2ie
+Tenant ID: 7602a286-5f26-4068-9966-575c855b437f | Name: عيادة الأرطوفونيا والتخاطب - الأغواط (235) | Subdomain: laghouat-orthophony-235-fpku
+Tenant ID: 76baa826-88da-43dd-bb52-7fbfc86d142a | Name: عيادة الأرطوفونيا والتخاطب - قالمة (82) | Subdomain: guelma-orthophony-82-4roz
+Tenant ID: 79a48592-2bde-420b-b4f1-12f03d73e3f3 | Name: عيادة الصحة النفسية والدعم المعرفي - بومرداس (209) | Subdomain: boumerdes-psychology-209-cydi
+Tenant ID: 7ab15d4d-283a-4d1a-9d1f-3eaef82cea1f | Name: المركز الطبي متعدد التخصصات والتأهيل - تيميمون (165) | Subdomain: timimoun-multidisciplinary-165-3xfn
+Tenant ID: 7e969faf-6497-44ef-9df5-f19a21bcdf5d | Name: المركز الطبي متعدد التخصصات والتأهيل - برج بوعريريج (150) | Subdomain: bordj-bou-arreridj-multidisciplinary-150-qw3b
+Tenant ID: 7f086ec5-33a8-4c95-8de7-94a9f44eba56 | Name: عيادة الصحة النفسية والدعم المعرفي - جانت (230) | Subdomain: djanet-psychology-230-wl56
+Tenant ID: 7f383c8a-9725-4048-bd37-806ec7b6ec7d | Name: عيادة الأرطوفونيا والتخاطب - ورقلة (88) | Subdomain: ouargla-orthophony-88-syw0
+Tenant ID: 8107d6d2-f3e0-4ab7-9f74-f5b50627fcd1 | Name: عيادة الصحة النفسية والدعم المعرفي - تيسمسيلت (38) | Subdomain: tissemsilt-psychology-38-sgws
+Tenant ID: 826711ff-ab53-40c8-9814-622e0b89c598 | Name: عيادة الأرطوفونيا والتخاطب - وهران (31) | Subdomain: oran-orthophony-31-vwqg
+Tenant ID: 8474ef5c-858e-4691-a283-4dd467b0de42 | Name: عيادة الأرطوفونيا والتخاطب - الجلفة (133) | Subdomain: djelfa-orthophony-133-gd7h
+Tenant ID: 868594d6-6816-4f6f-a6ee-c7923b31e374 | Name: عيادة الأرطوفونيا والتخاطب - إليزي (91) | Subdomain: illizi-orthophony-91-fqow
+Tenant ID: 86aca050-3d4c-43d8-8073-40675bbf4dc5 | Name: عيادة الصحة النفسية والدعم المعرفي - عين صالح (53) | Subdomain: in-salah-psychology-53-4fzw
+Tenant ID: 88315373-3b2a-498f-9e8e-38a3e1b90e91 | Name: عيادة الصحة النفسية والدعم المعرفي - جيجل (134) | Subdomain: jijel-psychology-134-fvio
+Tenant ID: 897a6fe2-05e5-493b-ba42-1909a512a255 | Name: عيادة الصحة النفسية والدعم المعرفي - سعيدة (20) | Subdomain: saida-psychology-20-g8is
+Tenant ID: 8b1fb8bf-8ef2-46aa-9740-1c66c6c84fda | Name: المركز الطبي متعدد التخصصات والتأهيل - تبسة (12) | Subdomain: tebessa-multidisciplinary-12-eg6v
+Tenant ID: 8c2a81d9-fddf-460c-aafb-5044d1145520 | Name: عيادة الأرطوفونيا والتخاطب - أدرار (175) | Subdomain: adrar-orthophony-175-n5ga
+Tenant ID: 8ca6a2e5-debc-4b03-910a-0f0fe11e625f | Name: عيادة الصحة النفسية والدعم المعرفي - برج بوعريريج (92) | Subdomain: bordj-bou-arreridj-psychology-92-g2ra
+Tenant ID: 8cd6530f-254b-4c8e-9eea-d674e955647c | Name: عيادة الجزائر السريرية (Cabinet Alger) | Subdomain: cabinet-alger
+Tenant ID: 8dd6ad10-7abf-4acd-bdb1-7271564e1777 | Name: عيادة الصحة النفسية والدعم المعرفي - بشار (182) | Subdomain: bechar-psychology-182-zkgd
+Tenant ID: 8eb57e35-f7ac-4a00-b99f-87b07e99ee8f | Name: المركز الطبي متعدد التخصصات والتأهيل - سوق أهراس (99) | Subdomain: souk-ahras-multidisciplinary-99-zc8t
+Tenant ID: 8ef554d2-2dbf-4d6f-b51a-d4254c1abb5d | Name: عيادة الأرطوفونيا والتخاطب - بجاية (64) | Subdomain: bejaia-orthophony-64-sfpx
+Tenant ID: 8fac5700-8250-4d4d-9d1b-ab49b21be334 | Name: عيادة الأرطوفونيا والتخاطب - أم البواقي (178) | Subdomain: oum-el-bouaghi-orthophony-178-xd9s
+Tenant ID: 913e2300-4171-4b19-a974-4f0137376cc8 | Name: المركز الطبي متعدد التخصصات والتأهيل - البليدة (9) | Subdomain: blida-multidisciplinary-9-o5um
+Tenant ID: 92119e61-94e7-4ab0-9473-c3e70a5fd1eb | Name: المركز الطبي متعدد التخصصات والتأهيل - النعامة (45) | Subdomain: naama-multidisciplinary-45-m4tf
+Tenant ID: 928fd955-d9d0-4d7b-8db8-4d92cb0df5b3 | Name: المركز الطبي متعدد التخصصات والتأهيل - المدية (84) | Subdomain: medea-multidisciplinary-84-buhp
+Tenant ID: 92e67993-9889-4f27-a3ed-29754e6531b6 | Name: عيادة الصحة النفسية والدعم المعرفي - باتنة (5) | Subdomain: batna-psychology-5-kgsv
+Tenant ID: 93b3a643-c379-4b1c-81e4-c56c07c4ce9d | Name: عيادة الأرطوفونيا والتخاطب - غليزان (106) | Subdomain: relizane-orthophony-106-bczh
+Tenant ID: 9589bb3f-37d9-4b8e-820e-a5b4c1a3e687 | Name: المركز الطبي متعدد التخصصات والتأهيل - قالمة (198) | Subdomain: guelma-multidisciplinary-198-flwd
+Tenant ID: 95c55eb3-4eec-472f-a4d4-2eaed1674b9e | Name: عيادة الصحة النفسية والدعم المعرفي - الجلفة (191) | Subdomain: djelfa-psychology-191-xmd0
+Tenant ID: 981d00e3-f117-49fd-b577-166224f70f39 | Name: عيادة الأرطوفونيا والتخاطب - برج بوعريريج (208) | Subdomain: bordj-bou-arreridj-orthophony-208-jqsq
+Tenant ID: 987a7f24-83f4-43ed-aa32-8ae2a63474c4 | Name: عيادة الأرطوفونيا والتخاطب - عين تموشنت (220) | Subdomain: ain-temouchent-orthophony-220-kwuo
+Tenant ID: 98896919-7aab-4830-ad4c-913d47968568 | Name: عيادة الصحة النفسية والدعم المعرفي - الشلف (2) | Subdomain: chlef-psychology-2-gsrf
+Tenant ID: 99487e8d-848e-4f62-8083-d6ba3c502aee | Name: المركز الطبي متعدد التخصصات والتأهيل - تيبازة (216) | Subdomain: tipaza-multidisciplinary-216-9ezk
+Tenant ID: 995a76d2-9096-4092-8566-5a5f818384db | Name: عيادة الأرطوفونيا والتخاطب - البويرة (184) | Subdomain: bouira-orthophony-184-o59l
+Tenant ID: 99b8dfa6-ced7-407f-ad72-7b37565c6bc8 | Name: عيادة الأرطوفونيا والتخاطب - بسكرة (181) | Subdomain: biskra-orthophony-181-vned
+Tenant ID: 99cab79b-ea10-4336-a3f2-f792217566c4 | Name: عيادة الأرطوفونيا والتخاطب - المدية (142) | Subdomain: medea-orthophony-142-urgu
+Tenant ID: 9a0dab21-ac2a-45bc-b608-791ad458ee97 | Name: عيادة الصحة النفسية والدعم المعرفي - وهران (89) | Subdomain: oran-psychology-89-kn86
+Tenant ID: 9baeb79c-4bb7-4b9a-9270-d3ea4f9525cf | Name: عيادة الأرطوفونيا والتخاطب - بني عباس (52) | Subdomain: beni-abbes-orthophony-52-stbu
+Tenant ID: 9c9f8c4b-53c9-44f1-8e57-93b8753c996e | Name: المركز الطبي متعدد التخصصات والتأهيل - الأغواط (3) | Subdomain: laghouat-multidisciplinary-3-qhzz
+Tenant ID: 9cf96b5a-ab9e-488e-8ba9-ae0bdd89ee79 | Name: عيادة الصحة النفسية والدعم المعرفي - ورقلة (146) | Subdomain: ouargla-psychology-146-dtuf
+Tenant ID: 9fef855b-182a-49a0-8896-71dceddafb8e | Name: المركز الطبي متعدد التخصصات والتأهيل - عين الدفلى (102) | Subdomain: ain-defla-multidisciplinary-102-fxjk
+Tenant ID: a1eb6dc7-c4a5-49f8-8571-2d724f799866 | Name: المركز الطبي متعدد التخصصات والتأهيل - البويرة (126) | Subdomain: bouira-multidisciplinary-126-nboe
+Tenant ID: a3a3a652-44f0-427c-956e-1863b2633562 | Name: عيادة الصحة النفسية والدعم المعرفي - تيارت (188) | Subdomain: tiaret-psychology-188-3ddr
+Tenant ID: a3e49d89-8f7e-4482-99d7-7cad489a6ed5 | Name: عيادة الصحة النفسية والدعم المعرفي - عين الدفلى (44) | Subdomain: ain-defla-psychology-44-bztx
+Tenant ID: a5d9349d-65a8-4cae-9701-ea347b96f4a9 | Name: المركز الطبي متعدد التخصصات والتأهيل - الشلف (60) | Subdomain: chlef-multidisciplinary-60-qidb
+Tenant ID: a7762883-f5f2-4911-84a9-304194e73352 | Name: المركز الطبي متعدد التخصصات والتأهيل - المغير (231) | Subdomain: el-mghair-multidisciplinary-231-dtp7
+Tenant ID: a8067aee-e851-4a60-8e12-d7629100cc12 | Name: عيادة الأرطوفونيا والتخاطب - الأغواط (61) | Subdomain: laghouat-orthophony-61-bc2z
+Tenant ID: ac20c09f-9a4a-46aa-ada0-bfbf9590ad15 | Name: عيادة الصحة النفسية والدعم المعرفي - غليزان (164) | Subdomain: relizane-psychology-164-xten
+Tenant ID: ac7c4901-8301-44f8-a42c-a0e35d638e5b | Name: عيادة الأرطوفونيا والتخاطب - المسيلة (28) | Subdomain: msila-orthophony-28-jnxw
+Tenant ID: ad103b05-c3a0-4b71-a7fc-ba68c8446b7e | Name: عيادة الأرطوفونيا والتخاطب - النعامة (103) | Subdomain: naama-orthophony-103-k3iz
+Tenant ID: aed4efd8-7655-4ff6-8397-2ecf3121f9e3 | Name: المركز الطبي متعدد التخصصات والتأهيل - سعيدة (78) | Subdomain: saida-multidisciplinary-78-d9s2
+Tenant ID: aef4ac1f-fc8f-4291-b3a0-d59f24d9704d | Name: عيادة الأرطوفونيا والتخاطب - معسكر (145) | Subdomain: mascara-orthophony-145-ucbs
+Tenant ID: afa41c30-2b0f-4eb7-b786-f17f0cc3d876 | Name: عيادة الأمل التجريبية | Subdomain: clinictest001
+Tenant ID: b093f41b-ab95-443f-864b-c61c350d3b51 | Name: عيادة الصحة النفسية والدعم المعرفي - أدرار (59) | Subdomain: adrar-psychology-59-kynv
+Tenant ID: b0b8696a-abe0-4a4f-aa04-a0078763e1ad | Name: عيادة الصحة النفسية والدعم المعرفي - برج باجي مختار (50) | Subdomain: bordj-badji-mokhtar-psychology-50-lti3
+Tenant ID: b0e9ec48-397b-42a2-8cdc-1a2909e7cbb5 | Name: عيادة الأرطوفونيا والتخاطب - مستغانم (85) | Subdomain: mostaganem-orthophony-85-yhjt
+Tenant ID: b5c8f8ea-1734-4db1-a6a5-ccd93dfcac70 | Name: عيادة الصحة النفسية والدعم المعرفي - بني عباس (110) | Subdomain: beni-abbes-psychology-110-ahjg
+Tenant ID: b6e59a36-efd0-42e8-b0fb-2f3856bbc5fe | Name: عيادة الصحة النفسية والدعم المعرفي - بسكرة (65) | Subdomain: biskra-psychology-65-xf8m
+Tenant ID: b7b9650b-0001-48d0-94a5-4bcae497b3be | Name: المركز الطبي متعدد التخصصات والتأهيل - معسكر (87) | Subdomain: mascara-multidisciplinary-87-wejr
+Tenant ID: b7e0757a-eae4-4c91-9997-8e28b8c85a97 | Name: المركز الطبي متعدد التخصصات والتأهيل - النعامة (219) | Subdomain: naama-multidisciplinary-219-ty4y
+Tenant ID: b7fad942-43ae-4a13-8729-a860a364f635 | Name: المركز الطبي متعدد التخصصات والتأهيل - بجاية (180) | Subdomain: bejaia-multidisciplinary-180-tzuu
+Tenant ID: b9428be7-b673-4980-b2ac-caefe789617f | Name: عيادة الأرطوفونيا والتخاطب - تيسمسيلت (154) | Subdomain: tissemsilt-orthophony-154-f3l1
+Tenant ID: bdffd7c1-271d-4a7c-ab66-dcd3e70409bd | Name: المركز الطبي متعدد التخصصات والتأهيل - الجزائر (132) | Subdomain: alger-multidisciplinary-132-ziho
+Tenant ID: bed4743a-384c-4618-86fd-ef460bcfa9f7 | Name: المركز الطبي متعدد التخصصات والتأهيل - قالمة (24) | Subdomain: guelma-multidisciplinary-24-n1z7
+Tenant ID: bf519e69-0967-4896-bbab-5a110333566f | Name: عيادة الصحة النفسية والدعم المعرفي - تمنراست (11) | Subdomain: tamanrasset-psychology-11-iygj
+Tenant ID: c093112b-0e3c-4b45-8df3-905a4757102a | Name: dz | Subdomain: dz
+Tenant ID: c2033028-aed0-431d-ae57-38d2653786e3 | Name: عيادة الصحة النفسية والدعم المعرفي - سيدي بلعباس (80) | Subdomain: sidi-bel-abbes-psychology-80-ybmt
+Tenant ID: c2319bbd-5818-4d5e-a5df-62bd54e5700f | Name: المركز الطبي متعدد التخصصات والتأهيل - سطيف (135) | Subdomain: setif-multidisciplinary-135-ohzz
+Tenant ID: c27e6e73-5004-4488-9bf0-0a0502a23695 | Name: عيادة الأرطوفونيا والتخاطب - سيدي بلعباس (22) | Subdomain: sidi-bel-abbes-orthophony-22-crhm
+Tenant ID: c326d22b-c0eb-414d-af2d-cccf7332b0d7 | Name: عيادة الصحة النفسية والدعم المعرفي - الطارف (152) | Subdomain: el-tarf-psychology-152-k1vc
+Tenant ID: c3359f5e-5455-4bee-82a0-9e1859661c3f | Name: المركز الطبي متعدد التخصصات والتأهيل - أولاد جلال (51) | Subdomain: ouled-djellal-multidisciplinary-51-q2oy
+Tenant ID: c39b3f30-ab57-486e-aaa4-8833c8ab3aca | Name: عيادة الصحة النفسية والدعم المعرفي - عين الدفلى (218) | Subdomain: ain-defla-psychology-218-3hed
+Tenant ID: c4e72bc0-c41c-47c7-8009-d8e6642fcd41 | Name: QA Test Clinic 2026-09-13 | Subdomain: qa-test-clinic-20260913
+Tenant ID: c4fa46a0-d46f-4363-bb4b-e895c34debbf | Name: المركز الطبي متعدد التخصصات والتأهيل - غرداية (105) | Subdomain: ghardaia-multidisciplinary-105-eikl
+Tenant ID: c63b9b84-91ca-49b6-864e-b13c64266b6d | Name: عيادة الأرطوفونيا والتخاطب - سطيف (193) | Subdomain: setif-orthophony-193-rf76
+Tenant ID: c82bddb8-4e62-40fc-92f1-aa67279e6d80 | Name: عيادة الأرطوفونيا والتخاطب - ميلة (217) | Subdomain: mila-orthophony-217-o6gx
+Tenant ID: c84f8333-39c1-497b-bc89-ae98904d6fd2 | Name: عيادة الصحة النفسية والدعم المعرفي - المنيعة (116) | Subdomain: el-meniaa-psychology-116-janu
+Tenant ID: c8658967-c8d4-4e4c-8444-a7ca908e3336 | Name: عيادة الصحة النفسية والدعم المعرفي - تبسة (128) | Subdomain: tebessa-psychology-128-alyl
+Tenant ID: cb76f15e-7761-45d5-90b7-b3da01d47073 | Name: عيادة الصحة النفسية والدعم المعرفي - أولاد جلال (167) | Subdomain: ouled-djellal-psychology-167-jkvm
+Tenant ID: cce39eff-1cb9-4f06-8da1-8e8e584e5f7e | Name: عيادة الصحة النفسية والدعم المعرفي - برج باجي مختار (224) | Subdomain: bordj-badji-mokhtar-psychology-224-drpb
+Tenant ID: cf7862aa-1c96-44e5-9a70-c3eef6aa3f50 | Name: عيادة الصحة النفسية والدعم المعرفي - جانت (56) | Subdomain: djanet-psychology-56-jjsm
+Tenant ID: d0a34cba-4698-484f-915f-70f344da4da5 | Name: المركز الطبي متعدد التخصصات والتأهيل - بومرداس (93) | Subdomain: boumerdes-multidisciplinary-93-ksbx
+Tenant ID: d3c35e4a-e376-43ea-8bef-cfaa758c77e1 | Name: عيادة الأرطوفونيا والتخاطب - أدرار (1) | Subdomain: adrar-orthophony-1-kcei
+Tenant ID: d5857b44-0e91-4c95-902b-4e5f1938be0d | Name: عيادة الصحة النفسية والدعم المعرفي - خنشلة (98) | Subdomain: khenchela-psychology-98-2usa
+Tenant ID: d6478c50-0329-4850-8aea-7b83a85a6df7 | Name: عيادة الصحة النفسية والدعم المعرفي - بومرداس (35) | Subdomain: boumerdes-psychology-35-cags
+Tenant ID: d724de0d-039d-4586-8be8-c6e9323a5b1c | Name: عيادة الصحة النفسية والدعم المعرفي - تيسمسيلت (212) | Subdomain: tissemsilt-psychology-212-gbok
+Tenant ID: d75445f4-9751-4101-9c5c-0d23d4828f5b | Name: المركز الطبي متعدد التخصصات والتأهيل - مستغانم (27) | Subdomain: mostaganem-multidisciplinary-27-dcso
+Tenant ID: d85e44ea-ab73-44b6-8769-8c48b04b35ee | Name: عيادة الصحة النفسية والدعم المعرفي - المدية (200) | Subdomain: medea-psychology-200-zjhi
+Tenant ID: d8902a17-7c68-4b35-beee-fc4dea7a1db8 | Name: المركز الطبي متعدد التخصصات والتأهيل - عين قزام (228) | Subdomain: in-guezzam-multidisciplinary-228-4lzi
+Tenant ID: d8cc43f5-77cc-4709-a8ba-66e572461c40 | Name: عيادة الصحة النفسية والدعم المعرفي - سوق أهراس (215) | Subdomain: souk-ahras-psychology-215-5vn0
+Tenant ID: dbe4da76-b0f3-4472-93c0-f39d2d268d85 | Name: المركز الطبي متعدد التخصصات والتأهيل - تندوف (153) | Subdomain: tindouf-multidisciplinary-153-dlyo
+Tenant ID: dc0b1b9d-0875-44f8-8b83-d5bcad79d9d7 | Name: عيادة الأرطوفونيا والتخاطب - سوق أهراس (157) | Subdomain: souk-ahras-orthophony-157-z1sk
+Tenant ID: dceadbd4-f3f8-4f6e-9bf5-23dbdd9611aa | Name: عيادة الأرطوفونيا والتخاطب - تلمسان (187) | Subdomain: tlemcen-orthophony-187-znwf
+Tenant ID: ddffd415-3ecd-4598-9d61-ceea9d8ccf45 | Name: عيادة الصحة النفسية والدعم المعرفي - الجلفة (17) | Subdomain: djelfa-psychology-17-bmjk
+Tenant ID: dfbe3603-2cdb-4552-8d5d-e4bc057d60e7 | Name: المركز الطبي متعدد التخصصات والتأهيل - أدرار (117) | Subdomain: adrar-multidisciplinary-117-78oz
+Tenant ID: e06844ce-2ed8-4005-8544-ea39ba0147d8 | Name: المركز الطبي متعدد التخصصات والتأهيل - تيزي وزو (189) | Subdomain: tizi-ouzou-multidisciplinary-189-s0zy
+Tenant ID: e186320c-5dba-4284-868f-9619c5bc21ca | Name: عيادة الصحة النفسية والدعم المعرفي - باتنة (179) | Subdomain: batna-psychology-179-wppe
+Tenant ID: e287ff73-ad12-4d53-847a-17a9c030d277 | Name: عيادة الأرطوفونيا والتخاطب - البيض (148) | Subdomain: el-bayadh-orthophony-148-z5ew
+Tenant ID: e345012d-3466-4fca-96da-ac835726328d | Name: عيادة الصحة النفسية والدعم المعرفي - تيميمون (107) | Subdomain: timimoun-psychology-107-j3yr
+Tenant ID: e3e1de17-d92c-43b8-9906-813cda015fb3 | Name: عيادة الصحة النفسية والدعم المعرفي - مستغانم (143) | Subdomain: mostaganem-psychology-143-w3da
+Tenant ID: e539e3c8-7829-4d6e-bfa6-d6ac5abc234c | Name: عيادة الأرطوفونيا والتخاطب - قسنطينة (25) | Subdomain: constantine-orthophony-25-xoci
+Tenant ID: e58b9175-79fc-4141-a630-1b4705aa20ea | Name: عيادة الأرطوفونيا والتخاطب - جانت (172) | Subdomain: djanet-orthophony-172-w8rm
+Tenant ID: e645f6aa-e0a2-4fe7-8749-af068c62331a | Name: المركز الطبي متعدد التخصصات والتأهيل - سكيكدة (21) | Subdomain: skikda-multidisciplinary-21-qpi5
+Tenant ID: e71a476e-35ca-4c57-936d-a2ce6536facf | Name: المركز الطبي متعدد التخصصات والتأهيل - عين صالح (111) | Subdomain: in-salah-multidisciplinary-111-4gmq
+Tenant ID: e7bc4cf4-2a48-42cb-b722-2bf8e3a01632 | Name: عيادة الصحة النفسية والدعم المعرفي - الشلف (2) | Subdomain: chlef-psychology-2-9p8z
+Tenant ID: e987d897-3898-4673-b5f1-95b9bda170eb | Name: المركز الطبي متعدد التخصصات والتأهيل - جيجل (18) | Subdomain: jijel-multidisciplinary-18-vc5t
+Tenant ID: e9c175be-2efb-419e-8660-162878a92e79 | Name: عيادة الأرطوفونيا والتخاطب - عين الدفلى (160) | Subdomain: ain-defla-orthophony-160-sjph
+Tenant ID: eadeba05-61b6-4ee2-9430-b82b16914a83 | Name: عيادة الصحة النفسية والدعم المعرفي - البويرة (68) | Subdomain: bouira-psychology-68-lvbm
+Tenant ID: eb5ef510-b7f0-4d74-9861-76a1e9fdf001 | Name: عيادة الصحة النفسية والدعم المعرفي - المسيلة (86) | Subdomain: msila-psychology-86-uhbq
+Tenant ID: ed38c653-536c-4d7d-a8a5-5631d553d385 | Name: عيادة الأمل للتأهيل السريري والاستشارات | Subdomain: cabinet-el-amel
+Tenant ID: ed44ef14-cea4-41a5-8277-457b6eecdf40 | Name: عيادة الأرطوفونيا والتخاطب - سيدي بلعباس (196) | Subdomain: sidi-bel-abbes-orthophony-196-a5qf
+Tenant ID: ee02c3d4-49e4-43b5-a539-4bcc54aee806 | Name: المركز الطبي متعدد التخصصات والتأهيل - بسكرة (123) | Subdomain: biskra-multidisciplinary-123-ra5p
+Tenant ID: eec47dc8-f13c-4c79-974a-0ee56af8dc7e | Name: عيادة الصحة النفسية والدعم المعرفي - تيارت (14) | Subdomain: tiaret-psychology-14-0vao
+Tenant ID: f09fe013-2b70-45a0-be11-500c7de684e4 | Name: عيادة الصحة النفسية والدعم المعرفي - البليدة (125) | Subdomain: blida-psychology-125-9zeb
+Tenant ID: f0c99cd8-4870-4230-82e3-2623d6dc04e9 | Name: المركز الطبي متعدد التخصصات والتأهيل - ورقلة (204) | Subdomain: ouargla-multidisciplinary-204-28p7
+Tenant ID: f1b299ee-79b8-4788-9198-c4ef74634c8f | Name: عيادة الصحة النفسية والدعم المعرفي - عين تموشنت (104) | Subdomain: ain-temouchent-psychology-104-za3y
+Tenant ID: f1d8aba3-2513-4a43-913d-7430c187899f | Name: المركز الطبي متعدد التخصصات والتأهيل - الطارف (210) | Subdomain: el-tarf-multidisciplinary-210-mctj
+Tenant ID: f3b30def-8fc6-4184-9eaf-3e29631c604f | Name: المركز الطبي متعدد التخصصات والتأهيل - المسيلة (144) | Subdomain: msila-multidisciplinary-144-f4oc
+Tenant ID: f4902f26-1628-418b-abae-24e8ca3c2b1c | Name: عيادة الأرطوفونيا والتخاطب - برج باجي مختار (166) | Subdomain: bordj-badji-mokhtar-orthophony-166-08yz
+Tenant ID: f4ce366e-062f-4405-a8ce-bf69b016b15b | Name: المركز الطبي متعدد التخصصات والتأهيل - سكيكدة (195) | Subdomain: skikda-multidisciplinary-195-rxrq
+Tenant ID: f52eda08-6894-4016-a0a2-979e03f17894 | Name: المركز الطبي متعدد التخصصات والتأهيل - الطارف (36) | Subdomain: el-tarf-multidisciplinary-36-wmfc
+Tenant ID: f54cfacb-028b-412b-90af-679ec81f85f8 | Name: عيادة الصحة النفسية والدعم المعرفي - ميلة (101) | Subdomain: mila-psychology-101-puj7
+Tenant ID: f57f851c-d253-4139-b294-3ec07eab08e7 | Name: عيادة الصحة النفسية والدعم المعرفي - عين قزام (170) | Subdomain: in-guezzam-psychology-170-1b0q
+Tenant ID: f5fec54e-2b98-498c-a8a9-6a43a625f630 | Name: عيادة الأرطوفونيا والتخاطب - باتنة (121) | Subdomain: batna-orthophony-121-ic11
+Tenant ID: f7dc4f42-5b7b-4dcd-bf90-ce5dd457e4e6 | Name: المركز الطبي متعدد التخصصات والتأهيل - وهران (147) | Subdomain: oran-multidisciplinary-147-8tpm
+Tenant ID: f7e6672f-b67f-492a-8851-9224c9dce9ce | Name: عيادة الصحة النفسية والدعم المعرفي - عنابة (23) | Subdomain: annaba-psychology-23-uelz
+Tenant ID: f83bf346-132a-47cd-a87d-55d1f301f898 | Name: عيادة الأرطوفونيا والتخاطب - سعيدة (136) | Subdomain: saida-orthophony-136-wova
+Tenant ID: fc1c2d04-24a1-4932-a81f-0dbfa59baf7f | Name: المركز الطبي متعدد التخصصات والتأهيل - تيبازة (42) | Subdomain: tipaza-multidisciplinary-42-wsql
+Tenant ID: fcb790aa-c3c3-4f44-afb7-97219c6cc57e | Name: عيادة الأرطوفونيا والتخاطب - بسكرة (7) | Subdomain: biskra-orthophony-7-k3pv
+Tenant ID: feb6b928-9c66-4a17-a11d-96dc371efa2d | Name: المركز الطبي متعدد التخصصات والتأهيل - جانت (114) | Subdomain: djanet-multidisciplinary-114-hrsc
+USERS:
+User ID: 1 | Email: superadmin@clinic-saas.dz | Tenant:  | Role: superadmin
+User ID: 2 | Email: admin@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: clinic_admin
+User ID: 3 | Email: ortho1@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: orthophonist
+User ID: 4 | Email: admin@oran-psy.dz | Tenant: 01a01ce6-d8fd-7201-9c4e-98332ad7cc5c | Role: clinic_admin
+User ID: 5 | Email: admin@constantine-sante.dz | Tenant: 01a01ce6-d9cd-7312-b6d5-ae902bdc1cd1 | Role: clinic_admin
+User ID: 6 | Email: admin@annaba-ortho.dz | Tenant: 01a01cf3-aac8-73c7-b215-5f78cb559063 | Role: clinic_admin
+User ID: 13 | Email: wahran.1787256775@test.dz | Tenant: 01a020ce-2413-7221-80dd-bf752892a80e | Role: clinic_admin
+User ID: 16 | Email: secretaire.test.1787627596@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 17 | Email: secretaire.test.1787627653@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 18 | Email: secretaire.test.1787627677@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 19 | Email: secretaire.test.1787627689@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 20 | Email: secretaire.test.1787627705@elbiar-ortho.dz | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 23 | Email: test_clinician_ai@psypro.tech | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: clinician
+User ID: 24 | Email: test_secretary_ai@psypro.tech | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: secretary
+User ID: 25 | Email: dr_pdf_test@psypro.tech | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: clinician
+User ID: 26 | Email: dr.sarah_62zeqp@clinic-saas.dz | Tenant: 01a039b3-510d-7375-af9e-56f9d91d94c8 | Role: admin_owner
+User ID: 27 | Email: dr.test.ym1gj@psypro-dz.com | Tenant: 01a039ca-305d-700f-b954-95b1881b8814 | Role: admin_owner
+User ID: 28 | Email: zaraapsy23@gmail.com | Tenant: 01a039f7-d392-7022-9af4-42bbd0af3a91 | Role: admin_owner
+User ID: 29 | Email: nassimdew1@gmail.com | Tenant: 01a03a10-f505-71e3-b2be-83232535cad1 | Role: admin_owner
+User ID: 30 | Email: admin@aayad-gdyd.dz | Tenant: 143d16d7-70e1-4c0b-9a28-b4a0b29bc30f | Role: admin_owner
+User ID: 31 | Email: asasa@assa | Tenant: 587d4ae4-bca1-413f-a8fe-4443f7f1bfc7 | Role: admin_owner
+User ID: 34 | Email: admin@adrar-orthophony-1-yg3j.dz | Tenant: 27c7ee14-08fc-4dd8-abf3-f3c18f155dfc | Role: clinic_admin
+User ID: 35 | Email: admin@chlef-psychology-2-9p8z.dz | Tenant: e7bc4cf4-2a48-42cb-b722-2bf8e3a01632 | Role: clinic_admin
+User ID: 36 | Email: admin@adrar-orthophony-1-kcei.dz | Tenant: d3c35e4a-e376-43ea-8bef-cfaa758c77e1 | Role: clinic_admin
+User ID: 37 | Email: admin@chlef-psychology-2-gsrf.dz | Tenant: 98896919-7aab-4830-ad4c-913d47968568 | Role: clinic_admin
+User ID: 38 | Email: admin@laghouat-multidisciplinary-3-qhzz.dz | Tenant: 9c9f8c4b-53c9-44f1-8e57-93b8753c996e | Role: clinic_admin
+User ID: 39 | Email: admin@oum-el-bouaghi-orthophony-4-sfau.dz | Tenant: 5f446082-6ad0-4265-8149-b54f0a8d368a | Role: clinic_admin
+User ID: 40 | Email: admin@batna-psychology-5-kgsv.dz | Tenant: 92e67993-9889-4f27-a3ed-29754e6531b6 | Role: clinic_admin
+User ID: 41 | Email: admin@bejaia-multidisciplinary-6-l827.dz | Tenant: 5d74eb3a-3850-4cb7-9a66-b9d93d2223a0 | Role: clinic_admin
+User ID: 42 | Email: admin@biskra-orthophony-7-k3pv.dz | Tenant: fcb790aa-c3c3-4f44-afb7-97219c6cc57e | Role: clinic_admin
+User ID: 43 | Email: admin@bechar-psychology-8-zjkq.dz | Tenant: 5d105fe6-c336-4c61-8131-1a946cd686ab | Role: clinic_admin
+User ID: 44 | Email: admin@blida-multidisciplinary-9-o5um.dz | Tenant: 913e2300-4171-4b19-a974-4f0137376cc8 | Role: clinic_admin
+User ID: 45 | Email: admin@bouira-orthophony-10-tzqv.dz | Tenant: 404d1aaf-4157-4d8a-9b00-5eb247eccce3 | Role: clinic_admin
+User ID: 46 | Email: admin@tamanrasset-psychology-11-iygj.dz | Tenant: bf519e69-0967-4896-bbab-5a110333566f | Role: clinic_admin
+User ID: 47 | Email: admin@tebessa-multidisciplinary-12-eg6v.dz | Tenant: 8b1fb8bf-8ef2-46aa-9740-1c66c6c84fda | Role: clinic_admin
+User ID: 48 | Email: admin@tlemcen-orthophony-13-545k.dz | Tenant: 49ab1f9f-e6fd-467f-a5a4-751c547e1f9e | Role: clinic_admin
+User ID: 49 | Email: admin@tiaret-psychology-14-0vao.dz | Tenant: eec47dc8-f13c-4c79-974a-0ee56af8dc7e | Role: clinic_admin
+User ID: 50 | Email: admin@tizi-ouzou-multidisciplinary-15-2wfv.dz | Tenant: 60678972-4833-4d66-9cdb-a572ff4889b5 | Role: clinic_admin
+User ID: 51 | Email: admin@alger-orthophony-16-yb2q.dz | Tenant: 504ac454-524e-4ce4-bb47-6afa56eecd26 | Role: clinic_admin
+User ID: 52 | Email: admin@djelfa-psychology-17-bmjk.dz | Tenant: ddffd415-3ecd-4598-9d61-ceea9d8ccf45 | Role: clinic_admin
+User ID: 53 | Email: admin@jijel-multidisciplinary-18-vc5t.dz | Tenant: e987d897-3898-4673-b5f1-95b9bda170eb | Role: clinic_admin
+User ID: 54 | Email: admin@setif-orthophony-19-miex.dz | Tenant: 1335324c-35dd-458f-8969-b88b095a9e2e | Role: clinic_admin
+User ID: 55 | Email: admin@saida-psychology-20-g8is.dz | Tenant: 897a6fe2-05e5-493b-ba42-1909a512a255 | Role: clinic_admin
+User ID: 56 | Email: admin@skikda-multidisciplinary-21-qpi5.dz | Tenant: e645f6aa-e0a2-4fe7-8749-af068c62331a | Role: clinic_admin
+User ID: 57 | Email: admin@sidi-bel-abbes-orthophony-22-crhm.dz | Tenant: c27e6e73-5004-4488-9bf0-0a0502a23695 | Role: clinic_admin
+User ID: 58 | Email: admin@annaba-psychology-23-uelz.dz | Tenant: f7e6672f-b67f-492a-8851-9224c9dce9ce | Role: clinic_admin
+User ID: 59 | Email: admin@guelma-multidisciplinary-24-n1z7.dz | Tenant: bed4743a-384c-4618-86fd-ef460bcfa9f7 | Role: clinic_admin
+User ID: 60 | Email: admin@constantine-orthophony-25-xoci.dz | Tenant: e539e3c8-7829-4d6e-bfa6-d6ac5abc234c | Role: clinic_admin
+User ID: 61 | Email: admin@medea-psychology-26-wjjb.dz | Tenant: 31ec0065-8017-430a-a83c-f4238de6ad8a | Role: clinic_admin
+User ID: 62 | Email: admin@mostaganem-multidisciplinary-27-dcso.dz | Tenant: d75445f4-9751-4101-9c5c-0d23d4828f5b | Role: clinic_admin
+User ID: 63 | Email: admin@msila-orthophony-28-jnxw.dz | Tenant: ac7c4901-8301-44f8-a42c-a0e35d638e5b | Role: clinic_admin
+User ID: 64 | Email: admin@mascara-psychology-29-qzh2.dz | Tenant: 6f238c8b-0101-474e-911c-ce7beb5f752e | Role: clinic_admin
+User ID: 65 | Email: admin@ouargla-multidisciplinary-30-q97d.dz | Tenant: 3d40a391-d30a-4fac-90eb-0e62f2796860 | Role: clinic_admin
+User ID: 66 | Email: admin@oran-orthophony-31-vwqg.dz | Tenant: 826711ff-ab53-40c8-9814-622e0b89c598 | Role: clinic_admin
+User ID: 67 | Email: admin@el-bayadh-psychology-32-nbuq.dz | Tenant: 254a7036-3204-4281-baff-045daf3506ed | Role: clinic_admin
+User ID: 68 | Email: admin@illizi-multidisciplinary-33-fdwf.dz | Tenant: 0b6623d9-f578-492f-9398-526a97f2a0cd | Role: clinic_admin
+User ID: 69 | Email: admin@bordj-bou-arreridj-orthophony-34-t05z.dz | Tenant: 0574182a-f18f-4aa0-8f6a-2bc80169c93c | Role: clinic_admin
+User ID: 70 | Email: admin@boumerdes-psychology-35-cags.dz | Tenant: d6478c50-0329-4850-8aea-7b83a85a6df7 | Role: clinic_admin
+User ID: 71 | Email: admin@el-tarf-multidisciplinary-36-wmfc.dz | Tenant: f52eda08-6894-4016-a0a2-979e03f17894 | Role: clinic_admin
+User ID: 72 | Email: admin@tindouf-orthophony-37-kgsb.dz | Tenant: 09bd2965-914b-4129-892a-5eda0d751c5f | Role: clinic_admin
+User ID: 73 | Email: admin@tissemsilt-psychology-38-sgws.dz | Tenant: 8107d6d2-f3e0-4ab7-9f74-f5b50627fcd1 | Role: clinic_admin
+User ID: 74 | Email: admin@el-oued-multidisciplinary-39-ncqp.dz | Tenant: 5c29bae3-129b-4f2b-ab7d-2773371a969c | Role: clinic_admin
+User ID: 75 | Email: admin@khenchela-orthophony-40-zsfy.dz | Tenant: 3505bdc0-9077-45d2-8202-c8ef65351c5f | Role: clinic_admin
+User ID: 76 | Email: admin@souk-ahras-psychology-41-iylm.dz | Tenant: 29f22c85-a09c-497b-9059-7c9cdb4eacd1 | Role: clinic_admin
+User ID: 77 | Email: admin@tipaza-multidisciplinary-42-wsql.dz | Tenant: fc1c2d04-24a1-4932-a81f-0dbfa59baf7f | Role: clinic_admin
+User ID: 78 | Email: admin@mila-orthophony-43-y3vt.dz | Tenant: 36290d76-777d-4b65-b078-854c49ce2b91 | Role: clinic_admin
+User ID: 79 | Email: admin@ain-defla-psychology-44-bztx.dz | Tenant: a3e49d89-8f7e-4482-99d7-7cad489a6ed5 | Role: clinic_admin
+User ID: 80 | Email: admin@naama-multidisciplinary-45-m4tf.dz | Tenant: 92119e61-94e7-4ab0-9473-c3e70a5fd1eb | Role: clinic_admin
+User ID: 81 | Email: admin@ain-temouchent-orthophony-46-sapq.dz | Tenant: 361b4b3e-36c3-483c-9d40-a46ab7da8230 | Role: clinic_admin
+User ID: 82 | Email: admin@ghardaia-psychology-47-p1ka.dz | Tenant: 5b3f6538-ee2c-4fa4-a16e-1eb2d62bb1dc | Role: clinic_admin
+User ID: 83 | Email: admin@relizane-multidisciplinary-48-1x9s.dz | Tenant: 1ea74d08-8a50-4a47-b4bb-5dd9bd6a9586 | Role: clinic_admin
+User ID: 84 | Email: admin@timimoun-orthophony-49-fjzp.dz | Tenant: 04789c77-8cc0-48bd-9e12-e8a2272e1ed6 | Role: clinic_admin
+User ID: 85 | Email: admin@bordj-badji-mokhtar-psychology-50-lti3.dz | Tenant: b0b8696a-abe0-4a4f-aa04-a0078763e1ad | Role: clinic_admin
+User ID: 86 | Email: admin@ouled-djellal-multidisciplinary-51-q2oy.dz | Tenant: c3359f5e-5455-4bee-82a0-9e1859661c3f | Role: clinic_admin
+User ID: 87 | Email: admin@beni-abbes-orthophony-52-stbu.dz | Tenant: 9baeb79c-4bb7-4b9a-9270-d3ea4f9525cf | Role: clinic_admin
+User ID: 88 | Email: admin@in-salah-psychology-53-4fzw.dz | Tenant: 86aca050-3d4c-43d8-8073-40675bbf4dc5 | Role: clinic_admin
+User ID: 89 | Email: admin@in-guezzam-multidisciplinary-54-bgru.dz | Tenant: 723f970f-db30-43f9-890e-2d179036117f | Role: clinic_admin
+User ID: 90 | Email: admin@touggourt-orthophony-55-4vwl.dz | Tenant: 5682d461-cbe1-4321-8cbb-3d7e7cfd9093 | Role: clinic_admin
+User ID: 91 | Email: admin@djanet-psychology-56-jjsm.dz | Tenant: cf7862aa-1c96-44e5-9a70-c3eef6aa3f50 | Role: clinic_admin
+User ID: 92 | Email: admin@el-mghair-multidisciplinary-57-oxxs.dz | Tenant: 318dbecf-49ef-44ec-b42f-9cc81173ba4b | Role: clinic_admin
+User ID: 93 | Email: admin@el-meniaa-orthophony-58-qsnf.dz | Tenant: 73e1b7af-7776-4d47-b33d-eb460e506ad5 | Role: clinic_admin
+User ID: 94 | Email: admin@adrar-psychology-59-kynv.dz | Tenant: b093f41b-ab95-443f-864b-c61c350d3b51 | Role: clinic_admin
+User ID: 95 | Email: admin@chlef-multidisciplinary-60-qidb.dz | Tenant: a5d9349d-65a8-4cae-9701-ea347b96f4a9 | Role: clinic_admin
+User ID: 96 | Email: admin@laghouat-orthophony-61-bc2z.dz | Tenant: a8067aee-e851-4a60-8e12-d7629100cc12 | Role: clinic_admin
+User ID: 97 | Email: admin@oum-el-bouaghi-psychology-62-74pr.dz | Tenant: 0c77eac5-e001-4364-bc6a-713bf82aa22b | Role: clinic_admin
+User ID: 98 | Email: admin@batna-multidisciplinary-63-ekpg.dz | Tenant: 69c5bf50-8e3f-442e-ba6b-d59bad4fb68a | Role: clinic_admin
+User ID: 99 | Email: admin@bejaia-orthophony-64-sfpx.dz | Tenant: 8ef554d2-2dbf-4d6f-b51a-d4254c1abb5d | Role: clinic_admin
+User ID: 100 | Email: admin@biskra-psychology-65-xf8m.dz | Tenant: b6e59a36-efd0-42e8-b0fb-2f3856bbc5fe | Role: clinic_admin
+User ID: 101 | Email: admin@bechar-multidisciplinary-66-gvy2.dz | Tenant: 30354b4b-9dbf-4567-9201-e71ad7bb52d7 | Role: clinic_admin
+User ID: 102 | Email: admin@blida-orthophony-67-zzcx.dz | Tenant: 3a3ed4ac-2747-4ed5-9299-c95a7facfb2f | Role: clinic_admin
+User ID: 103 | Email: admin@bouira-psychology-68-lvbm.dz | Tenant: eadeba05-61b6-4ee2-9430-b82b16914a83 | Role: clinic_admin
+User ID: 104 | Email: admin@tamanrasset-multidisciplinary-69-hbna.dz | Tenant: 4dcecfe0-2a8c-41fb-bb36-f852cf1dc0b1 | Role: clinic_admin
+User ID: 105 | Email: admin@tebessa-orthophony-70-5zqu.dz | Tenant: 6cf2b42f-067d-4d68-83de-8f753784088b | Role: clinic_admin
+User ID: 106 | Email: admin@tlemcen-psychology-71-xqcs.dz | Tenant: 1f5b6122-cda4-4b59-8f67-8dbe83accf3a | Role: clinic_admin
+User ID: 107 | Email: admin@tiaret-multidisciplinary-72-j6wr.dz | Tenant: 05661291-1ce4-4d94-ad97-20a1bb0736a0 | Role: clinic_admin
+User ID: 108 | Email: admin@tizi-ouzou-orthophony-73-fcrx.dz | Tenant: 195af5e5-6f72-4fb0-8775-347918b63078 | Role: clinic_admin
+User ID: 109 | Email: admin@alger-psychology-74-bmls.dz | Tenant: 1b229cfd-dc96-4850-871d-f2f1016355ac | Role: clinic_admin
+User ID: 110 | Email: admin@djelfa-multidisciplinary-75-9jgc.dz | Tenant: 74551be1-efd3-45cf-8115-5737bc1177cd | Role: clinic_admin
+User ID: 111 | Email: admin@jijel-orthophony-76-bvbj.dz | Tenant: 32e6bc40-be3a-4c0c-b747-fc7278b4757a | Role: clinic_admin
+User ID: 112 | Email: admin@setif-psychology-77-btp0.dz | Tenant: 652622a5-b15b-4d1c-922c-11eb3aa0ac48 | Role: clinic_admin
+User ID: 113 | Email: admin@saida-multidisciplinary-78-d9s2.dz | Tenant: aed4efd8-7655-4ff6-8397-2ecf3121f9e3 | Role: clinic_admin
+User ID: 114 | Email: admin@skikda-orthophony-79-xcg2.dz | Tenant: 4c0e139a-5be6-49fd-b993-ef595955973e | Role: clinic_admin
+User ID: 115 | Email: admin@sidi-bel-abbes-psychology-80-ybmt.dz | Tenant: c2033028-aed0-431d-ae57-38d2653786e3 | Role: clinic_admin
+User ID: 116 | Email: admin@annaba-multidisciplinary-81-wazu.dz | Tenant: 0bc574ef-21c1-475d-9927-457dfbf2947a | Role: clinic_admin
+User ID: 117 | Email: admin@guelma-orthophony-82-4roz.dz | Tenant: 76baa826-88da-43dd-bb52-7fbfc86d142a | Role: clinic_admin
+User ID: 118 | Email: admin@constantine-psychology-83-boge.dz | Tenant: 07bc7e0d-2341-4904-ada5-e3df62925cf3 | Role: clinic_admin
+User ID: 119 | Email: admin@medea-multidisciplinary-84-buhp.dz | Tenant: 928fd955-d9d0-4d7b-8db8-4d92cb0df5b3 | Role: clinic_admin
+User ID: 120 | Email: admin@mostaganem-orthophony-85-yhjt.dz | Tenant: b0e9ec48-397b-42a2-8cdc-1a2909e7cbb5 | Role: clinic_admin
+User ID: 121 | Email: admin@msila-psychology-86-uhbq.dz | Tenant: eb5ef510-b7f0-4d74-9861-76a1e9fdf001 | Role: clinic_admin
+User ID: 122 | Email: admin@mascara-multidisciplinary-87-wejr.dz | Tenant: b7b9650b-0001-48d0-94a5-4bcae497b3be | Role: clinic_admin
+User ID: 123 | Email: admin@ouargla-orthophony-88-syw0.dz | Tenant: 7f383c8a-9725-4048-bd37-806ec7b6ec7d | Role: clinic_admin
+User ID: 124 | Email: admin@oran-psychology-89-kn86.dz | Tenant: 9a0dab21-ac2a-45bc-b608-791ad458ee97 | Role: clinic_admin
+User ID: 125 | Email: admin@el-bayadh-multidisciplinary-90-x2ie.dz | Tenant: 7548ea2c-7fea-4a0f-b347-964e6db84320 | Role: clinic_admin
+User ID: 126 | Email: admin@illizi-orthophony-91-fqow.dz | Tenant: 868594d6-6816-4f6f-a6ee-c7923b31e374 | Role: clinic_admin
+User ID: 127 | Email: admin@bordj-bou-arreridj-psychology-92-g2ra.dz | Tenant: 8ca6a2e5-debc-4b03-910a-0f0fe11e625f | Role: clinic_admin
+User ID: 128 | Email: admin@boumerdes-multidisciplinary-93-ksbx.dz | Tenant: d0a34cba-4698-484f-915f-70f344da4da5 | Role: clinic_admin
+User ID: 129 | Email: admin@el-tarf-orthophony-94-go8g.dz | Tenant: 47b5444d-c348-4aa0-b357-7672316f2501 | Role: clinic_admin
+User ID: 130 | Email: admin@tindouf-psychology-95-fwcy.dz | Tenant: 0c445414-7b7f-4bac-aea1-2f44f6605b62 | Role: clinic_admin
+User ID: 131 | Email: admin@tissemsilt-multidisciplinary-96-krxg.dz | Tenant: 0ba92b25-c507-45e1-b7c8-c5e87e7866ce | Role: clinic_admin
+User ID: 132 | Email: admin@el-oued-orthophony-97-mbdd.dz | Tenant: 4c04bfa8-2107-47d9-a188-1592784b6f50 | Role: clinic_admin
+User ID: 133 | Email: admin@khenchela-psychology-98-2usa.dz | Tenant: d5857b44-0e91-4c95-902b-4e5f1938be0d | Role: clinic_admin
+User ID: 134 | Email: admin@souk-ahras-multidisciplinary-99-zc8t.dz | Tenant: 8eb57e35-f7ac-4a00-b99f-87b07e99ee8f | Role: clinic_admin
+User ID: 135 | Email: admin@tipaza-orthophony-100-3bzc.dz | Tenant: 615ff8a7-0b3a-4476-bdac-377765d189fc | Role: clinic_admin
+User ID: 136 | Email: admin@mila-psychology-101-puj7.dz | Tenant: f54cfacb-028b-412b-90af-679ec81f85f8 | Role: clinic_admin
+User ID: 137 | Email: admin@ain-defla-multidisciplinary-102-fxjk.dz | Tenant: 9fef855b-182a-49a0-8896-71dceddafb8e | Role: clinic_admin
+User ID: 138 | Email: admin@naama-orthophony-103-k3iz.dz | Tenant: ad103b05-c3a0-4b71-a7fc-ba68c8446b7e | Role: clinic_admin
+User ID: 139 | Email: admin@ain-temouchent-psychology-104-za3y.dz | Tenant: f1b299ee-79b8-4788-9198-c4ef74634c8f | Role: clinic_admin
+User ID: 140 | Email: admin@ghardaia-multidisciplinary-105-eikl.dz | Tenant: c4fa46a0-d46f-4363-bb4b-e895c34debbf | Role: clinic_admin
+User ID: 141 | Email: admin@relizane-orthophony-106-bczh.dz | Tenant: 93b3a643-c379-4b1c-81e4-c56c07c4ce9d | Role: clinic_admin
+User ID: 142 | Email: admin@timimoun-psychology-107-j3yr.dz | Tenant: e345012d-3466-4fca-96da-ac835726328d | Role: clinic_admin
+User ID: 143 | Email: admin@bordj-badji-mokhtar-multidisciplinary-108-k4n5.dz | Tenant: 4d9cc1f3-8290-4806-91de-2110d67fa8b9 | Role: clinic_admin
+User ID: 144 | Email: admin@ouled-djellal-orthophony-109-gdly.dz | Tenant: 58457cba-bbf3-4067-b20c-56927ccafaab | Role: clinic_admin
+User ID: 145 | Email: admin@beni-abbes-psychology-110-ahjg.dz | Tenant: b5c8f8ea-1734-4db1-a6a5-ccd93dfcac70 | Role: clinic_admin
+User ID: 146 | Email: admin@in-salah-multidisciplinary-111-4gmq.dz | Tenant: e71a476e-35ca-4c57-936d-a2ce6536facf | Role: clinic_admin
+User ID: 147 | Email: admin@in-guezzam-orthophony-112-lpcf.dz | Tenant: 4755cf57-98bc-4f8b-ba78-96f61abf981f | Role: clinic_admin
+User ID: 148 | Email: admin@touggourt-psychology-113-bwzv.dz | Tenant: 1bf5a898-b9a2-4128-b2cf-a6f9d24cde9a | Role: clinic_admin
+User ID: 149 | Email: admin@djanet-multidisciplinary-114-hrsc.dz | Tenant: feb6b928-9c66-4a17-a11d-96dc371efa2d | Role: clinic_admin
+User ID: 150 | Email: admin@el-mghair-orthophony-115-tu6n.dz | Tenant: 2800082b-bc93-446c-9548-536b49d008de | Role: clinic_admin
+User ID: 151 | Email: admin@el-meniaa-psychology-116-janu.dz | Tenant: c84f8333-39c1-497b-bc89-ae98904d6fd2 | Role: clinic_admin
+User ID: 152 | Email: admin@adrar-multidisciplinary-117-78oz.dz | Tenant: dfbe3603-2cdb-4552-8d5d-e4bc057d60e7 | Role: clinic_admin
+User ID: 153 | Email: admin@chlef-orthophony-118-5epe.dz | Tenant: 093af154-3e39-4cb6-932d-70a7c2c53905 | Role: clinic_admin
+User ID: 154 | Email: admin@laghouat-psychology-119-n0te.dz | Tenant: 5b518438-409d-4bab-99ad-bfe200ee5003 | Role: clinic_admin
+User ID: 155 | Email: admin@oum-el-bouaghi-multidisciplinary-120-hlox.dz | Tenant: 6e58374b-7e8b-4932-bae8-f4e0a27f831b | Role: clinic_admin
+User ID: 156 | Email: admin@batna-orthophony-121-ic11.dz | Tenant: f5fec54e-2b98-498c-a8a9-6a43a625f630 | Role: clinic_admin
+User ID: 157 | Email: admin@bejaia-psychology-122-nxnl.dz | Tenant: 6a67d07e-00ee-4f2b-a2c8-85387241b6cf | Role: clinic_admin
+User ID: 158 | Email: admin@biskra-multidisciplinary-123-ra5p.dz | Tenant: ee02c3d4-49e4-43b5-a539-4bcc54aee806 | Role: clinic_admin
+User ID: 159 | Email: admin@bechar-orthophony-124-wcda.dz | Tenant: 56b34354-8e40-42e3-8774-e8bf6c33fe1e | Role: clinic_admin
+User ID: 160 | Email: admin@blida-psychology-125-9zeb.dz | Tenant: f09fe013-2b70-45a0-be11-500c7de684e4 | Role: clinic_admin
+User ID: 161 | Email: admin@bouira-multidisciplinary-126-nboe.dz | Tenant: a1eb6dc7-c4a5-49f8-8571-2d724f799866 | Role: clinic_admin
+User ID: 162 | Email: admin@tamanrasset-orthophony-127-iiqt.dz | Tenant: 1cdd4f44-d779-4049-ad20-934ea0f1f8e2 | Role: clinic_admin
+User ID: 163 | Email: admin@tebessa-psychology-128-alyl.dz | Tenant: c8658967-c8d4-4e4c-8444-a7ca908e3336 | Role: clinic_admin
+User ID: 164 | Email: admin@tlemcen-multidisciplinary-129-mn0o.dz | Tenant: 0caf0ee0-c853-4fa5-b494-92de9af22608 | Role: clinic_admin
+User ID: 165 | Email: admin@tiaret-orthophony-130-ciqb.dz | Tenant: 4e279f1d-35a8-40a8-a438-b169550f6a5b | Role: clinic_admin
+User ID: 166 | Email: admin@tizi-ouzou-psychology-131-hnoh.dz | Tenant: 65387cff-33a7-4302-9b18-a16c1f4db859 | Role: clinic_admin
+User ID: 167 | Email: admin@alger-multidisciplinary-132-ziho.dz | Tenant: bdffd7c1-271d-4a7c-ab66-dcd3e70409bd | Role: clinic_admin
+User ID: 168 | Email: admin@djelfa-orthophony-133-gd7h.dz | Tenant: 8474ef5c-858e-4691-a283-4dd467b0de42 | Role: clinic_admin
+User ID: 169 | Email: admin@jijel-psychology-134-fvio.dz | Tenant: 88315373-3b2a-498f-9e8e-38a3e1b90e91 | Role: clinic_admin
+User ID: 170 | Email: admin@setif-multidisciplinary-135-ohzz.dz | Tenant: c2319bbd-5818-4d5e-a5df-62bd54e5700f | Role: clinic_admin
+User ID: 171 | Email: admin@saida-orthophony-136-wova.dz | Tenant: f83bf346-132a-47cd-a87d-55d1f301f898 | Role: clinic_admin
+User ID: 172 | Email: admin@skikda-psychology-137-zohc.dz | Tenant: 0bb16edb-5873-425e-a427-7a03ffc4faf7 | Role: clinic_admin
+User ID: 173 | Email: admin@sidi-bel-abbes-multidisciplinary-138-hzvi.dz | Tenant: 4ceaaa06-e152-49e7-8ac6-a408e511d9d1 | Role: clinic_admin
+User ID: 174 | Email: admin@annaba-orthophony-139-1mhf.dz | Tenant: 30117e34-2fc6-450d-841a-3c799ee0f438 | Role: clinic_admin
+User ID: 175 | Email: admin@guelma-psychology-140-7p2b.dz | Tenant: 4294ee5a-b075-4e7c-b5b8-cefb734b76ec | Role: clinic_admin
+User ID: 176 | Email: admin@constantine-multidisciplinary-141-1oqo.dz | Tenant: 0799d89c-afe7-4523-9888-a5f6924ec9f8 | Role: clinic_admin
+User ID: 177 | Email: admin@medea-orthophony-142-urgu.dz | Tenant: 99cab79b-ea10-4336-a3f2-f792217566c4 | Role: clinic_admin
+User ID: 178 | Email: admin@mostaganem-psychology-143-w3da.dz | Tenant: e3e1de17-d92c-43b8-9906-813cda015fb3 | Role: clinic_admin
+User ID: 179 | Email: admin@msila-multidisciplinary-144-f4oc.dz | Tenant: f3b30def-8fc6-4184-9eaf-3e29631c604f | Role: clinic_admin
+User ID: 180 | Email: admin@mascara-orthophony-145-ucbs.dz | Tenant: aef4ac1f-fc8f-4291-b3a0-d59f24d9704d | Role: clinic_admin
+User ID: 181 | Email: admin@ouargla-psychology-146-dtuf.dz | Tenant: 9cf96b5a-ab9e-488e-8ba9-ae0bdd89ee79 | Role: clinic_admin
+User ID: 182 | Email: admin@oran-multidisciplinary-147-8tpm.dz | Tenant: f7dc4f42-5b7b-4dcd-bf90-ce5dd457e4e6 | Role: clinic_admin
+User ID: 183 | Email: admin@el-bayadh-orthophony-148-z5ew.dz | Tenant: e287ff73-ad12-4d53-847a-17a9c030d277 | Role: clinic_admin
+User ID: 184 | Email: admin@illizi-psychology-149-nlry.dz | Tenant: 3ed57cec-b146-44ef-ab2c-c3a8d8539d9a | Role: clinic_admin
+User ID: 185 | Email: admin@bordj-bou-arreridj-multidisciplinary-150-qw3b.dz | Tenant: 7e969faf-6497-44ef-9df5-f19a21bcdf5d | Role: clinic_admin
+User ID: 186 | Email: admin@boumerdes-orthophony-151-bgvn.dz | Tenant: 6e792d85-759d-4dc0-9b0f-836d88f37ec4 | Role: clinic_admin
+User ID: 187 | Email: admin@el-tarf-psychology-152-k1vc.dz | Tenant: c326d22b-c0eb-414d-af2d-cccf7332b0d7 | Role: clinic_admin
+User ID: 188 | Email: admin@tindouf-multidisciplinary-153-dlyo.dz | Tenant: dbe4da76-b0f3-4472-93c0-f39d2d268d85 | Role: clinic_admin
+User ID: 189 | Email: admin@tissemsilt-orthophony-154-f3l1.dz | Tenant: b9428be7-b673-4980-b2ac-caefe789617f | Role: clinic_admin
+User ID: 190 | Email: admin@el-oued-psychology-155-bq2n.dz | Tenant: 6a0bf567-86f8-4125-84a3-d2965326196f | Role: clinic_admin
+User ID: 191 | Email: admin@khenchela-multidisciplinary-156-7rzj.dz | Tenant: 1582272f-27cb-4095-a143-5400c3d79691 | Role: clinic_admin
+User ID: 192 | Email: admin@souk-ahras-orthophony-157-z1sk.dz | Tenant: dc0b1b9d-0875-44f8-8b83-d5bcad79d9d7 | Role: clinic_admin
+User ID: 193 | Email: admin@tipaza-psychology-158-oob4.dz | Tenant: 2556c058-13a2-46e6-b64a-8d5ab4dbdec0 | Role: clinic_admin
+User ID: 194 | Email: admin@mila-multidisciplinary-159-vikb.dz | Tenant: 56be3abd-d61e-49ae-9e92-541ccee2a7f0 | Role: clinic_admin
+User ID: 195 | Email: admin@ain-defla-orthophony-160-sjph.dz | Tenant: e9c175be-2efb-419e-8660-162878a92e79 | Role: clinic_admin
+User ID: 196 | Email: admin@naama-psychology-161-nqhy.dz | Tenant: 6af91d5a-04e9-45a8-84be-c89a69c97888 | Role: clinic_admin
+User ID: 197 | Email: admin@ain-temouchent-multidisciplinary-162-myl1.dz | Tenant: 1d2b8d04-120c-44f4-8649-46386e416546 | Role: clinic_admin
+User ID: 198 | Email: admin@ghardaia-orthophony-163-zugq.dz | Tenant: 3fad646f-92b6-4630-8202-5c92e118171c | Role: clinic_admin
+User ID: 199 | Email: admin@relizane-psychology-164-xten.dz | Tenant: ac20c09f-9a4a-46aa-ada0-bfbf9590ad15 | Role: clinic_admin
+User ID: 200 | Email: admin@timimoun-multidisciplinary-165-3xfn.dz | Tenant: 7ab15d4d-283a-4d1a-9d1f-3eaef82cea1f | Role: clinic_admin
+User ID: 201 | Email: admin@bordj-badji-mokhtar-orthophony-166-08yz.dz | Tenant: f4902f26-1628-418b-abae-24e8ca3c2b1c | Role: clinic_admin
+User ID: 202 | Email: admin@ouled-djellal-psychology-167-jkvm.dz | Tenant: cb76f15e-7761-45d5-90b7-b3da01d47073 | Role: clinic_admin
+User ID: 203 | Email: admin@beni-abbes-multidisciplinary-168-7yxb.dz | Tenant: 52cc652a-9291-4cc6-ab42-a7b7bfe138f4 | Role: clinic_admin
+User ID: 204 | Email: admin@in-salah-orthophony-169-t57s.dz | Tenant: 018cf2e0-171d-43cf-9543-2d1efe02c894 | Role: clinic_admin
+User ID: 205 | Email: admin@in-guezzam-psychology-170-1b0q.dz | Tenant: f57f851c-d253-4139-b294-3ec07eab08e7 | Role: clinic_admin
+User ID: 206 | Email: admin@touggourt-multidisciplinary-171-92u4.dz | Tenant: 56e9186a-468f-460b-b85f-91f6efdb6d01 | Role: clinic_admin
+User ID: 207 | Email: admin@djanet-orthophony-172-w8rm.dz | Tenant: e58b9175-79fc-4141-a630-1b4705aa20ea | Role: clinic_admin
+User ID: 208 | Email: admin@el-mghair-psychology-173-ha3t.dz | Tenant: 33a45147-1f21-4131-80ab-6d7aa3a0f3fb | Role: clinic_admin
+User ID: 209 | Email: admin@el-meniaa-multidisciplinary-174-jsw9.dz | Tenant: 5db35eb5-3556-419e-a2e3-faeef0aba0de | Role: clinic_admin
+User ID: 210 | Email: admin@adrar-orthophony-175-n5ga.dz | Tenant: 8c2a81d9-fddf-460c-aafb-5044d1145520 | Role: clinic_admin
+User ID: 211 | Email: admin@chlef-psychology-176-knfb.dz | Tenant: 4c24a361-20d7-42cf-836c-39f57e1a5231 | Role: clinic_admin
+User ID: 212 | Email: admin@laghouat-multidisciplinary-177-ztap.dz | Tenant: 0b42d843-61b7-4f07-92cb-e2c01f6e62e2 | Role: clinic_admin
+User ID: 213 | Email: admin@oum-el-bouaghi-orthophony-178-xd9s.dz | Tenant: 8fac5700-8250-4d4d-9d1b-ab49b21be334 | Role: clinic_admin
+User ID: 214 | Email: admin@batna-psychology-179-wppe.dz | Tenant: e186320c-5dba-4284-868f-9619c5bc21ca | Role: clinic_admin
+User ID: 215 | Email: admin@bejaia-multidisciplinary-180-tzuu.dz | Tenant: b7fad942-43ae-4a13-8729-a860a364f635 | Role: clinic_admin
+User ID: 216 | Email: admin@biskra-orthophony-181-vned.dz | Tenant: 99b8dfa6-ced7-407f-ad72-7b37565c6bc8 | Role: clinic_admin
+User ID: 217 | Email: admin@bechar-psychology-182-zkgd.dz | Tenant: 8dd6ad10-7abf-4acd-bdb1-7271564e1777 | Role: clinic_admin
+User ID: 218 | Email: admin@blida-multidisciplinary-183-w9zt.dz | Tenant: 455e5035-c91a-4d85-8e52-81888ebf542e | Role: clinic_admin
+User ID: 219 | Email: admin@bouira-orthophony-184-o59l.dz | Tenant: 995a76d2-9096-4092-8566-5a5f818384db | Role: clinic_admin
+User ID: 220 | Email: admin@tamanrasset-psychology-185-vnas.dz | Tenant: 234cbdce-15de-4a40-9460-e708802ea481 | Role: clinic_admin
+User ID: 221 | Email: admin@tebessa-multidisciplinary-186-vkcf.dz | Tenant: 706c8a09-a1d1-4baa-95f5-b357542b853d | Role: clinic_admin
+User ID: 222 | Email: admin@tlemcen-orthophony-187-znwf.dz | Tenant: dceadbd4-f3f8-4f6e-9bf5-23dbdd9611aa | Role: clinic_admin
+User ID: 223 | Email: admin@tiaret-psychology-188-3ddr.dz | Tenant: a3a3a652-44f0-427c-956e-1863b2633562 | Role: clinic_admin
+User ID: 224 | Email: admin@tizi-ouzou-multidisciplinary-189-s0zy.dz | Tenant: e06844ce-2ed8-4005-8544-ea39ba0147d8 | Role: clinic_admin
+User ID: 225 | Email: admin@alger-orthophony-190-viir.dz | Tenant: 28af62e5-39c8-40a3-8d4c-d91d83400741 | Role: clinic_admin
+User ID: 226 | Email: admin@djelfa-psychology-191-xmd0.dz | Tenant: 95c55eb3-4eec-472f-a4d4-2eaed1674b9e | Role: clinic_admin
+User ID: 227 | Email: admin@jijel-multidisciplinary-192-ft1j.dz | Tenant: 21022d5f-7662-4900-ae1d-8daa83de273e | Role: clinic_admin
+User ID: 228 | Email: admin@setif-orthophony-193-rf76.dz | Tenant: c63b9b84-91ca-49b6-864e-b13c64266b6d | Role: clinic_admin
+User ID: 229 | Email: admin@saida-psychology-194-dewz.dz | Tenant: 2ee28e24-6735-4fdb-926a-ac2a9505da98 | Role: clinic_admin
+User ID: 230 | Email: admin@skikda-multidisciplinary-195-rxrq.dz | Tenant: f4ce366e-062f-4405-a8ce-bf69b016b15b | Role: clinic_admin
+User ID: 231 | Email: admin@sidi-bel-abbes-orthophony-196-a5qf.dz | Tenant: ed44ef14-cea4-41a5-8277-457b6eecdf40 | Role: clinic_admin
+User ID: 232 | Email: admin@annaba-psychology-197-o5hs.dz | Tenant: 307ac982-136d-4fd5-b5d7-fe90e5782e1f | Role: clinic_admin
+User ID: 233 | Email: admin@guelma-multidisciplinary-198-flwd.dz | Tenant: 9589bb3f-37d9-4b8e-820e-a5b4c1a3e687 | Role: clinic_admin
+User ID: 234 | Email: admin@constantine-orthophony-199-jkd6.dz | Tenant: 474ad16f-d47a-4ae0-90b9-fbdd56675845 | Role: clinic_admin
+User ID: 235 | Email: admin@medea-psychology-200-zjhi.dz | Tenant: d85e44ea-ab73-44b6-8769-8c48b04b35ee | Role: clinic_admin
+User ID: 236 | Email: admin@mostaganem-multidisciplinary-201-9myg.dz | Tenant: 11e71ce8-2f36-4afa-9d80-ec4a8bb616b4 | Role: clinic_admin
+User ID: 237 | Email: admin@msila-orthophony-202-7zdb.dz | Tenant: 1e1726ad-0e43-4e85-a8b4-93cd2268310f | Role: clinic_admin
+User ID: 238 | Email: admin@mascara-psychology-203-rejw.dz | Tenant: 2f6e3952-bc23-44fe-b245-540038f8808c | Role: clinic_admin
+User ID: 239 | Email: admin@ouargla-multidisciplinary-204-28p7.dz | Tenant: f0c99cd8-4870-4230-82e3-2623d6dc04e9 | Role: clinic_admin
+User ID: 240 | Email: admin@oran-orthophony-205-ob1u.dz | Tenant: 2a063176-a61e-4897-a387-e56072a76c46 | Role: clinic_admin
+User ID: 241 | Email: admin@el-bayadh-psychology-206-c6ro.dz | Tenant: 02992f35-10c5-4f3a-9427-c997f901bd53 | Role: clinic_admin
+User ID: 242 | Email: admin@illizi-multidisciplinary-207-yeqz.dz | Tenant: 5eca9b3c-cc95-4322-ac72-058963281a8e | Role: clinic_admin
+User ID: 243 | Email: admin@bordj-bou-arreridj-orthophony-208-jqsq.dz | Tenant: 981d00e3-f117-49fd-b577-166224f70f39 | Role: clinic_admin
+User ID: 244 | Email: admin@boumerdes-psychology-209-cydi.dz | Tenant: 79a48592-2bde-420b-b4f1-12f03d73e3f3 | Role: clinic_admin
+User ID: 245 | Email: admin@el-tarf-multidisciplinary-210-mctj.dz | Tenant: f1d8aba3-2513-4a43-913d-7430c187899f | Role: clinic_admin
+User ID: 246 | Email: admin@tindouf-orthophony-211-4l2u.dz | Tenant: 2394fdf8-0662-4110-8b35-9362129263a9 | Role: clinic_admin
+User ID: 247 | Email: admin@tissemsilt-psychology-212-gbok.dz | Tenant: d724de0d-039d-4586-8be8-c6e9323a5b1c | Role: clinic_admin
+User ID: 248 | Email: admin@el-oued-multidisciplinary-213-9vnl.dz | Tenant: 09f9386f-34f2-44bb-8a7b-0f0679daa501 | Role: clinic_admin
+User ID: 249 | Email: admin@khenchela-orthophony-214-abjr.dz | Tenant: 73e03b54-6395-4a97-92e0-1cc7e18ea620 | Role: clinic_admin
+User ID: 250 | Email: admin@souk-ahras-psychology-215-5vn0.dz | Tenant: d8cc43f5-77cc-4709-a8ba-66e572461c40 | Role: clinic_admin
+User ID: 251 | Email: admin@tipaza-multidisciplinary-216-9ezk.dz | Tenant: 99487e8d-848e-4f62-8083-d6ba3c502aee | Role: clinic_admin
+User ID: 252 | Email: admin@mila-orthophony-217-o6gx.dz | Tenant: c82bddb8-4e62-40fc-92f1-aa67279e6d80 | Role: clinic_admin
+User ID: 253 | Email: admin@ain-defla-psychology-218-3hed.dz | Tenant: c39b3f30-ab57-486e-aaa4-8833c8ab3aca | Role: clinic_admin
+User ID: 254 | Email: admin@naama-multidisciplinary-219-ty4y.dz | Tenant: b7e0757a-eae4-4c91-9997-8e28b8c85a97 | Role: clinic_admin
+User ID: 255 | Email: admin@ain-temouchent-orthophony-220-kwuo.dz | Tenant: 987a7f24-83f4-43ed-aa32-8ae2a63474c4 | Role: clinic_admin
+User ID: 256 | Email: admin@ghardaia-psychology-221-pnrv.dz | Tenant: 12d8963a-a923-4f13-8c3a-d7dd0fb5a24e | Role: clinic_admin
+User ID: 257 | Email: admin@relizane-multidisciplinary-222-pswg.dz | Tenant: 601aad50-c4b1-4646-8b9f-9cae546809ac | Role: clinic_admin
+User ID: 258 | Email: admin@timimoun-orthophony-223-snun.dz | Tenant: 1d6538b2-97c9-4ec5-8667-1f605e541b7d | Role: clinic_admin
+User ID: 259 | Email: admin@bordj-badji-mokhtar-psychology-224-drpb.dz | Tenant: cce39eff-1cb9-4f06-8da1-8e8e584e5f7e | Role: clinic_admin
+User ID: 260 | Email: admin@ouled-djellal-multidisciplinary-225-oqwe.dz | Tenant: 6f5f1b32-563d-4e4f-b574-efc59c687307 | Role: clinic_admin
+User ID: 261 | Email: admin@beni-abbes-orthophony-226-jvah.dz | Tenant: 53af89ca-ac18-4f22-8d38-1fb47a173b75 | Role: clinic_admin
+User ID: 262 | Email: admin@in-salah-psychology-227-lyn8.dz | Tenant: 6cad7b97-431b-4169-a6e4-39fde3ef0ff5 | Role: clinic_admin
+User ID: 263 | Email: admin@in-guezzam-multidisciplinary-228-4lzi.dz | Tenant: d8902a17-7c68-4b35-beee-fc4dea7a1db8 | Role: clinic_admin
+User ID: 264 | Email: admin@touggourt-orthophony-229-91ih.dz | Tenant: 61e103e9-3b6d-4bec-8038-ba919612c02c | Role: clinic_admin
+User ID: 265 | Email: admin@djanet-psychology-230-wl56.dz | Tenant: 7f086ec5-33a8-4c95-8de7-94a9f44eba56 | Role: clinic_admin
+User ID: 266 | Email: admin@el-mghair-multidisciplinary-231-dtp7.dz | Tenant: a7762883-f5f2-4911-84a9-304194e73352 | Role: clinic_admin
+User ID: 267 | Email: admin@el-meniaa-orthophony-232-7nks.dz | Tenant: 4e2fd09e-532e-417e-a607-d554c5af069c | Role: clinic_admin
+User ID: 268 | Email: admin@adrar-psychology-233-pbgo.dz | Tenant: 2fd4ac6e-5daa-4a8f-9394-6052694538cd | Role: clinic_admin
+User ID: 269 | Email: admin@chlef-multidisciplinary-234-3iyy.dz | Tenant: 54b4476d-7392-4681-8514-0b44d225257c | Role: clinic_admin
+User ID: 270 | Email: admin@laghouat-orthophony-235-fpku.dz | Tenant: 7602a286-5f26-4068-9966-575c855b437f | Role: clinic_admin
+User ID: 271 | Email: admin@oum-el-bouaghi-psychology-236-g1dm.dz | Tenant: 62902032-0045-482f-8e08-a1639e8f0b6f | Role: clinic_admin
+User ID: 272 | Email: admin@batna-multidisciplinary-237-itzx.dz | Tenant: 50e0d936-34fb-49eb-8d7d-f9d90fbe010f | Role: clinic_admin
+User ID: 275 | Email: nassimdew11@gmail.com | Tenant: c093112b-0e3c-4b45-8df3-905a4757102a | Role: admin_owner
+User ID: 276 | Email: admin1@elbiar-ortho.dz | Tenant: 5fd9070f-8fa1-41a0-a0f7-0240ac2c4da7 | Role: admin_owner
+User ID: 277 | Email: nassimdexxxxw@gmail.com | Tenant: 01a01ce6-d75c-73f4-8b2c-66b4fd9fad28 | Role: receptionist
+User ID: 278 | Email: doctor@clinic.dz | Tenant: afa41c30-2b0f-4eb7-b786-f17f0cc3d876 | Role: admin_owner
+User ID: 279 | Email: qa.test+clinic20260913@example.com | Tenant: c4e72bc0-c41c-47c7-8009-d8e6642fcd41 | Role: admin_owner
+User ID: 280 | Email: contact@cabinet-el-amel.com | Tenant: ed38c653-536c-4d7d-a8a5-5631d553d385 | Role: admin
+User ID: 281 | Email: qqq@qqq.qqq | Tenant: 0d96335f-2117-46db-93ec-9dec3a2fb00a | Role: admin_owner
+User ID: 282 | Email: admin@cabinet-alger.dz | Tenant: 8cd6530f-254b-4c8e-9eea-d674e955647c | Role: admin_owner

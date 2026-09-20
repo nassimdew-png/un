@@ -1,0 +1,40 @@
+2057-    clinic-frontend-aayad-gdyd:
+2058-      entryPoints:
+2059-      - websecure
+2060-      priority: 10
+2061-      rule: Host(`aayad-gdyd.psypro.tech`)
+2062:      service: clinic-frontend-service
+2063-      tls:
+2064-        certResolver: letsencrypt
+2065-    clinic-frontend-adrar-multidisciplinary-117-78oz:
+2066-      entryPoints:
+2067-      - websecure
+2068-      priority: 10
+2069-      rule: Host(`adrar-multidisciplinary-117-78oz.psypro.tech`)
+2070:      service: clinic-frontend-service
+2071-      tls:
+2072-        certResolver: letsencrypt
+2073-    clinic-frontend-adrar-orthophony-1-kcei:
+2074-      entryPoints:
+2075-      - websecure
+2076-      priority: 10
+2077-      rule: Host(`adrar-orthophony-1-kcei.psypro.tech`)
+2078:      service: clinic-frontend-service
+2079-      tls:
+2080-        certResolver: letsencrypt
+2081-    clinic-frontend-adrar-orthophony-1-yg3j:
+2082-      entryPoints:
+2083-      - websecure
+2084-      priority: 10
+2085-      rule: Host(`adrar-orthophony-1-yg3j.psypro.tech`)
+2086:      service: clinic-frontend-service
+2087-      tls:
+2088-        certResolver: letsencrypt
+2089-    clinic-frontend-adrar-orthophony-175-n5ga:
+2090-      entryPoints:
+2091-      - websecure
+2092-      priority: 10
+2093-      rule: Host(`adrar-orthophony-175-n5ga.psypro.tech`)
+2094:      service: clinic-frontend-service
+2095-      tls:
+2096-        certResolver: letsencrypt

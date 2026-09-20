@@ -18,7 +18,10 @@ import {
   Zap,
   ArrowRightLeft,
   Info,
+  Brain,
+  Languages,
 } from 'lucide-react';
+import { getPatientProfileInfo } from '../../utils/patientHelper';
 
 export default function PatientSessionsHistoryView({
   patient,
@@ -35,9 +38,25 @@ export default function PatientSessionsHistoryView({
   );
   const [compareSessionIdB, setCompareSessionIdB] = useState(sessions[0]?.id || null);
 
-  // Parse structured SOAP lines from progress_notes string
+  // Parse structured SOAP lines and clinical payloads from progress_notes string
   const parseSoapNotes = (notes) => {
-    if (!notes) return { subjective: '', objective: '', assessment: '', plan: '', extra: '' };
+    if (!notes) return {
+      subjective: '',
+      objective: '',
+      assessment: '',
+      plan: '',
+      trialAccuracy: '',
+      engagement: '',
+      raw: '',
+      clinicalPayloads: {
+        suds: null,
+        cbt: null,
+        phonetic: null,
+        protocols: [],
+        scales: [],
+      },
+    };
+
     const lines = notes.split('\n');
     let subjective = '';
     let objective = '';
@@ -56,6 +75,92 @@ export default function PatientSessionsHistoryView({
       else if (trimmed.includes('Behavioral Engagement:')) engagement = trimmed;
     });
 
+    // 1. SUDS Extraction
+    let suds = null;
+    const sudsPreMatch = notes.match(/قبل التدخل(?: العلاجي)?:\s*(\d+)\/100/i) ||
+                         notes.match(/Baseline SUDS\)?:\s*(\d+)\/100/i);
+    const sudsPostMatch = notes.match(/بعد التدخل(?: العلاجي)?:\s*(\d+)\/100/i) ||
+                          notes.match(/انتهاء التعريض:\s*(\d+)\/100/i) ||
+                          notes.match(/تراجع الضيق الانفعالي بعد الجلسة إلى:\s*(\d+)\/10/i);
+    const sudsDiffMatch = notes.match(/معدل انخفاض التوتر:\s*([^\n]+)/i);
+
+    if (sudsPreMatch || sudsPostMatch) {
+      suds = {
+        pre: sudsPreMatch ? sudsPreMatch[1] : null,
+        post: sudsPostMatch ? sudsPostMatch[1] : null,
+        diff: sudsDiffMatch ? sudsDiffMatch[1].trim() : null,
+      };
+    }
+
+    // 2. CBT Restructuring
+    let cbt = null;
+    const cbtDistortionsMatch = notes.match(/التشوهات المعرفية المحددة:\s*([^\n]+)/i);
+    const cbtAutoThoughtMatch = notes.match(/الفكرة التلقائية(?: السلبية)?:\s*"([^"]+)"/i) ||
+                                notes.match(/الفكرة التلقائية(?: السلبية)?:\s*([^\n]+)/i);
+    const cbtAltThoughtMatch = notes.match(/الفكرة البديلة(?: العقلانية)?:\s*"([^"]+)"/i) ||
+                               notes.match(/الفكرة البديلة(?: العقلانية)?:\s*([^\n]+)/i);
+
+    if (cbtDistortionsMatch || cbtAutoThoughtMatch || cbtAltThoughtMatch) {
+      cbt = {
+        distortions: cbtDistortionsMatch ? cbtDistortionsMatch[1].trim() : null,
+        automaticThought: cbtAutoThoughtMatch ? cbtAutoThoughtMatch[1].trim() : null,
+        rationalAlternative: cbtAltThoughtMatch ? cbtAltThoughtMatch[1].trim() : null,
+      };
+    }
+
+    // 3. Phonetic Matrix & Trials
+    let phonetic = null;
+    const phonTargetMatch = notes.match(/الصوت المستهدف:\s*([^\n]+)/i);
+    const phonErrMatch = notes.match(/نوع الاضطراب:\s*([^\n]+)/i);
+    const trialAccMatch = notes.match(/Trial Accuracy:\s*([^\n]+)/i);
+
+    if (phonTargetMatch || phonErrMatch || trialAccMatch) {
+      phonetic = {
+        target: phonTargetMatch ? phonTargetMatch[1].trim() : null,
+        error: phonErrMatch ? phonErrMatch[1].trim() : null,
+        accuracy: trialAccMatch ? trialAccMatch[1].trim() : null,
+      };
+    }
+
+    // 4. Protocols
+    const protocols = [];
+    if (/EMDR|BLS|ثنائي الجانب/i.test(notes)) protocols.push({ name: 'EMDR ومعالجة الصدمات', icon: '⚡' });
+    if (/الاتساق القلبي|HRV|Coherence|التنفس 365/i.test(notes)) protocols.push({ name: 'الاتساق القلبي HRV', icon: '🫁' });
+    if (/سلم التعريض|منع الاستجابة|ERP|Habituation/i.test(notes)) protocols.push({ name: 'تعريض ERP', icon: '🪜' });
+    if (/مصفوفة القبول|ACT Matrix|فك الاندماج/i.test(notes)) protocols.push({ name: 'مصفوفة ACT', icon: '🧭' });
+    if (/إعادة صياغة الصور|Imagery Rescripting|مخططات الذات/i.test(notes)) protocols.push({ name: 'صياغة الصور Schema', icon: '🎭' });
+    if (/التحليل الصوتي|Voice Acoustic|Pitch|MPT/i.test(notes)) protocols.push({ name: 'التحليل الصوتي Voice', icon: '🎙️' });
+    if (/التنغيم الموسيقي|MIT|Melodic Intonation/i.test(notes)) protocols.push({ name: 'التنغيم الموسيقي MIT', icon: '🎵' });
+    if (/لوح التقطيع|Pacing Board|طلاقة الكلام|%SS/i.test(notes)) protocols.push({ name: 'لوح التقطيع Pacing', icon: '🎯' });
+    if (/استرخاء جاكوبسون|PMR|Progressive Muscle/i.test(notes)) protocols.push({ name: 'استرخاء PMR', icon: '🧘' });
+    if (/سنوزلين|Snoezelen|حسي/i.test(notes)) protocols.push({ name: 'غرفة سنوزلين', icon: '✨' });
+    if (/PECS|بيكس|مطابقة صور/i.test(notes)) protocols.push({ name: 'PECS والمطابقة', icon: '🃏' });
+
+    // 5. Scales
+    const scales = [];
+    const scaleMatches = [
+      { code: 'BDI-II', regex: /BDI(?:-II)?/i, label: 'مقياس بيك للاكتئاب (BDI-II)' },
+      { code: 'PHQ-9', regex: /PHQ-?9/i, label: 'صحة المريض (PHQ-9)' },
+      { code: 'GAD-7', regex: /GAD-?7/i, label: 'القلق العام (GAD-7)' },
+      { code: 'STAI', regex: /STAI/i, label: 'قلق الحالة والسمة (STAI)' },
+      { code: 'PCL-5', regex: /PCL-?5/i, label: 'كرب ما بعد الصدمة (PCL-5)' },
+      { code: 'M-CHAT-R', regex: /M-?CHAT/i, label: 'كشف التوحد (M-CHAT-R)' },
+      { code: 'VINELAND', regex: /VINELAND/i, label: 'السلوك التكيفي (Vineland)' },
+      { code: 'ADOS-2', regex: /ADOS/i, label: 'تشخيص التوحد (ADOS-2)' },
+      { code: 'ALOUETTE', regex: /Alouette|ألوويت/i, label: 'القراءة السريعة (Alouette)' },
+      { code: 'DO80', regex: /DO-?80/i, label: 'تسمية الصور (DO80)' },
+      { code: 'NEEL', regex: /NEEL|نيل/i, label: 'اللغة الشفهية (N-EEL)' },
+      { code: 'L2MA', regex: /L2MA/i, label: 'بطارية المطالعة (L2MA)' },
+      { code: 'WAIS', regex: /WAIS/i, label: 'ذكاء البالغين (WAIS)' },
+      { code: 'WISC', regex: /WISC/i, label: 'ذكاء الأطفال (WISC)' },
+      { code: 'RAVEN', regex: /Raven|ريفن/i, label: 'المصفوفات المتتابعة (Raven)' },
+    ];
+    for (const sc of scaleMatches) {
+      if (sc.regex.test(notes)) {
+        scales.push(sc);
+      }
+    }
+
     return {
       subjective: subjective || notes,
       objective,
@@ -64,6 +169,13 @@ export default function PatientSessionsHistoryView({
       trialAccuracy,
       engagement,
       raw: notes,
+      clinicalPayloads: {
+        suds,
+        cbt,
+        phonetic,
+        protocols,
+        scales,
+      },
     };
   };
 
@@ -79,16 +191,21 @@ export default function PatientSessionsHistoryView({
 
     const exercises = Array.isArray(session.exercises_targeted)
       ? session.exercises_targeted.slice(0, 3).join('، ')
-      : 'تمارين نطقية وحركية';
+      : 'تمارين وتدخلات علاجية';
 
-    const msg = `السلام عليكم ورحمة الله،
-تحية طيبة من عيادة التأهيل والأرطوفونيا 🩺
+    const profile = getPatientProfileInfo(patient);
+    const targetSubject = profile.isChild
+      ? `نشارككم ملخص جلسة الطفل(ة) *${profile.fullName}* ليوم ${dateStr}:`
+      : `نشارككم ملخص جلسة المتابعة للأستاذ(ة) *${profile.fullName}* ليوم ${dateStr}:`;
 
-نشارككم ملخص جلسة البطل(ة) *${patient?.first_name || ''} ${patient?.last_name || ''}* ليوم ${dateStr}:
-• *الأنشطة والتمارين:* ${exercises}
-• *التوجيهات المنزلية:* ${parsed.plan || 'الاستمرار في التدريب المنزلي لمدة 10 دقائق يومياً.'}
+    const msg = `السلام عليكم ورحمة الله وبركاته،
+تحية طيبة من العيادة السريرية 🩺
 
-شكراً لحرصكم وتعاونكم المستمر 🌸`;
+${targetSubject}
+• *الأنشطة والتدخلات:* ${exercises}
+• *التوجيهات والتوصيات:* ${parsed.plan || 'الاستمرار في المتابعة والتطبيق السريري المنتظم.'}
+
+شكراً لحسن ثقتكم والتزامكم المستمر 🌸`;
 
     const url = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -158,6 +275,120 @@ export default function PatientSessionsHistoryView({
   // Comparison Objects
   const sessionA = sessions.find((s) => s.id === Number(compareSessionIdA)) || sessions[sessions.length - 1];
   const sessionB = sessions.find((s) => s.id === Number(compareSessionIdB)) || sessions[0];
+  // Render structured clinical payloads (SUDS, CBT, Phonetic, Protocols, Scales)
+  const renderClinicalPayloadsStrip = (payloads) => {
+    if (!payloads) return null;
+    const hasAny =
+      payloads.suds ||
+      payloads.cbt ||
+      payloads.phonetic ||
+      (payloads.protocols && payloads.protocols.length > 0) ||
+      (payloads.scales && payloads.scales.length > 0);
+    if (!hasAny) return null;
+
+    return (
+      <div className="p-3 rounded-2xl bg-slate-950/90 border border-teal-500/30 space-y-2 text-right my-2">
+        <span className="text-[11px] font-bold text-teal-300 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+          <span>المؤشرات والأدوات السريرية المسجلة في هذه الجلسة:</span>
+        </span>
+
+        {/* SUDS */}
+        {payloads.suds && (
+          <div className="flex flex-wrap items-center gap-2 p-2 rounded-xl bg-slate-900 border border-amber-500/30 text-xs">
+            <span className="text-amber-400 font-bold flex items-center gap-1">
+              <span>⚡ مقياس الضيق اللحظي (SUDS):</span>
+            </span>
+            <span className="text-slate-300 font-mono">
+              قبل التدخل: <strong className="text-rose-400">{payloads.suds.pre ? `${payloads.suds.pre}/100` : '—'}</strong>
+              {' ➔ '}
+              بعد التدخل: <strong className="text-emerald-400">{payloads.suds.post ? `${payloads.suds.post}/100` : '—'}</strong>
+            </span>
+            {payloads.suds.diff && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                {payloads.suds.diff}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* CBT Restructuring */}
+        {payloads.cbt && (
+          <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-800/40 text-xs space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <span className="text-purple-300 font-bold flex items-center gap-1">
+                <Brain className="w-3.5 h-3.5 text-purple-400" />
+                <span>إعادة الهيكلة المعرفية (CBT Restructuring):</span>
+              </span>
+              {payloads.cbt.distortions && (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/50 text-purple-200 border border-purple-700/40 font-mono">
+                  التشوهات: {payloads.cbt.distortions}
+                </span>
+              )}
+            </div>
+            {payloads.cbt.automaticThought && (
+              <p className="text-slate-400 text-[11px]">
+                <span className="text-rose-400/90 font-semibold">الفكرة التلقائية:</span> "{payloads.cbt.automaticThought}"
+              </p>
+            )}
+            {payloads.cbt.rationalAlternative && (
+              <p className="text-teal-300 text-[11px]">
+                <span className="text-teal-400 font-semibold">الفكرة البديلة المتزنة:</span> "{payloads.cbt.rationalAlternative}"
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Phonetic Matrix & Trials */}
+        {payloads.phonetic && (
+          <div className="flex flex-wrap items-center gap-2 p-2 rounded-xl bg-fuchsia-950/30 border border-fuchsia-800/40 text-xs">
+            <span className="text-fuchsia-300 font-bold flex items-center gap-1">
+              <Languages className="w-3.5 h-3.5 text-fuchsia-400" />
+              <span>فحص النطق والمخارج الصوتية:</span>
+            </span>
+            {payloads.phonetic.target && (
+              <span className="text-slate-300 text-[11px]">الصوت: <strong className="text-fuchsia-300">{payloads.phonetic.target}</strong></span>
+            )}
+            {payloads.phonetic.error && (
+              <span className="text-slate-400 text-[11px]">({payloads.phonetic.error})</span>
+            )}
+            {payloads.phonetic.accuracy && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 font-mono">
+                {payloads.phonetic.accuracy}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Protocols Chips */}
+        {payloads.protocols && payloads.protocols.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-slate-400 font-bold">البروتوكولات المنفذة:</span>
+            {payloads.protocols.map((proto, idx) => (
+              <span key={idx} className="text-[10px] px-2 py-0.5 rounded-lg bg-teal-950/60 text-teal-300 border border-teal-800/50 flex items-center gap-1 font-medium">
+                <span>{proto.icon}</span>
+                <span>{proto.name}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Standardized Scales Chips */}
+        {payloads.scales && payloads.scales.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-slate-400 font-bold">المقاييس المعيارية:</span>
+            {payloads.scales.map((sc, idx) => (
+              <span key={idx} className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-950/60 text-indigo-300 border border-indigo-800/50 flex items-center gap-1 font-mono font-bold">
+                <span>📊</span>
+                <span>{sc.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const parsedA = sessionA ? parseSoapNotes(sessionA.progress_notes) : null;
   const parsedB = sessionB ? parseSoapNotes(sessionB.progress_notes) : null;
 
@@ -311,6 +542,16 @@ export default function PatientSessionsHistoryView({
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {parsed.clinicalPayloads?.suds && (
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold" title="مقياس شدة الضيق SUDS">
+                          ⚡ SUDS {parsed.clinicalPayloads.suds.pre || '—'}➔{parsed.clinicalPayloads.suds.post || '—'}
+                        </span>
+                      )}
+                      {parsed.clinicalPayloads?.cbt && (
+                        <span className="px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] font-bold" title="إعادة الهيكلة المعرفية CBT">
+                          🧠 CBT
+                        </span>
+                      )}
                       {parsed.trialAccuracy && (
                         <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 text-[10px] font-mono font-bold">
                           {parsed.trialAccuracy}
@@ -369,6 +610,9 @@ export default function PatientSessionsHistoryView({
                           </div>
                         </div>
                       )}
+
+                      {/* Clinical Payloads & Tools Detected */}
+                      {renderClinicalPayloadsStrip(parsed.clinicalPayloads)}
 
                       {/* Structured SOAP Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -489,6 +733,9 @@ export default function PatientSessionsHistoryView({
                     </div>
                   </div>
 
+                  {/* Clinical Payloads Strip Card A */}
+                  {renderClinicalPayloadsStrip(parsedA?.clinicalPayloads)}
+
                   <div className="p-3 rounded-xl bg-slate-900 space-y-1">
                     <span className="text-[10px] text-blue-400 font-bold block">Objective (الملاحظات المقاسة):</span>
                     <p className="text-slate-300 text-[11px]">{parsedA?.objective || 'لا توجد ملاحظات'}</p>
@@ -528,6 +775,9 @@ export default function PatientSessionsHistoryView({
                       ))}
                     </div>
                   </div>
+
+                  {/* Clinical Payloads Strip Card B */}
+                  {renderClinicalPayloadsStrip(parsedB?.clinicalPayloads)}
 
                   <div className="p-3 rounded-xl bg-slate-900 space-y-1">
                     <span className="text-[10px] text-blue-400 font-bold block">Objective (الملاحظات المقاسة):</span>

@@ -1,0 +1,18 @@
+=== Services in clinic-saas.yml ===
+6181-      priority: 100
+6182-      rule: Host(`touggourt-psychology-113-bwzv.psypro.tech`) && PathPrefix(`/storage`)
+6183-      service: clinic-api-service
+6184-      tls:
+6185-        certResolver: letsencrypt
+6186:  services:
+6187-    clinic-api-service:
+6188-      loadBalancer:
+6189-        passHostHeader: true
+6190-        servers:
+6191-        - url: http://172.16.0.1:8000
+6191-        - url: http://172.16.0.1:8000
+6192-    clinic-frontend-service:
+6193-      loadBalancer:
+6194-        passHostHeader: true
+6195-        servers:
+6196:        - url: http://172.16.0.1:3001

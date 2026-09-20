@@ -17,11 +17,16 @@ class SaasInvoice extends Model
         'period_start',
         'period_end',
         'payment_method',
+        'coupon_code',
+        'discount_amount_dzd',
+        'original_amount_dzd',
         'pdf_path',
     ];
 
     protected $casts = [
         'amount_dzd' => 'float',
+        'discount_amount_dzd' => 'float',
+        'original_amount_dzd' => 'float',
         'period_start' => 'datetime',
         'period_end' => 'datetime',
     ];

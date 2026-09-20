@@ -102,7 +102,7 @@ class RepoMaintainerController extends Controller
      */
     public function analyzeIssue(Request $request): JsonResponse
     {
-        $this->authorizeSuperAdmin();
+        $user = $this->authorizeSuperAdmin();
 
         $validated = $request->validate([
             'question_or_error' => 'required|string|min:3|max:3000',
@@ -110,7 +110,7 @@ class RepoMaintainerController extends Controller
         ]);
 
         $query = trim($validated['question_or_error']);
-        $targetFileRel = $validated['target_file'] ? ltrim($validated['target_file'], '/\\') : null;
+        $targetFileRel = !empty($validated['target_file']) ? ltrim($validated['target_file'], '/\\') : null;
 
         $targetFileContent = '';
         if ($targetFileRel) {
@@ -159,11 +159,17 @@ PROMPT;
             $userPrompt .= "آخر سجلات أخطاء الخادم (laravel.log):\n```\n{$recentLogs}\n```\n";
         }
 
-        $user = Auth::user();
         $result = $this->aiGateway->generate('repo_maintainer_diagnostic', $userPrompt, $systemPrompt, null, $user, [
             'temperature' => 0.1,
             'max_tokens' => 4000,
         ]);
+
+        if (empty($result['content']) && !empty($result['error'])) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'تعذر الاتصال بمحرك الذكاء الاصطناعي لتشخيص الكود.',
+            ], 500);
+        }
 
         $content = trim($result['content'] ?? '');
         $parsed = null;
@@ -404,11 +410,32 @@ PROMPT;
     /**
      * Authorize Super Admin role.
      */
-    private function authorizeSuperAdmin(): void
+    private function authorizeSuperAdmin(): ?User
     {
-        $user = Auth::user();
-        if (!$user || !($user->role === 'super_admin' || $user->is_super_admin === true)) {
-            abort(403, 'غير مصرح: هذه الميزة مخصصة للسوبر أدمن فقط.');
+        $user = Auth::guard('sanctum')->user() ?: Auth::user() ?: request()->user();
+
+        if (!$user) {
+            $token = request()->bearerToken();
+            if ($token) {
+                $pat = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($pat && $pat->tokenable) {
+                    $user = $pat->tokenable;
+                }
+            }
         }
+
+        if ($user) {
+            $isSuper = (bool)$user->is_super_admin 
+                || in_array($user->role, ['superadmin', 'super_admin', 'super_owner'])
+                || in_array($user->admin_role ?? '', ['super_owner', 'support_agent'])
+                || (method_exists($user, 'isSuperadmin') && $user->isSuperadmin());
+
+            if (!$isSuper) {
+                abort(403, 'غير مصرح: هذه الميزة مخصصة للسوبر أدمن فقط.');
+            }
+            return $user;
+        }
+
+        return null;
     }
 }

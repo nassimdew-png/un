@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use App\Services\WhatsAppCloudApiService;
 
 class CommunicationGatewayController extends Controller
 {
@@ -50,6 +51,15 @@ class CommunicationGatewayController extends Controller
         $data['mail_password'] = !empty($gateway->mail_password) ? '••••••••••••' : '';
         $data['sms_api_key'] = !empty($gateway->sms_api_key) ? '••••••••••••' : '';
         $data['whatsapp_token'] = !empty($gateway->whatsapp_token) ? '••••••••••••' : '';
+        $data['whatsapp_app_secret'] = !empty($gateway->whatsapp_app_secret) ? '••••••••••••' : '';
+
+        // Default Webhook parameters if not set
+        if (empty($data['whatsapp_webhook_verify_token'])) {
+            $data['whatsapp_webhook_verify_token'] = 'psypro_wa_webhook_verify_secret_2026';
+        }
+        if (empty($data['whatsapp_webhook_url'])) {
+            $data['whatsapp_webhook_url'] = 'https://psypro.tech/api/whatsapp/webhook';
+        }
 
         return response()->json([
             'success' => true,
@@ -79,6 +89,10 @@ class CommunicationGatewayController extends Controller
             'whatsapp_instance_id' => 'nullable|string',
             'whatsapp_phone_number_id' => 'nullable|string',
             'whatsapp_sender_number' => 'nullable|string',
+            'whatsapp_webhook_verify_token' => 'nullable|string',
+            'whatsapp_app_secret' => 'nullable|string',
+            'whatsapp_business_account_id' => 'nullable|string',
+            'whatsapp_webhook_url' => 'nullable|string',
             'is_whatsapp_active' => 'nullable|boolean',
         ]);
 
@@ -115,6 +129,9 @@ class CommunicationGatewayController extends Controller
         $gateway->whatsapp_instance_id = $request->input('whatsapp_instance_id');
         $gateway->whatsapp_phone_number_id = $request->input('whatsapp_phone_number_id');
         $gateway->whatsapp_sender_number = $request->input('whatsapp_sender_number');
+        $gateway->whatsapp_webhook_verify_token = $request->input('whatsapp_webhook_verify_token', 'psypro_wa_webhook_verify_secret_2026');
+        $gateway->whatsapp_business_account_id = $request->input('whatsapp_business_account_id');
+        $gateway->whatsapp_webhook_url = $request->input('whatsapp_webhook_url', 'https://psypro.tech/api/whatsapp/webhook');
         $gateway->is_whatsapp_active = filter_var($request->input('is_whatsapp_active'), FILTER_VALIDATE_BOOLEAN);
 
         $waToken = $request->input('whatsapp_token');
@@ -122,11 +139,16 @@ class CommunicationGatewayController extends Controller
             $gateway->whatsapp_token = $waToken;
         }
 
+        $waAppSecret = $request->input('whatsapp_app_secret');
+        if (!empty($waAppSecret) && !str_contains($waAppSecret, '••••')) {
+            $gateway->whatsapp_app_secret = $waAppSecret;
+        }
+
         $gateway->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'تم حفظ وتشفير إعدادات بوابات التواصل بنجاح! 💾✨',
+            'message' => 'تم حفظ وتشفير إعدادات بوابات التواصل وخطافات واتساب بنجاح! 💾✨',
         ]);
     }
 
@@ -287,5 +309,92 @@ class CommunicationGatewayController extends Controller
                 'message' => 'تعذر إرسال إشعار الواتساب التجريبي: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Get list of Meta WhatsApp templates (live + default catalog).
+     */
+    public function getTemplates(Request $request): JsonResponse
+    {
+        $res = WhatsAppCloudApiService::listTemplates();
+        return response()->json($res);
+    }
+
+    /**
+     * Create/Submit a new template to Meta WABA.
+     */
+    public function createTemplate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'category' => 'required|string|in:UTILITY,AUTHENTICATION,MARKETING,utility,authentication,marketing',
+            'language' => 'nullable|string',
+            'components' => 'required|array',
+        ]);
+
+        $res = WhatsAppCloudApiService::createTemplate([
+            'name' => $request->input('name'),
+            'category' => strtoupper($request->input('category')),
+            'language' => $request->input('language', 'ar'),
+            'components' => $request->input('components'),
+        ]);
+
+        return response()->json($res, $res['success'] ? 200 : 422);
+    }
+
+    /**
+     * Delete a template from Meta WABA.
+     */
+    public function deleteTemplate(Request $request, string $name): JsonResponse
+    {
+        $res = WhatsAppCloudApiService::deleteTemplate($name);
+        return response()->json($res, $res['success'] ? 200 : 400);
+    }
+
+    /**
+     * One-Click Sync all default clinical templates to Meta WABA.
+     */
+    public function syncDefaultTemplates(Request $request): JsonResponse
+    {
+        $res = WhatsAppCloudApiService::syncDefaultTemplates();
+        return response()->json($res);
+    }
+
+    /**
+     * Test Send a specific template with sample/custom parameters.
+     */
+    public function testSendTemplate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'test_phone' => 'required|string',
+            'template_name' => 'required|string',
+            'language' => 'nullable|string',
+            'body_parameters' => 'nullable|array',
+            'header_parameters' => 'nullable|array',
+            'button_parameters' => 'nullable|array',
+        ]);
+
+        $res = WhatsAppCloudApiService::sendCategorizedTemplate(
+            toPhone: $request->input('test_phone'),
+            templateName: $request->input('template_name'),
+            languageCode: $request->input('language', 'ar'),
+            bodyParams: $request->input('body_parameters', []),
+            headerParams: $request->input('header_parameters', []),
+            buttonParams: $request->input('button_parameters', [])
+        );
+
+        if (!empty($res['success'])) {
+            return response()->json([
+                'success' => true,
+                'message' => "تم إرسال قالب '{$request->input('template_name')}' بنجاح إلى: {$request->input('test_phone')} 💬✨",
+                'data' => $res,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $res['message'] ?? 'فشل إرسال القالب التجريبي',
+            'error' => $res['error'] ?? null,
+        ], 400);
     }
 }

@@ -10,4 +10,3 @@ Artisan::command('inspire', function () {
 
 // Automated Daily Cloud Backup (Database dump + S3/R2 Cloud Upload + 30-day rotation)
 Schedule::command('backup:cloud')->dailyAt('02:00');
-Schedule::command('clinic:backup')->dailyAt('03:00');

@@ -1,0 +1,16 @@
+الركيزة الثالثة: تطبيق المريض والواجبات المنزلية (Parent Companion PWA & Portal)
+
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-09T04:49:09+02:00.
+
+The user's current state is as follows:
+Active Document: e:\3\frontend\src\components\teletherapy\PublicPatientTeletherapyRoom.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 301
+Other open documents:
+- e:\3\frontend\src\components\teletherapy\PublicPatientTeletherapyRoom.jsx (LANGUAGE_JAVASCRIPT)
+- e:\3\frontend\src\components\teletherapy\ClinicalProtocolsModal.jsx (LANGUAGE_JAVASCRIPT)
+- e:\3\frontend\src\components\teletherapy\ClinicalCanvasData.js (LANGUAGE_JAVASCRIPT)
+- e:\3\frontend\src\components\teletherapy\TeletherapyRoomView.jsx (LANGUAGE_JAVASCRIPT)
+</ADDITIONAL_METADATA>

@@ -157,7 +157,7 @@ export default function StudentHubView() {
             <div className="space-y-2">
               <h3 className="text-2xl font-black text-white">تهانينا! تم تفعيل حسابك الأكاديمي المجاني بنجاح</h3>
               <p className="text-xs text-slate-300 max-w-md mx-auto">
-                تم إنشاء مساحة عمل تدريبية مخصصة لك صالحة لمدة 6 أشهر، بالإضافة إلى رمز تخفيض بنسبة 70% عند بدء نشاطك المهني المستقل.
+                تم إنشاء مساحة عمل تدريبية مخصصة لك صالحة لمدة 6 أشهر، بالإضافة إلى رمز تخفيض بنسبة 70% للسنة الأولى عند بدء نشاطك المهني المستقل.
               </p>
             </div>
 
@@ -181,7 +181,7 @@ export default function StudentHubView() {
               </div>
 
               <div className="flex justify-between items-center pt-1">
-                <span className="text-slate-400">رمز التخفيض المستقبلي (70%):</span>
+                <span className="text-slate-400">رمز التخفيض المستقبلي (70% للسنة الأولى):</span>
                 <span className="font-mono text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                   {resultData.discount_code}
                 </span>

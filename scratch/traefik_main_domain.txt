@@ -1,0 +1,40 @@
+7-  routers:
+8-    clinic-api-aayad-gdyd:
+9-      entryPoints:
+10-      - websecure
+11-      priority: 100
+12:      rule: Host(`aayad-gdyd.psypro.tech`) && PathPrefix(`/api`)
+13-      service: clinic-api-service
+14-      tls:
+15-        certResolver: letsencrypt
+16-    clinic-api-adrar-multidisciplinary-117-78oz:
+17-      entryPoints:
+18-      - websecure
+19-      priority: 100
+20:      rule: Host(`adrar-multidisciplinary-117-78oz.psypro.tech`) && PathPrefix(`/api`)
+21-      service: clinic-api-service
+22-      tls:
+23-        certResolver: letsencrypt
+24-    clinic-api-adrar-orthophony-1-kcei:
+25-      entryPoints:
+26-      - websecure
+27-      priority: 100
+28:      rule: Host(`adrar-orthophony-1-kcei.psypro.tech`) && PathPrefix(`/api`)
+29-      service: clinic-api-service
+30-      tls:
+31-        certResolver: letsencrypt
+32-    clinic-api-adrar-orthophony-1-yg3j:
+33-      entryPoints:
+34-      - websecure
+35-      priority: 100
+36:      rule: Host(`adrar-orthophony-1-yg3j.psypro.tech`) && PathPrefix(`/api`)
+37-      service: clinic-api-service
+38-      tls:
+39-        certResolver: letsencrypt
+40-    clinic-api-adrar-orthophony-175-n5ga:
+41-      entryPoints:
+42-      - websecure
+43-      priority: 100
+44:      rule: Host(`adrar-orthophony-175-n5ga.psypro.tech`) && PathPrefix(`/api`)
+45-      service: clinic-api-service
+46-      tls:

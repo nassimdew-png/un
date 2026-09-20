@@ -2,6 +2,9 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TenantLoginView from './auth/TenantLoginView';
+import PublicClinicBookingLandingView from './portal/PublicClinicBookingLandingView';
+import LandingPageView from './public/LandingPageView';
+import HelpCenterView from './help/HelpCenterView';
 import { isSubdomain } from '../utils/subdomain';
 
 export default function ProtectedRoute({ children }) {
@@ -22,11 +25,52 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user && !token) {
-    // If guest visitor on a clinic subdomain, render the branded TenantLoginView
+    // If visitor is on a clinic subdomain:
     if (onSubdomain) {
-      return <TenantLoginView />;
+      // If staff explicitly visits /login, /admin, or any protected clinical route -> show staff login screen
+      if (
+        location.pathname === '/login' || 
+        location.pathname === '/admin' || 
+        location.pathname === '/auth' ||
+        location.pathname.startsWith('/dashboard') ||
+        location.pathname.startsWith('/clinic') ||
+        location.pathname.startsWith('/billing') ||
+        location.pathname.startsWith('/treasury') ||
+        location.pathname.startsWith('/cash') ||
+        location.pathname.startsWith('/receipts') ||
+        location.pathname.startsWith('/appointments') ||
+        location.pathname.startsWith('/patients') ||
+        location.pathname.startsWith('/sessions') ||
+        location.pathname.startsWith('/settings') ||
+        location.pathname.startsWith('/staff') ||
+        location.pathname.startsWith('/clinical-tests')
+      ) {
+        return <TenantLoginView />;
+      }
+      // Otherwise (visiting root / or any public booking page) -> show the Clinic Landing Page & Online Booking directly!
+      return <PublicClinicBookingLandingView />;
     }
 
+    // On root platform domain (psypro.tech / psysnap.com)
+    // Allow public access to Landing, Help Center & Clinical Guide
+    if (
+      location.pathname === '/' ||
+      location.pathname === '/landing' ||
+      location.pathname === '/help' ||
+      location.pathname === '/help-center' ||
+      location.pathname === '/guide'
+    ) {
+      if (
+        location.pathname === '/help' ||
+        location.pathname === '/help-center' ||
+        location.pathname === '/guide'
+      ) {
+        return <HelpCenterView />;
+      }
+      return <LandingPageView />;
+    }
+
+    // Otherwise attempting to access protected dashboard/clinical routes -> navigate to login
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

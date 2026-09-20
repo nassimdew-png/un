@@ -23,6 +23,7 @@ import DailyClinicalPulse from './dashboard/DailyClinicalPulse';
 import SmartWaitingListDrawer from './dashboard/SmartWaitingListDrawer';
 import ActiveConsultationWorkspace from './ActiveConsultationWorkspace';
 import QuickStartSessionModal from './QuickStartSessionModal';
+import PatientArrivalCheckInModal from './reception/PatientArrivalCheckInModal';
 
 export default function Dashboard({ 
   tenant, 
@@ -31,7 +32,7 @@ export default function Dashboard({
   onOpenAddPatient, 
   onOpenAddAppointment, 
   onOpenAddInvoice, 
-  onOpenAddAssessment,
+  onOpenAddAssessment, 
   onEnterKiosk,
   setActiveTab
 }) {
@@ -44,6 +45,7 @@ export default function Dashboard({
   const [loadingSummary, setLoadingSummary] = useState(false);
 
   // Modals & Drawers
+  const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
   const [activeConsultationId, setActiveConsultationId] = useState(null);
   const [showQuickStartModal, setShowQuickStartModal] = useState(false);
   const [showWaitlistDrawer, setShowWaitlistDrawer] = useState(false);
@@ -86,6 +88,8 @@ export default function Dashboard({
     <div className="space-y-8">
       {/* 1. Daily Clinical Pulse & Live Waiting Room Queue */}
       <DailyClinicalPulse
+        user={user}
+        tenant={tenant}
         todaySummary={todaySummary}
         loadingSummary={loadingSummary}
         onRefreshSummary={fetchDashboardData}
@@ -93,6 +97,7 @@ export default function Dashboard({
         onOpenAddAppointment={onOpenAddAppointment}
         onOpenAddInvoice={onOpenAddInvoice}
         onOpenAddAssessment={onOpenAddAssessment}
+        onOpenWalkInArrival={() => setIsArrivalModalOpen(true)}
         onEnterKiosk={onEnterKiosk}
         onToggleWaitlist={() => setShowWaitlistDrawer(true)}
         onStartConsultation={(appointmentId) => setActiveConsultationId(appointmentId)}
@@ -208,6 +213,8 @@ export default function Dashboard({
         <div 
           onClick={() => setActiveTab && setActiveTab('billing')}
           className="glass-card rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group shadow-lg"
+          data-testid="dashboard-billing-card"
+          id="dashboard-billing-card"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
@@ -220,6 +227,21 @@ export default function Dashboard({
           </div>
           <div className="text-xs text-slate-400 font-medium">
             {t('dashboard.financial_health') || 'الفوترة ومتابعة السداد'}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab && setActiveTab('billing');
+              }}
+              data-testid="dashboard-billing-treasury-btn"
+              id="dashboard-billing-treasury-btn"
+              className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-black border border-emerald-500/30 flex items-center justify-between transition-all"
+            >
+              <span>الفوترة والخزينة (Billing / Treasury)</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -268,6 +290,18 @@ export default function Dashboard({
           </div>
         </div>
       )}
+
+      {/* Patient Arrival Walk-In Check-In Modal */}
+      <PatientArrivalCheckInModal
+        isOpen={isArrivalModalOpen}
+        onClose={() => setIsArrivalModalOpen(false)}
+        onSuccess={() => {
+          fetchDashboardData();
+        }}
+        tenant={tenant}
+        user={user}
+        patients={patientList}
+      />
     </div>
   );
 }

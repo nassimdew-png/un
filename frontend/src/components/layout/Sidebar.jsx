@@ -28,27 +28,30 @@ export default function Sidebar({ tenant, user, isMobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isClinicAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'admin_owner' || user?.role === 'clinic_admin' || user?.role === 'doctor';
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'superadmin' || user?.is_super_admin === true || user?.email === 'superadmin@clinic-saas.dz' || user?.email === 'admin@psypro.tech';
+  const isSecretary = user?.role === 'secretary' || user?.role === 'receptionist';
+  const isClinicAdmin = (user?.role === 'admin' || user?.role === 'owner' || user?.role === 'admin_owner' || user?.role === 'clinic_admin' || user?.role === 'doctor') && !isSecretary;
 
   const menuItems = [
-    { label: t('nav.dashboard', 'لوحة التحكم السريرية'), path: '/dashboard', icon: LayoutDashboard, show: true },
+    { label: t('nav.front_desk', '🏢 قمرة الاستقبال والسكرتارية'), path: '/front-desk', icon: Building2, show: true },
+    { label: isSecretary ? t('nav.dashboard_reception', 'لوحة الاستقبال والنبض') : t('nav.dashboard', 'لوحة التحكم السريرية'), path: '/dashboard', icon: LayoutDashboard, show: true },
     { label: t('nav.appointments', 'المواعيد والأجندة الطبية'), path: '/appointments', icon: Calendar, show: true },
-    { label: t('nav.patients', 'ملفات المرضى والأطفال'), path: '/patients', icon: Users, show: true },
-    { label: t('nav.clinical_tests', 'بنك الروائز والاختبارات'), path: '/clinical-tests', icon: Brain, badge: 'PRO ✨', badgeColor: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30', show: true },
-    { label: t('nav.exercises_bank', 'بنك التمارين والكراسات'), path: '/exercises-bank', icon: BookOpen, badge: 'NEW ✨', badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30', show: true },
-    { label: t('nav.assessments', 'التقييمات والتقارير الطبية'), path: '/assessments', icon: FileText, show: true },
-    { label: t('nav.sessions', 'الجلسات والتأهيل السريري'), path: '/sessions', icon: Stethoscope, show: true },
-    { label: t('nav.billing', 'الفوترة وسندات القبض والوصولات'), path: '/billing', icon: DollarSign, show: true },
-    { label: t('nav.ai_therapy', 'جناح العلاج بالذكاء الاصطناعي'), path: '/ai-therapy', icon: Sparkles, badge: 'AI PRO ✨', badgeColor: 'bg-purple-500/20 text-purple-300 border border-purple-500/30', show: true },
+    { label: isSecretary ? t('nav.patients_admin', 'سجلات ودليل المرضى') : t('nav.patients', 'ملفات المرضى والأطفال'), path: '/patients', icon: Users, show: true },
     { label: t('nav.waiting_room', 'قاعة الانتظار الذكية'), path: '/waiting-room', icon: Clock, show: true },
     { label: t('nav.kiosk', 'شاشة الاستقبال (Kiosk)'), path: '/kiosk', icon: Monitor, show: true },
+    { label: t('nav.billing', 'الفوترة وسندات القبض والوصولات'), path: '/billing', icon: DollarSign, show: true },
+    { label: t('nav.clinical_tests', 'بنك الروائز والاختبارات'), path: '/clinical-tests', icon: Brain, badge: 'PRO ✨', badgeColor: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30', show: !isSecretary },
+    { label: t('nav.exercises_bank', 'بنك التمارين والكراسات'), path: '/exercises-bank', icon: BookOpen, badge: 'NEW ✨', badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30', show: !isSecretary },
+    { label: t('nav.assessments', 'التقييمات والتقارير الطبية'), path: '/assessments', icon: FileText, show: !isSecretary },
+    { label: t('nav.sessions', 'الجلسات والتأهيل السريري'), path: '/sessions', icon: Stethoscope, show: !isSecretary },
+    { label: t('nav.ai_therapy', 'جناح العلاج بالذكاء الاصطناعي'), path: '/ai-therapy', icon: Sparkles, badge: 'AI PRO ✨', badgeColor: 'bg-purple-500/20 text-purple-300 border border-purple-500/30', show: !isSecretary },
     { label: t('nav.help', 'دليل الاستخدام والمساعدة'), path: '/help', icon: HelpCircle, iconColor: 'text-amber-400', show: true },
   ];
 
   const adminItems = [
-    { label: t('nav.staff', 'فريق العمل والموظفين'), path: '/staff', icon: UserCheck, show: isClinicAdmin || isSuperAdmin },
-    { label: t('nav.audit_logs', 'سجل العمليات والنشاطات'), path: '/audit-logs', icon: History, show: isClinicAdmin || isSuperAdmin },
-    { label: t('nav.settings', 'إعدادات العيادة والتهيئة'), path: '/settings', icon: Building2, show: isClinicAdmin || isSuperAdmin },
+    { label: t('nav.staff', 'فريق العمل والموظفين'), path: '/staff', icon: UserCheck, show: (isClinicAdmin || isSuperAdmin) && !isSecretary },
+    { label: t('nav.audit_logs', 'سجل العمليات والنشاطات'), path: '/audit-logs', icon: History, show: (isClinicAdmin || isSuperAdmin) && !isSecretary },
+    { label: t('nav.settings', 'إعدادات العيادة والتهيئة'), path: '/settings', icon: Building2, show: (isClinicAdmin || isSuperAdmin) && !isSecretary },
   ];
 
   const superAdminItems = [
@@ -83,12 +86,12 @@ export default function Sidebar({ tenant, user, isMobileOpen, onCloseMobile }) {
         <div>
           <div className="p-5 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center space-x-3 space-x-reverse cursor-pointer" onClick={() => handleNav('/dashboard')}>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 font-black text-xl">
-                Ψ
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-cyan-500/20 border border-slate-700/80 bg-slate-950 p-0.5 flex items-center justify-center shrink-0">
+                <img src="/psysnap-logo.png" alt="PsySnap" className="w-full h-full object-cover rounded-xl" />
               </div>
               <div className="leading-tight">
-                <span className="text-base font-black text-white block tracking-tight">PsyPro Tech</span>
-                <span className="text-[10px] text-purple-400 font-mono font-bold block truncate max-w-[140px]">
+                <span className="text-base font-black text-white block tracking-tight">PsySnap</span>
+                <span className="text-[10px] text-cyan-400 font-mono font-bold block truncate max-w-[140px]">
                   {tenant?.name || 'المنصة السريرية'}
                 </span>
               </div>
@@ -205,8 +208,21 @@ export default function Sidebar({ tenant, user, isMobileOpen, onCloseMobile }) {
                 {user?.name?.[0] || 'U'}
               </div>
               <div className="truncate">
-                <span className="font-bold text-white block truncate">{user?.name || 'مستخدم العيادة'}</span>
-                <span className="text-[10px] text-slate-400 block truncate font-mono">{user?.role || 'أخصائي'}</span>
+                <span className="text-[10px] text-slate-400 block truncate">
+                  {user?.role === 'clinic_admin' || user?.role === 'admin' || user?.role === 'admin_owner'
+                    ? (t('auth.clinic_admin_role') || 'مدير العيادة')
+                    : user?.role === 'superadmin' || user?.role === 'super_admin'
+                    ? (t('auth.superadmin_role') || 'المشرف العام')
+                    : user?.role === 'orthophonist'
+                    ? (t('auth.orthophonist_role') || 'أخصائي أرطوفونيا')
+                    : user?.role === 'psychologist'
+                    ? (t('auth.psychologist_role') || 'أخصائي نفسي')
+                    : user?.role === 'psychomotor'
+                    ? (t('auth.psychomotor_role') || 'أخصائي تأهيل حركي')
+                    : user?.role === 'secretary' || user?.role === 'receptionist'
+                    ? (t('auth.secretary_role') || 'استقبال')
+                    : (user?.role || 'أخصائي')}
+                </span>
               </div>
             </div>
             <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
